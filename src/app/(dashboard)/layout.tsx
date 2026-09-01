@@ -14,9 +14,9 @@ export default async function DashboardLayout({
   ]);
 
   return (
-    <div className="flex min-h-screen bg-bone">
+    <div className="flex min-h-screen md:h-dvh md:overflow-hidden bg-bone">
       <WebSidebar userName={session.user.name} userRoles={session.user.roles} />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 min-h-0 overflow-y-auto">
         {children}
       </main>
     </div>

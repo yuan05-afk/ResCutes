@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth/session";
-import { getCases, getCaseLocation } from "@/lib/data/service";
+import { getCases, getCaseLocation, resolveCurrentUrgency } from "@/lib/data/service";
 import { canViewExactLocation } from "@/lib/auth/permissions";
 import { NearbyMapClient } from "./nearby-client";
 
@@ -20,12 +20,13 @@ export default async function NearbyPage() {
 
   const casesWithLocation = verifiedCases.map((c) => {
     const loc = getCaseLocation(c, session.user.roles, canExact);
+    const urgency = resolveCurrentUrgency(c);
     return {
       id: c.id,
       caseNumber: c.caseNumber,
       species: c.species,
-      urgencyLevel: c.urgencyLevel,
-      urgencyScore: c.urgencyScore,
+      urgencyLevel: urgency.level,
+      urgencyScore: urgency.score,
       status: c.status,
       latitude: loc.latitude,
       longitude: loc.longitude,

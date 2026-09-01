@@ -33,14 +33,14 @@ export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
 
   return (
     <aside
-      className="hidden md:flex w-[260px] shrink-0 flex-col bg-evergreen text-white"
+      className="hidden md:flex w-[260px] shrink-0 flex-col sticky top-0 self-start h-dvh bg-evergreen text-white"
       aria-label="Main navigation"
     >
-      <div className="px-5 py-6 border-b border-white/10">
+      <div className="shrink-0 px-5 py-6 border-b border-white/10">
         <Logo variant="light" size="lg" />
       </div>
 
-      <nav className="flex-1 px-3 py-5 space-y-1">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-5 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -63,7 +63,7 @@ export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
         })}
       </nav>
 
-      <div className="border-t border-white/10 p-4">
+      <div className="shrink-0 border-t border-white/10 p-4">
         <div className="rounded-xl bg-white/10 p-4">
           <p className="text-sm font-semibold truncate">{userName}</p>
           <p className="text-xs text-white/60 mt-0.5">

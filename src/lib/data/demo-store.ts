@@ -178,6 +178,7 @@ export interface DemoHandoff {
   confirmedByStaffId?: string;
   handoffNotes?: string;
   confirmedAt?: string;
+  intakeCompletedAt?: string;
 }
 
 export interface DemoAnimalNote {
@@ -188,6 +189,15 @@ export interface DemoAnimalNote {
   noteType: string;
   content: string;
   createdAt: string;
+}
+
+/** Persist mutable demo arrays across Next.js server action / RSC module re-evaluations. */
+function bindGlobalMutable<T>(globalKey: string, seed: T): T {
+  const store = globalThis as typeof globalThis & Record<string, T | undefined>;
+  if (!store[globalKey]) {
+    store[globalKey] = seed;
+  }
+  return store[globalKey]!;
 }
 
 // Metro Manila demo geography (fictional hackathon data)
@@ -263,7 +273,7 @@ export const DEMO_USERS: DemoUser[] = [
   },
 ];
 
-export const DEMO_SHELTERS: DemoShelter[] = [
+const SEED_SHELTERS: DemoShelter[] = [
   {
     id: DEMO_IDS.shelters.pawsHope,
     name: "Paws Hope Animal Shelter",
@@ -319,6 +329,11 @@ export const DEMO_SHELTERS: DemoShelter[] = [
   },
 ];
 
+export const DEMO_SHELTERS = bindGlobalMutable(
+  "__rescutes_shelters",
+  SEED_SHELTERS,
+);
+
 function daysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -340,7 +355,15 @@ const lunaUrgency = calculateUrgencyScore({
   verifiedAt: new Date(lunaVerifiedAt),
 });
 
-export const DEMO_CASES: DemoCase[] = [
+const case004VerifiedAt = hoursAgo(1);
+const case004Urgency = calculateUrgencyScore({
+  injurySeverity: "none_visible",
+  environmentalDanger: "none",
+  vulnerability: "adult_healthy",
+  verifiedAt: new Date(case004VerifiedAt),
+});
+
+const SEED_CASES: DemoCase[] = [
   {
     id: DEMO_IDS.luna.case,
     caseNumber: "RC-2026-1042",
@@ -464,9 +487,9 @@ export const DEMO_CASES: DemoCase[] = [
     longitude: 121.0359,
     approximateLatitude: 14.5799,
     approximateLongitude: 121.0364,
-    urgencyScore: 18,
-    urgencyLevel: "low",
-    verifiedAt: hoursAgo(1),
+    urgencyScore: case004Urgency.score,
+    urgencyLevel: case004Urgency.level,
+    verifiedAt: case004VerifiedAt,
     verifiedById: DEMO_IDS.users.sarah,
     photoUrl: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400",
     createdAt: hoursAgo(3),
@@ -566,6 +589,7 @@ export const DEMO_CASES: DemoCase[] = [
     urgencyLevel: "high",
     verifiedAt: hoursAgo(4),
     verifiedById: DEMO_IDS.users.sarah,
+    assignedShelterId: DEMO_IDS.shelters.pawsHope,
     photoUrl: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400",
     createdAt: hoursAgo(6),
     updatedAt: hoursAgo(3),
@@ -670,7 +694,9 @@ export const DEMO_CASES: DemoCase[] = [
   },
 ];
 
-export const DEMO_ASSIGNMENTS: DemoAssignment[] = [
+export const DEMO_CASES = bindGlobalMutable("__rescutes_cases", SEED_CASES);
+
+const SEED_ASSIGNMENTS: DemoAssignment[] = [
   {
     id: DEMO_IDS.luna.assignment,
     caseId: DEMO_IDS.luna.case,
@@ -743,6 +769,11 @@ export const DEMO_ASSIGNMENTS: DemoAssignment[] = [
   },
 ];
 
+export const DEMO_ASSIGNMENTS = bindGlobalMutable(
+  "__rescutes_assignments",
+  SEED_ASSIGNMENTS,
+);
+
 function buildLunaRecommendations(): DemoRecommendation[] {
   const recs = calculateShelterRecommendations(
     DEMO_SHELTERS.map((s) => ({
@@ -778,9 +809,13 @@ function buildLunaRecommendations(): DemoRecommendation[] {
   }));
 }
 
-export const DEMO_RECOMMENDATIONS: DemoRecommendation[] = buildLunaRecommendations();
+const SEED_RECOMMENDATIONS = buildLunaRecommendations();
+export const DEMO_RECOMMENDATIONS = bindGlobalMutable(
+  "__rescutes_recommendations",
+  SEED_RECOMMENDATIONS,
+);
 
-export const DEMO_ANIMALS: DemoAnimal[] = [
+const SEED_ANIMALS: DemoAnimal[] = [
   {
     id: DEMO_IDS.luna.animal,
     name: "Luna",
@@ -871,23 +906,6 @@ export const DEMO_ANIMALS: DemoAnimal[] = [
     createdAt: hoursAgo(2),
   },
   {
-    id: "animal-005",
-    temporaryId: "A-2026-1008",
-    species: "cat",
-    estimatedAge: "2 years",
-    breed: "Domestic shorthair",
-    color: "Calico",
-    sex: "Female",
-    rescueCaseId: "case-008",
-    shelterId: DEMO_IDS.shelters.pawsHope,
-    intakeDate: hoursAgo(3),
-    pathwayStage: "intake",
-    recommendedNextAction: "Schedule veterinary examination for mother and kittens",
-    photoUrl: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400",
-    clearanceStatus: "awaiting_examination",
-    createdAt: hoursAgo(3),
-  },
-  {
     id: "animal-006",
     name: "Pepper",
     temporaryId: "A-2026-1011",
@@ -973,7 +991,9 @@ export const DEMO_ANIMALS: DemoAnimal[] = [
   },
 ];
 
-export const DEMO_MEDICAL_CLEARANCES: DemoMedicalClearance[] = [
+export const DEMO_ANIMALS = bindGlobalMutable("__rescutes_animals", SEED_ANIMALS);
+
+const SEED_MEDICAL_CLEARANCES: DemoMedicalClearance[] = [
   {
     id: DEMO_IDS.luna.clearance,
     animalId: DEMO_IDS.luna.animal,
@@ -1028,7 +1048,43 @@ export const DEMO_MEDICAL_CLEARANCES: DemoMedicalClearance[] = [
   },
 ];
 
-export const DEMO_STATUS_HISTORY: DemoStatusHistory[] = [
+export const DEMO_MEDICAL_CLEARANCES = bindGlobalMutable(
+  "__rescutes_medical_clearances",
+  SEED_MEDICAL_CLEARANCES,
+);
+
+const SEED_STATUS_HISTORY: DemoStatusHistory[] = [
+  {
+    id: "hist-004-1",
+    caseId: "case-004",
+    toStatus: "report_submitted",
+    createdAt: hoursAgo(3),
+  },
+  {
+    id: "hist-004-2",
+    caseId: "case-004",
+    fromStatus: "report_submitted",
+    toStatus: "under_verification",
+    changedById: DEMO_IDS.users.sarah,
+    createdAt: hoursAgo(2.5),
+  },
+  {
+    id: "hist-004-3",
+    caseId: "case-004",
+    fromStatus: "under_verification",
+    toStatus: "verified",
+    changedById: DEMO_IDS.users.sarah,
+    createdAt: hoursAgo(2),
+  },
+  {
+    id: "hist-004-4",
+    caseId: "case-004",
+    fromStatus: "verified",
+    toStatus: "rescuer_assigned",
+    changedById: DEMO_IDS.users.sarah,
+    note: "Assigned James Chen",
+    createdAt: hoursAgo(1),
+  },
   {
     id: "hist-luna-1",
     caseId: DEMO_IDS.luna.case,
@@ -1105,7 +1161,12 @@ export const DEMO_STATUS_HISTORY: DemoStatusHistory[] = [
   },
 ];
 
-export const DEMO_HANDOFFS: DemoHandoff[] = [
+export const DEMO_STATUS_HISTORY = bindGlobalMutable(
+  "__rescutes_status_history",
+  SEED_STATUS_HISTORY,
+);
+
+const SEED_HANDOFFS: DemoHandoff[] = [
   {
     id: "handoff-luna",
     caseId: DEMO_IDS.luna.case,
@@ -1117,7 +1178,12 @@ export const DEMO_HANDOFFS: DemoHandoff[] = [
   },
 ];
 
-export const DEMO_ANIMAL_NOTES: DemoAnimalNote[] = [
+export const DEMO_HANDOFFS = bindGlobalMutable(
+  "__rescutes_handoffs",
+  SEED_HANDOFFS,
+);
+
+const SEED_ANIMAL_NOTES: DemoAnimalNote[] = [
   {
     id: "note-luna-1",
     animalId: DEMO_IDS.luna.animal,
@@ -1147,7 +1213,12 @@ export const DEMO_ANIMAL_NOTES: DemoAnimalNote[] = [
   },
 ];
 
-export const DEMO_NOTIFICATIONS: DemoNotification[] = [
+export const DEMO_ANIMAL_NOTES = bindGlobalMutable(
+  "__rescutes_animal_notes",
+  SEED_ANIMAL_NOTES,
+);
+
+const SEED_NOTIFICATIONS: DemoNotification[] = [
   {
     id: "notif-1",
     userId: DEMO_IDS.users.maria,
@@ -1190,6 +1261,11 @@ export const DEMO_NOTIFICATIONS: DemoNotification[] = [
     createdAt: hoursAgo(1),
   },
 ];
+
+export const DEMO_NOTIFICATIONS = bindGlobalMutable(
+  "__rescutes_notifications",
+  SEED_NOTIFICATIONS,
+);
 
 export const DEMO_DATA_LABEL =
   "Simulated demo data for ResCutes hackathon presentation";

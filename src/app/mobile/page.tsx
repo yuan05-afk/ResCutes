@@ -5,6 +5,7 @@ import {
   getCases,
   getAssignmentsForCase,
   getShelterById,
+  resolveCurrentUrgency,
 } from "@/lib/data/service";
 import { getPrimaryMobileRole, ROLES } from "@/lib/auth/permissions";
 import { MobileHeader } from "@/components/mobile/mobile-header";
@@ -84,8 +85,8 @@ export default async function MobileHomePage() {
                 {pendingAssignment.case.caseNumber}
               </span>
               <UrgencyBadge
-                level={pendingAssignment.case.urgencyLevel}
-                score={pendingAssignment.case.urgencyScore}
+                level={resolveCurrentUrgency(pendingAssignment.case).level}
+                score={resolveCurrentUrgency(pendingAssignment.case).score}
               />
             </div>
             <p className="mt-2 text-sm text-graphite/65 line-clamp-2">
@@ -106,8 +107,8 @@ export default async function MobileHomePage() {
             status={activeCase.status}
             species={activeCase.species}
             description={activeCase.description}
-            urgencyLevel={activeCase.urgencyLevel}
-            urgencyScore={activeCase.urgencyScore}
+            urgencyLevel={resolveCurrentUrgency(activeCase).level}
+            urgencyScore={resolveCurrentUrgency(activeCase).score}
             photoUrl={activeCase.photoUrl}
             approximateLat={activeCase.approximateLatitude}
             approximateLon={activeCase.approximateLongitude}
@@ -125,8 +126,8 @@ export default async function MobileHomePage() {
             status={activeCase.status}
             species={activeCase.species}
             description={activeCase.description}
-            urgencyLevel={activeCase.urgencyLevel}
-            urgencyScore={activeCase.urgencyScore}
+            urgencyLevel={resolveCurrentUrgency(activeCase).level}
+            urgencyScore={resolveCurrentUrgency(activeCase).score}
             photoUrl={activeCase.photoUrl}
             approximateLat={activeCase.approximateLatitude}
             approximateLon={activeCase.approximateLongitude}
@@ -134,6 +135,11 @@ export default async function MobileHomePage() {
             shelterName={shelterName}
             shelterLat={shelterLat}
             shelterLon={shelterLon}
+            detailHref={
+              pendingAssignment?.caseId === activeCase.id
+                ? `/mobile/assignments/${pendingAssignment.id}`
+                : undefined
+            }
           />
         )}
 

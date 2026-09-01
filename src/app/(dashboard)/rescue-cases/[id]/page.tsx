@@ -8,6 +8,7 @@ import {
   getAnimalById,
   getShelterById,
   getRescuers,
+  resolveCurrentUrgency,
 } from "@/lib/data/service";
 import { canManageCases, canViewReporterInfo } from "@/lib/auth/permissions";
 import { notFound } from "next/navigation";
@@ -16,8 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { formatDateTime, formatStatus } from "@/lib/utils";
-import { calculateUrgencyScore } from "@/lib/urgency/scoring";
 import { CaseStaffActions } from "./case-staff-actions";
+import { DashboardHeader, PageShell } from "@/components/layout/dashboard-header";
 
 export default async function RescueCaseDetailPage({
   params,
@@ -40,27 +41,23 @@ export default async function RescueCaseDetailPage({
     ? getShelterById(caseItem.assignedShelterId)
     : null;
   const rescuers = getRescuers();
+  const acceptedAssignment = assignments.find((a) => a.status === "accepted" || a.status === "completed");
 
-  const urgencyBreakdown = calculateUrgencyScore({
-    injurySeverity: caseItem.injurySeverity as "none_visible",
-    environmentalDanger: caseItem.environmentalDanger as "none",
-    vulnerability: caseItem.vulnerability as "adult_healthy",
-    verifiedAt: caseItem.verifiedAt ? new Date(caseItem.verifiedAt) : null,
-  });
+  const currentUrgency = resolveCurrentUrgency(caseItem);
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-evergreen">{caseItem.caseNumber}</h1>
-          <div className="flex items-center gap-2 mt-2">
-            <StatusBadge status={caseItem.status} />
-            {caseItem.urgencyScore > 0 && (
-              <UrgencyBadge level={caseItem.urgencyLevel} score={caseItem.urgencyScore} />
-            )}
-          </div>
+    <PageShell className="space-y-6">
+      <DashboardHeader title={caseItem.caseNumber}>
+        <div className="flex items-center gap-2">
+          <StatusBadge status={caseItem.status} size="md" />
+          {currentUrgency.score > 0 && (
+            <UrgencyBadge
+              level={currentUrgency.level}
+              score={currentUrgency.score}
+            />
+          )}
         </div>
-      </div>
+      </DashboardHeader>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
@@ -94,8 +91,8 @@ export default async function RescueCaseDetailPage({
               <CardTitle className="text-base">Urgency Breakdown</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-graphite/80">{urgencyBreakdown.explanation}</p>
-              {urgencyBreakdown.factors.map((f) => (
+              <p className="text-sm text-graphite/80">{currentUrgency.explanation}</p>
+              {currentUrgency.factors.map((f) => (
                 <div key={f.label} className="flex justify-between text-sm border-b border-sage/20 pb-2">
                   <div>
                     <p className="font-medium">{f.label}</p>
@@ -249,9 +246,16 @@ export default async function RescueCaseDetailPage({
               <CardHeader>
                 <CardTitle className="text-base">Handoff</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm">
-                <p>{handoff.handoffNotes}</p>
-                <p className="text-xs text-graphite/50 mt-1">
+              <CardContent className="text-sm space-y-2">
+                <p className="text-evergreen font-medium">Completed</p>
+                {acceptedAssignment && (
+                  <p>
+                    <span className="text-graphite/60">Rescuer:</span>{" "}
+                    {acceptedAssignment.rescuerName}
+                  </p>
+                )}
+                {handoff.handoffNotes && <p>{handoff.handoffNotes}</p>}
+                <p className="text-xs text-graphite/50">
                   {formatDateTime(handoff.confirmedAt)}
                 </p>
               </CardContent>
@@ -278,14 +282,19 @@ export default async function RescueCaseDetailPage({
           {canManage && (
             <CaseStaffActions
               caseId={id}
+              caseNumber={caseItem.caseNumber}
               caseStatus={caseItem.status}
+              species={caseItem.species}
+              injurySeverity={caseItem.injurySeverity}
               rescuers={rescuers}
               recommendations={recommendations}
               assignedShelterId={caseItem.assignedShelterId}
+              hasHandoff={!!handoff}
+              hasAnimal={!!animal}
             />
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

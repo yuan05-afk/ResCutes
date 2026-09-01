@@ -4,6 +4,7 @@ import {
   getCaseLocation,
   getStatusHistoryForCase,
   getAssignmentsForCase,
+  resolveCurrentUrgency,
 } from "@/lib/data/service";
 import {
   canViewExactLocation,
@@ -33,6 +34,7 @@ export default async function MobileCaseDetailPage({
   const history = getStatusHistoryForCase(id);
   const assignments = getAssignmentsForCase(id);
   const myAssignment = assignments.find((a) => a.rescuerId === session.user.id);
+  const currentUrgency = resolveCurrentUrgency(caseItem);
 
   const isCitizenView =
     caseItem.reporterId === session.user.id && !canReporter;
@@ -43,8 +45,8 @@ export default async function MobileCaseDetailPage({
         <h1 className="text-lg font-semibold text-evergreen">{caseItem.caseNumber}</h1>
         <div className="flex items-center gap-2 mt-2">
           <StatusBadge status={caseItem.status} />
-          {caseItem.urgencyScore > 0 && (
-            <UrgencyBadge level={caseItem.urgencyLevel} score={caseItem.urgencyScore} />
+          {currentUrgency.score > 0 && (
+            <UrgencyBadge level={currentUrgency.level} score={currentUrgency.score} />
           )}
         </div>
       </header>
@@ -74,15 +76,17 @@ export default async function MobileCaseDetailPage({
           </CardContent>
         </Card>
 
-        {isCitizenView && caseItem.status === "shelter_handoff" && (
+        {isCitizenView &&
+          (caseItem.status === "shelter_handoff" || caseItem.animalId) && (
           <Card className="border-evergreen/30 bg-evergreen/5">
             <CardContent className="p-4">
               <p className="text-sm font-medium text-evergreen">
-                Your reported animal is safe
+                Animal is safe at shelter
               </p>
               <p className="text-sm text-graphite/70 mt-1">
-                The animal has been safely handed off to a shelter and is receiving care.
-                Medical details are not shared with reporters.
+                Your reported animal has been safely transferred to a shelter
+                and is receiving care. Medical details are not shared with
+                reporters.
               </p>
             </CardContent>
           </Card>

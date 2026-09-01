@@ -1,4 +1,4 @@
-import { getCases, getRescuers } from "@/lib/data/service";
+import { getCases, getRescuers, resolveCurrentUrgency } from "@/lib/data/service";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
@@ -52,7 +52,9 @@ export default async function RescueCasesPage({
                 </tr>
               </thead>
               <tbody>
-                {cases.map((c) => (
+                {cases.map((c) => {
+                  const urgency = resolveCurrentUrgency(c);
+                  return (
                   <tr
                     key={c.id}
                     className="border-b border-sage/15 last:border-0 hover:bg-bone/50 transition-colors"
@@ -69,8 +71,8 @@ export default async function RescueCasesPage({
                       <StatusBadge status={c.status} />
                     </td>
                     <td className="px-5 py-4">
-                      {c.urgencyScore > 0 ? (
-                        <UrgencyBadge level={c.urgencyLevel} score={c.urgencyScore} />
+                      {urgency.score > 0 ? (
+                        <UrgencyBadge level={urgency.level} score={urgency.score} />
                       ) : (
                         <span className="text-graphite/40">—</span>
                       )}
@@ -81,7 +83,8 @@ export default async function RescueCasesPage({
                       {c.description}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth/session";
-import { getCases } from "@/lib/data/service";
+import { getCases, getAssignmentsForCase, resolveCurrentUrgency } from "@/lib/data/service";
 import { getPrimaryMobileRole, ROLES } from "@/lib/auth/permissions";
 import { MobileCaseCard } from "@/components/mobile/mobile-case-card";
 import { StateMessage } from "@/components/status/state-message";
@@ -33,19 +33,35 @@ export default async function MobileCasesPage() {
             }
           />
         ) : (
-          cases.map((c) => (
-            <MobileCaseCard
-              key={c.id}
-              id={c.id}
-              caseNumber={c.caseNumber}
-              species={c.species}
-              status={c.status}
-              urgencyLevel={c.urgencyLevel}
-              urgencyScore={c.urgencyScore}
-              description={c.description}
-              photoUrl={c.photoUrl}
-            />
-          ))
+          cases.map((c) => {
+            const pendingAssignment = isRescuer
+              ? getAssignmentsForCase(c.id).find(
+                  (a) =>
+                    a.rescuerId === session.user.id && a.status === "pending",
+                )
+              : undefined;
+
+            const urgency = resolveCurrentUrgency(c);
+
+            return (
+              <MobileCaseCard
+                key={c.id}
+                id={c.id}
+                caseNumber={c.caseNumber}
+                species={c.species}
+                status={c.status}
+                urgencyLevel={urgency.level}
+                urgencyScore={urgency.score}
+                description={c.description}
+                photoUrl={c.photoUrl}
+                href={
+                  pendingAssignment
+                    ? `/mobile/assignments/${pendingAssignment.id}`
+                    : undefined
+                }
+              />
+            );
+          })
         )}
       </div>
     </div>

@@ -25,6 +25,7 @@ interface ActiveRescueCardProps {
   shelterName?: string;
   shelterLat?: number;
   shelterLon?: number;
+  detailHref?: string;
 }
 
 export function ActiveRescueCard({
@@ -42,9 +43,11 @@ export function ActiveRescueCard({
   shelterName,
   shelterLat,
   shelterLon,
+  detailHref,
 }: ActiveRescueCardProps) {
   const progressIndex = getCitizenProgressIndex(status);
   const imageUrl = getCasePhotoUrl(species, photoUrl, caseId);
+  const linkHref = detailHref ?? `/mobile/cases/${caseId}`;
 
   const markers = [
     {
@@ -67,7 +70,7 @@ export function ActiveRescueCard({
   }
 
   return (
-    <Link href={`/mobile/cases/${caseId}`} className="block group">
+    <Link href={linkHref} className="block group">
       <article className="rounded-2xl border border-sage/25 bg-white shadow-card overflow-hidden transition-shadow group-hover:shadow-card-hover">
         <div className="p-4 pb-0">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-graphite/50">

@@ -1,4 +1,4 @@
-import { getDashboardMetrics, getCases, getAnimalById } from "@/lib/data/service";
+import { getDashboardMetrics, getCases, getAnimalById, resolveCurrentUrgency } from "@/lib/data/service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { StatusBadge } from "@/components/status/status-badge";
@@ -107,14 +107,15 @@ export default function DashboardPage() {
             ) : (
               metrics.criticalCases.map((c) => {
                 const animal = c.animalId ? getAnimalById(c.animalId) : null;
+                const urgency = resolveCurrentUrgency(c);
                 return (
                   <AttentionQueueItem
                     key={c.id}
                     id={c.id}
                     caseNumber={c.caseNumber}
                     species={c.species}
-                    urgencyLevel={c.urgencyLevel}
-                    urgencyScore={c.urgencyScore}
+                    urgencyLevel={urgency.level}
+                    urgencyScore={urgency.score}
                     description={c.description}
                     photoUrl={c.photoUrl}
                     animalName={animal?.name}
@@ -191,7 +192,9 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {metrics.waitingForRescuer.slice(0, 6).map((c) => (
+                  {metrics.waitingForRescuer.slice(0, 6).map((c) => {
+                    const urgency = resolveCurrentUrgency(c);
+                    return (
                     <tr
                       key={c.id}
                       className="border-b border-sage/15 last:border-0 hover:bg-bone/40 transition-colors"
@@ -208,10 +211,10 @@ export default function DashboardPage() {
                         <StatusBadge status={c.status} />
                       </td>
                       <td className="px-5 py-3.5">
-                        {c.urgencyScore > 0 ? (
+                        {urgency.score > 0 ? (
                           <UrgencyBadge
-                            level={c.urgencyLevel}
-                            score={c.urgencyScore}
+                            level={urgency.level}
+                            score={urgency.score}
                           />
                         ) : (
                           <span className="text-graphite/40">—</span>
@@ -221,7 +224,8 @@ export default function DashboardPage() {
                         {c.species}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

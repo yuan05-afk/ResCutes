@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import {
   acceptAssignment,
@@ -10,11 +11,15 @@ import {
   assignRescuer,
   generateRecommendationsForCase,
   selectShelter,
-  confirmHandoff,
+  confirmShelterHandoff,
+  completeShelterIntake,
   overrideUrgency,
   updateMedicalClearance,
   updateShelterCapacity,
   updateShelterCapabilities,
+  getAssignmentById,
+  getAssignmentsForCase,
+  updateCaseStatusAsRescuer,
 } from "@/lib/data/service";
 import {
   canManageCases,
@@ -23,10 +28,35 @@ import {
   canManageSettings,
 } from "@/lib/auth/permissions";
 
+function revalidateCaseViews(
+  caseId: string,
+  assignmentId?: string,
+  animalId?: string,
+) {
+  revalidatePath(`/rescue-cases/${caseId}`);
+  revalidatePath("/rescue-cases");
+  revalidatePath("/dashboard");
+  revalidatePath(`/mobile/cases/${caseId}`);
+  revalidatePath("/mobile/cases");
+  revalidatePath("/mobile");
+  revalidatePath("/animals");
+  if (animalId) {
+    revalidatePath(`/animals/${animalId}`);
+  }
+  if (assignmentId) {
+    revalidatePath(`/mobile/assignments/${assignmentId}`);
+  }
+}
+
 export async function acceptAssignmentAction(assignmentId: string) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
-  acceptAssignment(assignmentId, session.user.id);
+  const accepted = acceptAssignment(assignmentId, session.user.id);
+  if (!accepted) return { error: "Assignment not found or already responded" };
+  const assignment = getAssignmentById(assignmentId);
+  if (assignment) {
+    revalidateCaseViews(assignment.caseId, assignmentId);
+  }
   return { success: true };
 }
 
@@ -37,14 +67,34 @@ export async function declineAssignmentAction(
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
   if (!reason.trim()) return { error: "Reason required" };
-  declineAssignment(assignmentId, session.user.id, reason);
+  const declined = declineAssignment(assignmentId, session.user.id, reason);
+  if (!declined) return { error: "Assignment not found or already responded" };
+  const assignment = getAssignmentById(assignmentId);
+  if (assignment) {
+    revalidateCaseViews(assignment.caseId, assignmentId);
+  }
   return { success: true };
 }
 
 export async function updateCaseStatusAction(caseId: string, status: string) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
-  updateCaseStatus(caseId, status, session.user.id);
+
+  if (canManageCases(session.user.roles)) {
+    updateCaseStatus(caseId, status, session.user.id);
+  } else {
+    const result = updateCaseStatusAsRescuer(
+      caseId,
+      session.user.id,
+      status,
+    );
+    if (!result.ok) return { error: result.error };
+  }
+
+  const assignment = getAssignmentsForCase(caseId).find(
+    (a) => a.rescuerId === session.user!.id,
+  );
+  revalidateCaseViews(caseId, assignment?.id);
   return { success: true };
 }
 
@@ -53,8 +103,10 @@ export async function verifyCaseAction(caseId: string) {
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  verifyCase(caseId, session.user.id);
+  const updated = verifyCase(caseId, session.user.id);
+  if (!updated) return { error: "Case not found" };
   generateRecommendationsForCase(caseId);
+  revalidateCaseViews(caseId);
   return { success: true };
 }
 
@@ -64,6 +116,7 @@ export async function rejectCaseAction(caseId: string, reason: string) {
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
   rejectCase(caseId, session.user.id, reason);
+  revalidateCaseViews(caseId);
   return { success: true };
 }
 
@@ -73,6 +126,7 @@ export async function assignRescuerAction(caseId: string, rescuerId: string) {
   if (!canAssignRescuer(session.user.roles))
     return { error: "Unauthorized" };
   assignRescuer(caseId, rescuerId, session.user.id);
+  revalidateCaseViews(caseId);
   return { success: true };
 }
 
@@ -86,6 +140,7 @@ export async function selectShelterAction(
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
   selectShelter(caseId, shelterId, session.user.id, rejectionReason);
+  revalidateCaseViews(caseId);
   return { success: true };
 }
 
@@ -96,14 +151,41 @@ export async function confirmHandoffAction(
 ) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
-  confirmHandoff(
+  if (!canManageCases(session.user.roles))
+    return { error: "Unauthorized" };
+  const result = confirmShelterHandoff(
     caseId,
     shelterId,
     session.user.id,
-    session.user.id,
     notes,
   );
+  if (!result.ok) return { error: result.error };
+  const assignment = getAssignmentsForCase(caseId).find(
+    (a) => a.status === "completed" || a.status === "accepted",
+  );
+  revalidateCaseViews(caseId, assignment?.id);
   return { success: true };
+}
+
+export async function completeShelterIntakeAction(
+  caseId: string,
+  input?: {
+    name?: string;
+    estimatedAge?: string;
+    sex?: string;
+    breed?: string;
+    color?: string;
+    initialCondition?: string;
+  },
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+  if (!canManageCases(session.user.roles))
+    return { error: "Unauthorized" };
+  const result = completeShelterIntake(caseId, session.user.id, input);
+  if (!result.ok) return { error: result.error };
+  revalidateCaseViews(caseId, undefined, result.animalId);
+  return { success: true, animalId: result.animalId };
 }
 
 export async function overrideUrgencyAction(

@@ -15,10 +15,14 @@ import {
   confirmHandoffAction,
   overrideUrgencyAction,
 } from "@/app/actions/case";
+import { CaseIntakeForm } from "./case-intake-form";
 
 interface CaseStaffActionsProps {
   caseId: string;
+  caseNumber: string;
   caseStatus: string;
+  species: string;
+  injurySeverity: string;
   rescuers: { id: string; name: string }[];
   recommendations: {
     shelterId: string;
@@ -26,14 +30,21 @@ interface CaseStaffActionsProps {
     rank: number;
   }[];
   assignedShelterId?: string;
+  hasHandoff?: boolean;
+  hasAnimal?: boolean;
 }
 
 export function CaseStaffActions({
   caseId,
+  caseNumber,
   caseStatus,
+  species,
+  injurySeverity,
   rescuers,
   recommendations,
   assignedShelterId,
+  hasHandoff,
+  hasAnimal,
 }: CaseStaffActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -44,10 +55,26 @@ export function CaseStaffActions({
   const [selectedShelter, setSelectedShelter] = useState("");
   const [shelterRejectReason, setShelterRejectReason] = useState("");
   const [handoffNotes, setHandoffNotes] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  async function runAction(fn: () => Promise<unknown>) {
+  const temporaryId = `A-${caseNumber.replace("RC-", "")}`;
+  const showRescueStageActions =
+    !hasHandoff &&
+    !["shelter_handoff", "completed", "rejected", "duplicate", "cancelled"].includes(
+      caseStatus,
+    );
+
+  async function runAction(
+    fn: () => Promise<{ error?: string; success?: boolean } | void>,
+  ) {
     setLoading(true);
-    await fn();
+    setActionError(null);
+    const result = await fn();
+    if (result && typeof result === "object" && "error" in result && result.error) {
+      setActionError(result.error);
+      setLoading(false);
+      return;
+    }
     router.refresh();
     setLoading(false);
   }
@@ -58,6 +85,11 @@ export function CaseStaffActions({
         <CardTitle className="text-base">Staff Actions</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {actionError && (
+          <p className="text-sm text-rescue rounded-lg border border-rescue/20 bg-rescue/5 px-3 py-2">
+            {actionError}
+          </p>
+        )}
         {(caseStatus === "report_submitted" || caseStatus === "under_verification") && (
           <div className="space-y-2">
             <Button
@@ -108,35 +140,39 @@ export function CaseStaffActions({
           </div>
         )}
 
-        <div className="space-y-2 border-t border-sage/30 pt-4">
-          <p className="text-xs font-medium text-graphite/70">Override Urgency</p>
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            value={overrideScore}
-            onChange={(e) => setOverrideScore(parseInt(e.target.value))}
-          />
-          <Textarea
-            placeholder="Override reason (required)..."
-            value={overrideReason}
-            onChange={(e) => setOverrideReason(e.target.value)}
-          />
-          <Button
-            variant="outline"
-            onClick={() =>
-              runAction(() =>
-                overrideUrgencyAction(caseId, overrideScore, overrideReason),
-              )
-            }
-            disabled={loading || !overrideReason.trim()}
-            className="w-full"
-          >
-            Apply Override
-          </Button>
-        </div>
+        {showRescueStageActions && (
+          <div className="space-y-2 border-t border-sage/30 pt-4">
+            <p className="text-xs font-medium text-graphite/70">Override Urgency</p>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={overrideScore}
+              onChange={(e) => setOverrideScore(parseInt(e.target.value))}
+            />
+            <Textarea
+              placeholder="Override reason (required)..."
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+            />
+            <Button
+              variant="outline"
+              onClick={() =>
+                runAction(() =>
+                  overrideUrgencyAction(caseId, overrideScore, overrideReason),
+                )
+              }
+              disabled={loading || !overrideReason.trim()}
+              className="w-full"
+            >
+              Apply Override
+            </Button>
+          </div>
+        )}
 
-        {recommendations.length > 0 && !assignedShelterId && (
+        {showRescueStageActions &&
+          recommendations.length > 0 &&
+          !assignedShelterId && (
           <div className="space-y-2 border-t border-sage/30 pt-4">
             <p className="text-xs font-medium text-graphite/70">Select Shelter</p>
             <Select
@@ -183,11 +219,14 @@ export function CaseStaffActions({
           </div>
         )}
 
-        {(caseStatus === "awaiting_shelter" || caseStatus === "animal_secured") &&
-          assignedShelterId && (
+        {showRescueStageActions &&
+          caseStatus === "awaiting_shelter" &&
+          assignedShelterId &&
+          !hasHandoff && (
           <div className="space-y-2 border-t border-sage/30 pt-4">
+            <p className="text-xs font-medium text-graphite/70">Shelter Handoff</p>
             <Textarea
-              placeholder="Handoff notes..."
+              placeholder="Handoff notes (optional)..."
               value={handoffNotes}
               onChange={(e) => setHandoffNotes(e.target.value)}
             />
@@ -203,6 +242,15 @@ export function CaseStaffActions({
               Confirm Shelter Handoff
             </Button>
           </div>
+        )}
+
+        {caseStatus === "shelter_handoff" && hasHandoff && !hasAnimal && (
+          <CaseIntakeForm
+            caseId={caseId}
+            species={species}
+            temporaryId={temporaryId}
+            injurySeverity={injurySeverity}
+          />
         )}
       </CardContent>
     </Card>

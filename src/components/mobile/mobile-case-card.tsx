@@ -14,6 +14,7 @@ interface MobileCaseCardProps {
   urgencyScore: number;
   description: string;
   photoUrl?: string;
+  href?: string;
 }
 
 export function MobileCaseCard({
@@ -25,11 +26,13 @@ export function MobileCaseCard({
   urgencyScore,
   description,
   photoUrl,
+  href,
 }: MobileCaseCardProps) {
   const imageUrl = getCasePhotoUrl(species, photoUrl, id);
+  const linkHref = href ?? `/mobile/cases/${id}`;
 
   return (
-    <Link href={`/mobile/cases/${id}`} className="block group">
+    <Link href={linkHref} className="block group">
       <article
         className="flex gap-3 rounded-2xl border border-sage/25 bg-white p-4 shadow-card transition-shadow group-hover:shadow-card-hover"
       >

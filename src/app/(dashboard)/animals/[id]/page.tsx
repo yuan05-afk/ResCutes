@@ -14,6 +14,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { formatDate, formatDateTime, formatStatus } from "@/lib/utils";
 import { MedicalClearanceForm } from "./medical-form";
+import { PageShell } from "@/components/layout/dashboard-header";
+
+function displayOrUnknown(value?: string) {
+  return value?.trim() ? value : "Unknown";
+}
+
+function InfoField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-graphite/60">{label}</p>
+      <p className="font-medium text-graphite mt-0.5">{value}</p>
+    </div>
+  );
+}
 
 export default async function AnimalDetailPage({
   params,
@@ -40,47 +54,60 @@ export default async function AnimalDetailPage({
     (n) => n.noteType === "field" || n.noteType === "rescue",
   );
 
+  const displayTitle = animal.name ?? animal.temporaryId;
+  const showTemporaryId =
+    animal.name && animal.name.trim() !== animal.temporaryId;
+
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
-      <div className="flex items-start gap-6">
-        {animal.photoUrl && (
-          <div className="relative h-32 w-32 rounded-lg overflow-hidden bg-sage/20 shrink-0">
-            <Image
-              src={animal.photoUrl}
-              alt={animal.name ?? "Animal"}
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-        )}
-        <div>
-          <h1 className="text-2xl font-semibold text-evergreen">
-            {animal.name ?? animal.temporaryId}
-          </h1>
-          <p className="text-sm text-graphite/70">{animal.temporaryId}</p>
-          <div className="flex gap-2 mt-2">
-            <StatusBadge status={animal.clearanceStatus} />
-            <span className="text-xs rounded-full bg-sage/20 px-2 py-0.5 text-evergreen capitalize">
-              {formatStatus(animal.pathwayStage)}
-            </span>
+    <PageShell className="space-y-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-5 min-w-0">
+          {animal.photoUrl && (
+            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-sage/20">
+              <Image
+                src={animal.photoUrl}
+                alt={displayTitle}
+                fill
+                className="object-cover"
+                unoptimized
+                sizes="96px"
+              />
+            </div>
+          )}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-graphite md:text-[28px]">
+              {displayTitle}
+            </h1>
+            <p className="mt-1 text-sm text-graphite/60 capitalize">
+              {formatStatus(animal.species)}
+              {showTemporaryId ? ` · ${animal.temporaryId}` : ""}
+            </p>
           </div>
         </div>
-      </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <StatusBadge status={animal.clearanceStatus} size="md" />
+          <span className="inline-flex items-center rounded-full bg-sage/20 px-3 py-1 text-xs font-medium text-evergreen capitalize">
+            {formatStatus(animal.pathwayStage)}
+          </span>
+        </div>
+      </header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid gap-6 lg:grid-cols-12">
+        <div className="space-y-6 lg:col-span-8">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Basic Information</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-              <p><span className="text-graphite/60">Species:</span> {formatStatus(animal.species)}</p>
-              <p><span className="text-graphite/60">Age:</span> {animal.estimatedAge ?? "—"}</p>
-              <p><span className="text-graphite/60">Breed:</span> {animal.breed ?? "—"}</p>
-              <p><span className="text-graphite/60">Color:</span> {animal.color ?? "—"}</p>
-              <p><span className="text-graphite/60">Sex:</span> {animal.sex ?? "—"}</p>
-              <p><span className="text-graphite/60">Intake:</span> {formatDate(animal.intakeDate)}</p>
+            <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
+              <InfoField label="Species" value={formatStatus(animal.species)} />
+              <InfoField label="Age" value={displayOrUnknown(animal.estimatedAge)} />
+              <InfoField label="Breed" value={displayOrUnknown(animal.breed)} />
+              <InfoField label="Color" value={displayOrUnknown(animal.color)} />
+              <InfoField label="Sex" value={displayOrUnknown(animal.sex)} />
+              <InfoField
+                label="Intake"
+                value={animal.intakeDate ? formatDate(animal.intakeDate) : "Unknown"}
+              />
             </CardContent>
           </Card>
 
@@ -93,7 +120,7 @@ export default async function AnimalDetailPage({
                 <p>
                   <Link
                     href={`/rescue-cases/${rescueCase.id}`}
-                    className="text-evergreen hover:underline"
+                    className="text-evergreen hover:underline font-medium"
                   >
                     {rescueCase.caseNumber}
                   </Link>
@@ -113,7 +140,7 @@ export default async function AnimalDetailPage({
               </CardHeader>
               <CardContent className="text-sm">
                 <p className="font-medium">{shelter.name}</p>
-                <p className="text-graphite/70">{shelter.address}</p>
+                <p className="text-graphite/70 mt-1">{shelter.address}</p>
               </CardContent>
             </Card>
           )}
@@ -123,15 +150,51 @@ export default async function AnimalDetailPage({
               <CardHeader>
                 <CardTitle className="text-base">Medical Handoff & Clearance</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm space-y-2">
-                <p><span className="text-graphite/60">Examination:</span> {formatDate(clearance.examinationDate)}</p>
-                <p><span className="text-graphite/60">Veterinarian:</span> {clearance.veterinarianName ?? "—"}</p>
-                <p><span className="text-graphite/60">Condition:</span> {clearance.generalCondition ?? "—"}</p>
-                <p><span className="text-graphite/60">Priority:</span> {clearance.medicalPriority ? formatStatus(clearance.medicalPriority) : "—"}</p>
-                <p><span className="text-graphite/60">Treatment:</span> {clearance.treatmentSummary ?? "—"}</p>
-                <p><span className="text-graphite/60">Restrictions:</span> {clearance.restrictions ?? "—"}</p>
-                <p><span className="text-graphite/60">Follow-up:</span> {formatDate(clearance.followUpDate)}</p>
-                <p><span className="text-graphite/60">Notes:</span> {clearance.veterinarianNotes ?? "—"}</p>
+              <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
+                <InfoField
+                  label="Examination"
+                  value={
+                    clearance.examinationDate
+                      ? formatDate(clearance.examinationDate)
+                      : "Unknown"
+                  }
+                />
+                <InfoField
+                  label="Veterinarian"
+                  value={displayOrUnknown(clearance.veterinarianName)}
+                />
+                <InfoField
+                  label="Condition"
+                  value={displayOrUnknown(clearance.generalCondition)}
+                />
+                <InfoField
+                  label="Priority"
+                  value={
+                    clearance.medicalPriority
+                      ? formatStatus(clearance.medicalPriority)
+                      : "Unknown"
+                  }
+                />
+                <InfoField
+                  label="Treatment"
+                  value={displayOrUnknown(clearance.treatmentSummary)}
+                />
+                <InfoField
+                  label="Restrictions"
+                  value={displayOrUnknown(clearance.restrictions)}
+                />
+                <InfoField
+                  label="Follow-up"
+                  value={
+                    clearance.followUpDate
+                      ? formatDate(clearance.followUpDate)
+                      : "Unknown"
+                  }
+                />
+                <InfoField
+                  label="Notes"
+                  value={displayOrUnknown(clearance.veterinarianNotes)}
+                />
               </CardContent>
             </Card>
           )}
@@ -139,7 +202,8 @@ export default async function AnimalDetailPage({
           {!canMedical && (
             <Card>
               <CardContent className="p-4 text-sm text-graphite/70">
-                Medical information is restricted to authorized staff and veterinarians.
+                Medical information is restricted to authorized staff and
+                veterinarians.
               </CardContent>
             </Card>
           )}
@@ -151,7 +215,7 @@ export default async function AnimalDetailPage({
               </CardHeader>
               <CardContent className="space-y-3">
                 {behaviorNotes.map((n) => (
-                  <div key={n.id} className="text-sm border-b border-sage/20 pb-2">
+                  <div key={n.id} className="text-sm border-b border-sage/20 pb-2 last:border-0">
                     <p>{n.content}</p>
                     <p className="text-xs text-graphite/50 mt-1">
                       {n.authorName} — {formatDateTime(n.createdAt)}
@@ -169,7 +233,7 @@ export default async function AnimalDetailPage({
               </CardHeader>
               <CardContent className="space-y-3">
                 {staffNotes.map((n) => (
-                  <div key={n.id} className="text-sm border-b border-sage/20 pb-2">
+                  <div key={n.id} className="text-sm border-b border-sage/20 pb-2 last:border-0">
                     <p>{n.content}</p>
                     <p className="text-xs text-graphite/50 mt-1">
                       {n.authorName} — {formatDateTime(n.createdAt)}
@@ -187,7 +251,7 @@ export default async function AnimalDetailPage({
               </CardHeader>
               <CardContent className="space-y-3">
                 {fieldNotes.map((n) => (
-                  <div key={n.id} className="text-sm border-b border-sage/20 pb-2">
+                  <div key={n.id} className="text-sm border-b border-sage/20 pb-2 last:border-0">
                     <p>{n.content}</p>
                     <p className="text-xs text-graphite/50 mt-1">
                       {n.authorName} — {formatDateTime(n.createdAt)}
@@ -199,13 +263,15 @@ export default async function AnimalDetailPage({
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 lg:col-span-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Shelter Pathway</CardTitle>
             </CardHeader>
             <CardContent className="text-sm">
-              <p className="capitalize font-medium">{formatStatus(animal.pathwayStage)}</p>
+              <p className="capitalize font-medium text-graphite">
+                {formatStatus(animal.pathwayStage)}
+              </p>
             </CardContent>
           </Card>
 
@@ -213,19 +279,16 @@ export default async function AnimalDetailPage({
             <CardHeader>
               <CardTitle className="text-base">Recommended Next Action</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-graphite/80">
+            <CardContent className="text-sm text-graphite/80 leading-relaxed">
               {animal.recommendedNextAction ?? "No action specified"}
             </CardContent>
           </Card>
 
           {canEdit && (
-            <MedicalClearanceForm
-              animalId={id}
-              clearance={clearance}
-            />
+            <MedicalClearanceForm animalId={id} clearance={clearance} />
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

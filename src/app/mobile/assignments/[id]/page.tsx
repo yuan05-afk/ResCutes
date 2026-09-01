@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth/session";
-import { getAssignmentById, getCaseById } from "@/lib/data/service";
+import { getAssignmentById, getCaseById, getShelterById, resolveCurrentUrgency } from "@/lib/data/service";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,11 @@ export default async function AssignmentDetailPage({
     notFound();
   }
 
+  const currentUrgency = resolveCurrentUrgency(caseItem);
+  const shelter = caseItem.assignedShelterId
+    ? getShelterById(caseItem.assignedShelterId)
+    : null;
+
   return (
     <div>
       <header className="border-b border-sage/30 bg-white px-4 py-4">
@@ -44,9 +49,11 @@ export default async function AssignmentDetailPage({
           </div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={assignment.status} />
-          <UrgencyBadge level={caseItem.urgencyLevel} score={caseItem.urgencyScore} />
+          <StatusBadge status={caseItem.status} />
+          <StatusBadge status={caseItem.status} />
+          <UrgencyBadge level={currentUrgency.level} score={currentUrgency.score} />
         </div>
 
         <Card>
@@ -68,6 +75,8 @@ export default async function AssignmentDetailPage({
           caseStatus={caseItem.status}
           latitude={caseItem.latitude}
           longitude={caseItem.longitude}
+          shelterName={shelter?.name}
+          shelterAddress={shelter?.address}
         />
       </div>
     </div>
