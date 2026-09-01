@@ -20,6 +20,7 @@ import {
   getAssignmentById,
   getAssignmentsForCase,
   updateCaseStatusAsRescuer,
+  type ClearanceStatus,
 } from "@/lib/data/service";
 import {
   canManageCases,
@@ -219,7 +220,17 @@ export async function updateMedicalClearanceAction(
   if (!session?.user) return { error: "Unauthorized" };
   if (!canEditMedical(session.user.roles))
     return { error: "Unauthorized" };
-  updateMedicalClearance(animalId, session.user.id, data);
+
+  const result = updateMedicalClearance(animalId, session.user.id, {
+    ...data,
+    clearanceStatus: data.clearanceStatus as ClearanceStatus,
+  });
+
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/animals");
+  revalidatePath(`/animals/${animalId}`);
   return { success: true };
 }
 

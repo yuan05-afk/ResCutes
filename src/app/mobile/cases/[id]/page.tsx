@@ -15,7 +15,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
-import { formatDateTime, formatStatus } from "@/lib/utils";
+import { formatDateTime, formatStatus, formatTimelineLabel } from "@/lib/utils";
 import { CaseActionsClient } from "./case-actions";
 
 export default async function MobileCaseDetailPage({
@@ -128,7 +128,7 @@ export default async function MobileCaseDetailPage({
                 <div key={h.id} className="flex gap-3 text-sm">
                   <div className="w-2 h-2 rounded-full bg-sage mt-1.5 shrink-0" />
                   <div>
-                    <p className="font-medium">{formatStatus(h.toStatus)}</p>
+                    <p className="font-medium">{formatTimelineLabel(h)}</p>
                     {h.note && <p className="text-graphite/70">{h.note}</p>}
                     <p className="text-xs text-graphite/50">{formatDateTime(h.createdAt)}</p>
                   </div>

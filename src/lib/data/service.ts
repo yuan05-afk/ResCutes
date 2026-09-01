@@ -283,7 +283,8 @@ export function getDashboardMetrics() {
   const awaitingMedical = DEMO_ANIMALS.filter(
     (a) =>
       a.clearanceStatus === "awaiting_examination" ||
-      a.clearanceStatus === "under_examination",
+      a.clearanceStatus === "under_examination" ||
+      a.clearanceStatus === "follow_up_required",
   );
   const underTreatment = DEMO_ANIMALS.filter(
     (a) => a.clearanceStatus === "under_treatment",
@@ -875,22 +876,136 @@ export function confirmHandoff(
   if (!result.ok) return;
 }
 
+export const CLEARANCE_STATUSES = [
+  "awaiting_examination",
+  "under_examination",
+  "under_treatment",
+  "follow_up_required",
+  "medically_cleared",
+] as const;
+
+export type ClearanceStatus = (typeof CLEARANCE_STATUSES)[number];
+
+const CLEARANCE_TRANSITIONS: Record<ClearanceStatus, ClearanceStatus[]> = {
+  awaiting_examination: [
+    "under_examination",
+    "under_treatment",
+    "follow_up_required",
+  ],
+  under_examination: [
+    "under_treatment",
+    "follow_up_required",
+    "medically_cleared",
+  ],
+  under_treatment: ["follow_up_required", "medically_cleared"],
+  follow_up_required: ["under_treatment", "medically_cleared"],
+  medically_cleared: [],
+};
+
+function recommendedActionForClearance(status: ClearanceStatus): string {
+  switch (status) {
+    case "awaiting_examination":
+      return "Schedule veterinary examination";
+    case "under_examination":
+      return "Complete veterinary examination";
+    case "under_treatment":
+      return "Continue treatment and monitor recovery";
+    case "follow_up_required":
+      return "Schedule follow-up veterinary examination";
+    case "medically_cleared":
+      return "Complete behavioral assessment";
+    default:
+      return "Review animal status";
+  }
+}
+
+function applyClearanceStatusToAnimal(
+  animal: DemoAnimal,
+  status: ClearanceStatus,
+): void {
+  animal.clearanceStatus = status;
+  animal.recommendedNextAction = recommendedActionForClearance(status);
+
+  if (status === "medically_cleared") {
+    animal.pathwayStage = "behavior_assessment";
+  } else {
+    animal.pathwayStage = "medical_clearance";
+  }
+}
+
+export interface MedicalClearanceInput {
+  examinationDate?: string;
+  generalCondition?: string;
+  medicalPriority?: string;
+  treatmentSummary?: string;
+  restrictions?: string;
+  followUpDate?: string;
+  clearanceStatus: ClearanceStatus;
+  veterinarianNotes?: string;
+}
+
 export function updateMedicalClearance(
   animalId: string,
   vetId: string,
-  data: {
-    examinationDate?: string;
-    generalCondition?: string;
-    medicalPriority?: string;
-    treatmentSummary?: string;
-    restrictions?: string;
-    followUpDate?: string;
-    clearanceStatus: string;
-    veterinarianNotes?: string;
-  },
-): void {
+  data: MedicalClearanceInput,
+): { ok: true } | { ok: false; error: string } {
   const animal = DEMO_ANIMALS.find((a) => a.id === animalId);
-  if (!animal) return;
+  if (!animal) {
+    return { ok: false, error: "Animal not found" };
+  }
+
+  const currentStatus = animal.clearanceStatus as ClearanceStatus;
+  const targetStatus = data.clearanceStatus;
+
+  if (!CLEARANCE_STATUSES.includes(targetStatus)) {
+    return { ok: false, error: "Invalid clearance status" };
+  }
+
+  if (currentStatus === "medically_cleared") {
+    return {
+      ok: false,
+      error: "Medical clearance is complete and cannot be modified",
+    };
+  }
+
+  if (targetStatus !== currentStatus) {
+    const allowed = CLEARANCE_TRANSITIONS[currentStatus];
+    if (!allowed.includes(targetStatus)) {
+      return {
+        ok: false,
+        error: `Cannot transition from ${currentStatus.replace(/_/g, " ")} to ${targetStatus.replace(/_/g, " ")}`,
+      };
+    }
+  }
+
+  const recordingExam =
+    currentStatus === "awaiting_examination" ||
+    currentStatus === "under_examination";
+  const completingExam =
+    recordingExam &&
+    (targetStatus === "under_treatment" ||
+      targetStatus === "follow_up_required" ||
+      targetStatus === "medically_cleared");
+
+  if (completingExam && !data.generalCondition?.trim()) {
+    return { ok: false, error: "General condition is required to record examination" };
+  }
+
+  if (
+    targetStatus === "under_treatment" &&
+    targetStatus !== currentStatus &&
+    !data.treatmentSummary?.trim()
+  ) {
+    return { ok: false, error: "Treatment summary is required for under treatment" };
+  }
+
+  if (
+    targetStatus === "follow_up_required" &&
+    targetStatus !== currentStatus &&
+    !data.followUpDate
+  ) {
+    return { ok: false, error: "Follow-up date is required" };
+  }
 
   let clearance = DEMO_MEDICAL_CLEARANCES.find((m) => m.animalId === animalId);
   const vet = DEMO_USERS.find((u) => u.id === vetId);
@@ -901,24 +1016,53 @@ export function updateMedicalClearance(
       animalId,
       veterinarianId: vetId,
       veterinarianName: vet?.name,
-      clearanceStatus: data.clearanceStatus,
+      clearanceStatus: targetStatus,
     };
     DEMO_MEDICAL_CLEARANCES.push(clearance);
   }
 
+  const examinationDate =
+    data.examinationDate ??
+    clearance.examinationDate ??
+    (completingExam || targetStatus === "under_examination"
+      ? new Date().toISOString()
+      : undefined);
+
   Object.assign(clearance, {
-    ...data,
+    generalCondition: data.generalCondition ?? clearance.generalCondition,
+    medicalPriority: data.medicalPriority ?? clearance.medicalPriority,
+    treatmentSummary: data.treatmentSummary ?? clearance.treatmentSummary,
+    restrictions: data.restrictions ?? clearance.restrictions,
+    followUpDate: data.followUpDate ?? clearance.followUpDate,
+    veterinarianNotes: data.veterinarianNotes ?? clearance.veterinarianNotes,
+    examinationDate,
+    clearanceStatus: targetStatus,
     veterinarianId: vetId,
     veterinarianName: vet?.name,
   });
 
-  animal.clearanceStatus = data.clearanceStatus;
-  if (data.clearanceStatus === "medically_cleared") {
-    animal.pathwayStage = "behavior_assessment";
-    animal.recommendedNextAction = "Complete behavioral assessment";
-  } else if (data.clearanceStatus === "under_treatment") {
-    animal.pathwayStage = "medical_clearance";
+  const wasCleared = currentStatus === "medically_cleared";
+  applyClearanceStatusToAnimal(animal, targetStatus);
+
+  if (targetStatus === "medically_cleared" && !wasCleared) {
+    const staffUsers = DEMO_USERS.filter((u) =>
+      u.roles.includes("shelter_staff"),
+    );
+    for (const staff of staffUsers) {
+      DEMO_NOTIFICATIONS.push({
+        id: `notif-cleared-${animalId}-${staff.id}-${Date.now()}`,
+        userId: staff.id,
+        type: "system",
+        title: "Animal medically cleared",
+        message: `${animal.temporaryId}${animal.name ? ` (${animal.name})` : ""} is medically cleared and ready for behavioral assessment.`,
+        caseId: animal.rescueCaseId,
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
+    }
   }
+
+  return { ok: true };
 }
 
 export function overrideUrgency(

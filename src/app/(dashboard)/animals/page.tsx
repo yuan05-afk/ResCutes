@@ -2,10 +2,10 @@ import { getAnimals } from "@/lib/data/service";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import Link from "next/link";
-import Image from "next/image";
 import { formatDate, formatStatus } from "@/lib/utils";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { DashboardHeader, PageShell } from "@/components/layout/dashboard-header";
+import { AnimalImage } from "@/components/ui/animal-image";
 
 export default async function AnimalsPage({
   searchParams,
@@ -56,16 +56,13 @@ export default async function AnimalsPage({
                           href={`/animals/${a.id}`}
                           className="flex items-center gap-3 hover:text-evergreen"
                         >
-                          <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-sage/20">
-                            <Image
-                              src={img}
-                              alt=""
-                              fill
-                              className="object-cover"
-                              unoptimized
-                              sizes="44px"
-                            />
-                          </div>
+                          <AnimalImage
+                            src={img}
+                            species={a.species}
+                            alt={a.name ?? a.temporaryId}
+                            containerClassName="h-11 w-11 shrink-0 rounded-xl"
+                            sizes="44px"
+                          />
                           <div>
                             <p className="font-semibold text-graphite">
                               {a.name ?? a.temporaryId}

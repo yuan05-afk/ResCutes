@@ -8,20 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/status/status-badge";
 import { updateMedicalClearanceAction } from "@/app/actions/case";
-
-const CLEARANCE_STATUSES = [
-  "awaiting_examination",
-  "under_examination",
-  "under_treatment",
-  "follow_up_required",
-  "medically_cleared",
-];
+import type { ClearanceStatus } from "@/lib/data/service";
+import { formatStatus } from "@/lib/utils";
 
 const PRIORITIES = ["routine", "urgent", "emergency"];
 
 interface MedicalClearanceFormProps {
   animalId: string;
+  clearanceStatus: ClearanceStatus;
   clearance?: {
     examinationDate?: string;
     generalCondition?: string;
@@ -36,25 +32,57 @@ interface MedicalClearanceFormProps {
 
 export function MedicalClearanceForm({
   animalId,
+  clearanceStatus,
   clearance,
 }: MedicalClearanceFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showTreatmentFields, setShowTreatmentFields] = useState(
+    clearanceStatus === "under_treatment" ||
+      Boolean(clearance?.treatmentSummary?.trim()),
+  );
+  const [showFollowUpFields, setShowFollowUpFields] = useState(
+    clearanceStatus === "follow_up_required" ||
+      Boolean(clearance?.followUpDate),
+  );
   const [form, setForm] = useState({
     generalCondition: clearance?.generalCondition ?? "",
     medicalPriority: clearance?.medicalPriority ?? "routine",
     treatmentSummary: clearance?.treatmentSummary ?? "",
     restrictions: clearance?.restrictions ?? "",
-    clearanceStatus: clearance?.clearanceStatus ?? "awaiting_examination",
     veterinarianNotes: clearance?.veterinarianNotes ?? "",
     followUpDate: clearance?.followUpDate?.split("T")[0] ?? "",
   });
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const isExamPhase =
+    clearanceStatus === "awaiting_examination" ||
+    clearanceStatus === "under_examination";
+
+  async function submitStatus(targetStatus: ClearanceStatus) {
+    if (
+      targetStatus === "under_treatment" &&
+      !showTreatmentFields &&
+      isExamPhase
+    ) {
+      setShowTreatmentFields(true);
+      setError("Add treatment details below, then submit again.");
+      return;
+    }
+
+    if (
+      targetStatus === "follow_up_required" &&
+      !showFollowUpFields
+    ) {
+      setShowFollowUpFields(true);
+      setError("Set a follow-up date below, then submit again.");
+      return;
+    }
+
     setLoading(true);
-    await updateMedicalClearanceAction(animalId, {
-      examinationDate: new Date().toISOString(),
+    setError(null);
+
+    const result = await updateMedicalClearanceAction(animalId, {
       generalCondition: form.generalCondition,
       medicalPriority: form.medicalPriority,
       treatmentSummary: form.treatmentSummary,
@@ -62,20 +90,58 @@ export function MedicalClearanceForm({
       followUpDate: form.followUpDate
         ? new Date(form.followUpDate).toISOString()
         : undefined,
-      clearanceStatus: form.clearanceStatus,
+      clearanceStatus: targetStatus,
       veterinarianNotes: form.veterinarianNotes,
     });
+
+    if (result?.error) {
+      if (result.error.toLowerCase().includes("treatment summary")) {
+        setShowTreatmentFields(true);
+      }
+      if (result.error.toLowerCase().includes("follow-up")) {
+        setShowFollowUpFields(true);
+      }
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+
     router.refresh();
     setLoading(false);
+  }
+
+  function handleScheduleFollowUp() {
+    setShowFollowUpFields(true);
+    submitStatus("follow_up_required");
+  }
+
+  if (clearanceStatus === "medically_cleared") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Veterinary Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm space-y-2">
+          <StatusBadge status="medically_cleared" size="md" />
+          <p className="text-graphite/70">
+            Medical clearance is complete. Further veterinary edits are locked.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Update Medical Clearance</CardTitle>
+        <CardTitle className="text-base">Veterinary Actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="mb-4 flex items-center gap-2">
+          <StatusBadge status={clearanceStatus} size="md" />
+        </div>
+
+        <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
           <div className="space-y-1">
             <Label>General Condition</Label>
             <Textarea
@@ -83,6 +149,7 @@ export function MedicalClearanceForm({
               onChange={(e) =>
                 setForm({ ...form, generalCondition: e.target.value })
               }
+              placeholder="Examination findings and overall condition"
             />
           </div>
           <div className="space-y-1">
@@ -94,48 +161,7 @@ export function MedicalClearanceForm({
               }
             >
               {PRIORITIES.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label>Treatment Summary</Label>
-            <Textarea
-              value={form.treatmentSummary}
-              onChange={(e) =>
-                setForm({ ...form, treatmentSummary: e.target.value })
-              }
-            />
-          </div>
-          <div className="space-y-1">
-            <Label>Restrictions</Label>
-            <Textarea
-              value={form.restrictions}
-              onChange={(e) =>
-                setForm({ ...form, restrictions: e.target.value })
-              }
-            />
-          </div>
-          <div className="space-y-1">
-            <Label>Follow-up Date</Label>
-            <Input
-              type="date"
-              value={form.followUpDate}
-              onChange={(e) =>
-                setForm({ ...form, followUpDate: e.target.value })
-              }
-            />
-          </div>
-          <div className="space-y-1">
-            <Label>Clearance Status</Label>
-            <Select
-              value={form.clearanceStatus}
-              onChange={(e) =>
-                setForm({ ...form, clearanceStatus: e.target.value })
-              }
-            >
-              {CLEARANCE_STATUSES.map((s) => (
-                <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+                <option key={p} value={p}>{formatStatus(p)}</option>
               ))}
             </Select>
           </div>
@@ -146,11 +172,159 @@ export function MedicalClearanceForm({
               onChange={(e) =>
                 setForm({ ...form, veterinarianNotes: e.target.value })
               }
+              placeholder="Private clinical notes"
             />
           </div>
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Saving..." : "Save Medical Record"}
-          </Button>
+
+          {showTreatmentFields && (
+            <>
+              <div className="space-y-1">
+                <Label>Treatment Summary</Label>
+                <Textarea
+                  value={form.treatmentSummary}
+                  onChange={(e) =>
+                    setForm({ ...form, treatmentSummary: e.target.value })
+                  }
+                  placeholder="Treatment provided or planned"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Restrictions</Label>
+                <Textarea
+                  value={form.restrictions}
+                  onChange={(e) =>
+                    setForm({ ...form, restrictions: e.target.value })
+                  }
+                  placeholder="Activity or care restrictions"
+                />
+              </div>
+            </>
+          )}
+
+          {showFollowUpFields && (
+            <div className="space-y-1">
+              <Label>Follow-up Date</Label>
+              <Input
+                type="date"
+                value={form.followUpDate}
+                onChange={(e) =>
+                  setForm({ ...form, followUpDate: e.target.value })
+                }
+              />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-sm text-rescue">{error}</p>
+          )}
+
+          <div className="space-y-2 pt-2">
+            {clearanceStatus === "awaiting_examination" && (
+              <>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => submitStatus("under_examination")}
+                >
+                  {loading ? "Saving..." : "Start Examination"}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  onClick={() => submitStatus("under_treatment")}
+                >
+                  {loading ? "Saving..." : "Record Examination — Requires Treatment"}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  variant="secondary"
+                  onClick={() => submitStatus("follow_up_required")}
+                >
+                  {loading ? "Saving..." : "Record Examination — Follow-Up Required"}
+                </Button>
+              </>
+            )}
+
+            {clearanceStatus === "under_examination" && (
+              <>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  onClick={() => submitStatus("under_treatment")}
+                >
+                  {loading ? "Saving..." : "Requires Treatment"}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  variant="secondary"
+                  onClick={() => submitStatus("follow_up_required")}
+                >
+                  {loading ? "Saving..." : "Follow-Up Required"}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => submitStatus("medically_cleared")}
+                >
+                  {loading ? "Saving..." : "Mark Medically Cleared"}
+                </Button>
+              </>
+            )}
+
+            {clearanceStatus === "under_treatment" && (
+              <>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  variant="secondary"
+                  onClick={handleScheduleFollowUp}
+                >
+                  {loading ? "Saving..." : "Schedule Follow-Up"}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  onClick={() => submitStatus("medically_cleared")}
+                >
+                  {loading ? "Saving..." : "Mark Medically Cleared"}
+                </Button>
+              </>
+            )}
+
+            {clearanceStatus === "follow_up_required" && (
+              <>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => submitStatus("under_treatment")}
+                >
+                  {loading ? "Saving..." : "Resume Treatment"}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full"
+                  onClick={() => submitStatus("medically_cleared")}
+                >
+                  {loading ? "Saving..." : "Mark Medically Cleared"}
+                </Button>
+              </>
+            )}
+          </div>
         </form>
       </CardContent>
     </Card>

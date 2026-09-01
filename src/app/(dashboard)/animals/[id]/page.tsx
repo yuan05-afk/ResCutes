@@ -8,13 +8,15 @@ import {
 } from "@/lib/data/service";
 import { canViewMedicalNotes, canEditMedical } from "@/lib/auth/permissions";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
-import { formatDate, formatDateTime, formatStatus } from "@/lib/utils";
+import { formatDate, formatDateTime, formatStatus, hasMeaningfulValue } from "@/lib/utils";
 import { MedicalClearanceForm } from "./medical-form";
+import type { ClearanceStatus } from "@/lib/data/service";
 import { PageShell } from "@/components/layout/dashboard-header";
+import { AnimalImage } from "@/components/ui/animal-image";
+import { getCasePhotoUrl } from "@/lib/demo-images";
 
 function displayOrUnknown(value?: string) {
   return value?.trim() ? value : "Unknown";
@@ -58,22 +60,60 @@ export default async function AnimalDetailPage({
   const showTemporaryId =
     animal.name && animal.name.trim() !== animal.temporaryId;
 
+  const photoSrc = getCasePhotoUrl(
+    animal.species,
+    animal.photoUrl,
+    animal.rescueCaseId,
+  );
+
+  const medicalFields = clearance
+    ? [
+        clearance.examinationDate && {
+          label: "Examination",
+          value: formatDate(clearance.examinationDate),
+        },
+        hasMeaningfulValue(clearance.veterinarianName) && {
+          label: "Veterinarian",
+          value: clearance.veterinarianName!,
+        },
+        hasMeaningfulValue(clearance.generalCondition) && {
+          label: "Condition",
+          value: clearance.generalCondition!,
+        },
+        hasMeaningfulValue(clearance.medicalPriority) && {
+          label: "Priority",
+          value: formatStatus(clearance.medicalPriority!),
+        },
+        hasMeaningfulValue(clearance.treatmentSummary) && {
+          label: "Treatment",
+          value: clearance.treatmentSummary!,
+        },
+        hasMeaningfulValue(clearance.restrictions) && {
+          label: "Restrictions",
+          value: clearance.restrictions!,
+        },
+        clearance.followUpDate && {
+          label: "Follow-up",
+          value: formatDate(clearance.followUpDate),
+        },
+        hasMeaningfulValue(clearance.veterinarianNotes) && {
+          label: "Notes",
+          value: clearance.veterinarianNotes!,
+        },
+      ].filter(Boolean) as { label: string; value: string }[]
+    : [];
+
   return (
     <PageShell className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-5 min-w-0">
-          {animal.photoUrl && (
-            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-sage/20">
-              <Image
-                src={animal.photoUrl}
-                alt={displayTitle}
-                fill
-                className="object-cover"
-                unoptimized
-                sizes="96px"
-              />
-            </div>
-          )}
+          <AnimalImage
+            src={photoSrc}
+            species={animal.species}
+            alt={displayTitle}
+            containerClassName="h-24 w-24 shrink-0 rounded-xl"
+            sizes="96px"
+          />
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight text-graphite md:text-[28px]">
               {displayTitle}
@@ -145,56 +185,19 @@ export default async function AnimalDetailPage({
             </Card>
           )}
 
-          {canMedical && clearance && (
+          {canMedical && clearance && medicalFields.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Medical Handoff & Clearance</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-                <InfoField
-                  label="Examination"
-                  value={
-                    clearance.examinationDate
-                      ? formatDate(clearance.examinationDate)
-                      : "Unknown"
-                  }
-                />
-                <InfoField
-                  label="Veterinarian"
-                  value={displayOrUnknown(clearance.veterinarianName)}
-                />
-                <InfoField
-                  label="Condition"
-                  value={displayOrUnknown(clearance.generalCondition)}
-                />
-                <InfoField
-                  label="Priority"
-                  value={
-                    clearance.medicalPriority
-                      ? formatStatus(clearance.medicalPriority)
-                      : "Unknown"
-                  }
-                />
-                <InfoField
-                  label="Treatment"
-                  value={displayOrUnknown(clearance.treatmentSummary)}
-                />
-                <InfoField
-                  label="Restrictions"
-                  value={displayOrUnknown(clearance.restrictions)}
-                />
-                <InfoField
-                  label="Follow-up"
-                  value={
-                    clearance.followUpDate
-                      ? formatDate(clearance.followUpDate)
-                      : "Unknown"
-                  }
-                />
-                <InfoField
-                  label="Notes"
-                  value={displayOrUnknown(clearance.veterinarianNotes)}
-                />
+                {medicalFields.map((field) => (
+                  <InfoField
+                    key={field.label}
+                    label={field.label}
+                    value={field.value}
+                  />
+                ))}
               </CardContent>
             </Card>
           )}
@@ -285,7 +288,11 @@ export default async function AnimalDetailPage({
           </Card>
 
           {canEdit && (
-            <MedicalClearanceForm animalId={id} clearance={clearance} />
+            <MedicalClearanceForm
+              animalId={id}
+              clearanceStatus={animal.clearanceStatus as ClearanceStatus}
+              clearance={clearance}
+            />
           )}
         </div>
       </div>

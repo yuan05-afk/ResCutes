@@ -33,6 +33,26 @@ export function formatStatus(status: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Display label for rescue-case timeline entries (presentation only). */
+export function formatTimelineLabel(entry: {
+  toStatus: string;
+  fromStatus?: string;
+  note?: string;
+}): string {
+  if (
+    entry.toStatus === "shelter_handoff" &&
+    entry.fromStatus === "shelter_handoff" &&
+    entry.note?.toLowerCase().includes("intake completed")
+  ) {
+    return "Shelter Intake Completed";
+  }
+  return formatStatus(entry.toStatus);
+}
+
+export function hasMeaningfulValue(value?: string | null): boolean {
+  return Boolean(value?.trim());
+}
+
 export function generateCaseNumber(): string {
   const year = new Date().getFullYear();
   const num = Math.floor(Math.random() * 9000) + 1000;
