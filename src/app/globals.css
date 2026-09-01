@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 96%;
+    --foreground: 160 10% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 160 10% 15%;
+    --primary: 162 38% 17%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 20% 94%;
+    --secondary-foreground: 160 10% 15%;
+    --muted: 150 15% 70%;
+    --muted-foreground: 160 10% 40%;
+    --accent: 150 15% 90%;
+    --accent-foreground: 162 38% 17%;
+    --destructive: 10 55% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 150 15% 80%;
+    --input: 150 15% 80%;
+    --ring: 162 38% 17%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-bone text-graphite antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .shadow-card {
+    box-shadow: 0 1px 3px rgba(32, 40, 37, 0.06), 0 4px 12px rgba(32, 40, 37, 0.04);
+  }
+  .shadow-card-hover {
+    box-shadow: 0 4px 16px rgba(32, 40, 37, 0.08), 0 8px 24px rgba(32, 40, 37, 0.06);
+  }
+  .shadow-elevated {
+    box-shadow: 0 8px 24px rgba(24, 60, 53, 0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
