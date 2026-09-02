@@ -22,7 +22,7 @@ import {
   markerDataSignature,
   visibleMarkersBoundsSignature,
 } from "@/components/map/map-marker-fade";
-import { fitMapToMarkers, flyMapToCenter } from "@/components/map/map-camera";
+import { fitMapToMarkers, flyMapToCenter, MAP_CAMERA_FLY_MS } from "@/components/map/map-camera";
 
 export interface MapMarker {
   id: string;
@@ -57,6 +57,9 @@ interface MapViewProps {
   onHiddenLegendLayersChange?: (layers: string[]) => void;
   animateCamera?: boolean;
   fitVisibleMarkers?: boolean;
+  flyToSelectedMarker?: boolean;
+  selectedMarkerZoom?: number;
+  pinSelectedPopup?: boolean;
 }
 
 type MarkerRegistryEntry = {
@@ -146,6 +149,9 @@ export function MapView({
   onHiddenLegendLayersChange,
   animateCamera = true,
   fitVisibleMarkers = true,
+  flyToSelectedMarker = false,
+  selectedMarkerZoom = 13,
+  pinSelectedPopup = false,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -153,6 +159,8 @@ export function MapView({
   const removalTimersRef = useRef<Map<string, number>>(new Map());
   const hiddenLegendLayersRef = useRef<Set<string>>(new Set());
   const onMarkerClickRef = useRef(onMarkerClick);
+  const pinSelectedPopupRef = useRef(pinSelectedPopup);
+  const selectedMarkerIdRef = useRef(selectedMarkerId);
   const [mapError, setMapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [internalHiddenLayers, setInternalHiddenLayers] = useState<Set<string>>(
@@ -162,6 +170,8 @@ export function MapView({
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   onMarkerClickRef.current = onMarkerClick;
+  pinSelectedPopupRef.current = pinSelectedPopup;
+  selectedMarkerIdRef.current = selectedMarkerId;
 
   const hiddenLegendLayers = useMemo(
     () => new Set(controlledHiddenLayers ?? [...internalHiddenLayers]),
@@ -357,9 +367,23 @@ export function MapView({
 
         el.addEventListener("mouseenter", () => {
           if (el.classList.contains("rescutes-map-marker--off")) return;
+          if (
+            pinSelectedPopupRef.current &&
+            selectedMarkerIdRef.current === marker.id
+          ) {
+            return;
+          }
           popup.addTo(map);
         });
-        el.addEventListener("mouseleave", () => popup.remove());
+        el.addEventListener("mouseleave", () => {
+          if (
+            pinSelectedPopupRef.current &&
+            selectedMarkerIdRef.current === marker.id
+          ) {
+            return;
+          }
+          popup.remove();
+        });
       }
 
       applyMarkerHidden(el, true, false);
@@ -419,6 +443,76 @@ export function MapView({
     animateCamera,
     fitVisibleMarkers,
     loading,
+  ]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loading || !animateCamera || !flyToSelectedMarker || !selectedMarkerId) {
+      return;
+    }
+
+    const marker = markers.find((item) => item.id === selectedMarkerId);
+    if (!marker) return;
+
+    const fly = () => flyMapToCenter(map, marker, selectedMarkerZoom);
+
+    if (map.isStyleLoaded()) {
+      fly();
+      return;
+    }
+
+    map.once("load", fly);
+  }, [
+    selectedMarkerId,
+    flyToSelectedMarker,
+    selectedMarkerZoom,
+    markerOverlaySignature,
+    animateCamera,
+    loading,
+    markers,
+  ]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loading || !pinSelectedPopup) return;
+
+    function syncPinnedPopups() {
+      for (const [id, entry] of registryRef.current.entries()) {
+        const popup = entry.marker.getPopup();
+        if (!popup) continue;
+
+        if (selectedMarkerId === id) {
+          if (!popup.isOpen()) popup.addTo(map);
+        } else {
+          popup.remove();
+        }
+      }
+    }
+
+    if (flyToSelectedMarker && selectedMarkerId) {
+      let applied = false;
+      const applyOnce = () => {
+        if (applied) return;
+        applied = true;
+        syncPinnedPopups();
+      };
+
+      map.once("moveend", applyOnce);
+      const timer = window.setTimeout(applyOnce, MAP_CAMERA_FLY_MS + 80);
+
+      return () => {
+        map.off("moveend", applyOnce);
+        window.clearTimeout(timer);
+      };
+    }
+
+    syncPinnedPopups();
+  }, [
+    selectedMarkerId,
+    pinSelectedPopup,
+    flyToSelectedMarker,
+    loading,
+    markerOverlaySignature,
   ]);
 
   if (!token || mapError) {

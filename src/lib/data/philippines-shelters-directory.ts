@@ -1,5 +1,5 @@
 import osmShelters from "@/lib/data/osm-ph-animal-shelters.json";
-import { DEMO_SHELTERS } from "@/lib/data/demo-store";
+import { OPERATIONAL_SHELTER_PROFILES } from "@/lib/data/operational-shelter-profiles";
 import { auditShelterDirectory } from "@/lib/data/shelter-directory-qa";
 
 export type ShelterSpeciesProfile =
@@ -350,6 +350,24 @@ const CURATED_SHELTERS: PhilippinesShelterRecord[] = [
   },
 ];
 
+function withOperationalFields(
+  shelter: PhilippinesShelterRecord,
+): PhilippinesShelterRecord {
+  const profile = OPERATIONAL_SHELTER_PROFILES[shelter.id];
+  if (!profile) return shelter;
+
+  return {
+    ...shelter,
+    totalCapacity: profile.totalCapacity,
+    currentOccupancy: profile.currentOccupancy,
+    isDemoPartner: profile.isRescutesPartner ?? false,
+  };
+}
+
+export function getCuratedShelterRecords(): PhilippinesShelterRecord[] {
+  return CURATED_SHELTERS.map(withOperationalFields);
+}
+
 function deriveSpeciesProfile(
   species: string[],
   osmAnimalShelterTag?: string,
@@ -474,26 +492,6 @@ type OsmElement = {
   tags?: Record<string, string>;
 };
 
-function demoPartnerShelters(): PhilippinesShelterRecord[] {
-  return DEMO_SHELTERS.map((shelter) => ({
-    id: shelter.id,
-    name: `${shelter.name} (ResCutes partner)`,
-    address: shelter.address,
-    city: shelter.address.split(",").pop()?.trim() ?? "Metro Manila",
-    region: "NCR",
-    latitude: shelter.latitude,
-    longitude: shelter.longitude,
-    phone: shelter.phone,
-    speciesAccepted: shelter.speciesAccepted,
-    speciesProfile: deriveSpeciesProfile(shelter.speciesAccepted),
-    source: "demo_partner" as const,
-    notes: "Operational partner in the ResCutes demo routing workflow.",
-    isDemoPartner: true,
-    totalCapacity: shelter.totalCapacity,
-    currentOccupancy: shelter.currentOccupancy,
-  }));
-}
-
 function normalizeName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -537,11 +535,9 @@ export function getPhilippinesShelterDirectory(): PhilippinesShelterRecord[] {
   if (cachedShelters) return cachedShelters;
 
   const osm = parseOsmShelters();
-  const demo = demoPartnerShelters();
-  cachedShelters = mergeShelterDirectories(
-    mergeShelterDirectories(CURATED_SHELTERS, demo),
-    osm,
-  ).sort((a, b) => a.name.localeCompare(b.name));
+  cachedShelters = mergeShelterDirectories(getCuratedShelterRecords(), osm).sort(
+    (a, b) => a.name.localeCompare(b.name),
+  );
 
   const issues = auditShelterDirectory(cachedShelters);
   if (issues.length > 0 && process.env.NODE_ENV !== "production") {

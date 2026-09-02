@@ -19,8 +19,12 @@ test.describe("Mobile device frame", () => {
 
     await expect(page.getByTestId("mobile-device-frame-shell")).toBeVisible();
     await expect(page.getByTestId("mobile-device-frame")).toBeVisible();
-    await expect(page.getByRole("link", { name: /Dashboard/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Dashboard/i })).not.toBeVisible();
     await expect(page.getByRole("link", { name: /Report an Animal/i }).first()).toBeVisible();
+
+    await page.getByRole("link", { name: "Profile", exact: true }).click();
+    await page.waitForURL("/mobile/profile");
+    await expect(page.getByRole("link", { name: /Open dashboard/i })).toBeVisible();
 
     await page.getByRole("link", { name: "Cases", exact: true }).click();
     await page.waitForURL("/mobile/cases");

@@ -42,18 +42,3 @@ export function AdminExperienceSwitcher({
     </Link>
   );
 }
-
-export function AdminDemoBar({ variant }: { variant: "web" | "mobile" }) {
-  return (
-    <div
-      className={cn(
-        "flex shrink-0 items-center justify-end border-b px-4 py-1.5",
-        variant === "web"
-          ? "border-ochre/25 bg-ochre/10"
-          : "border-evergreen/20 bg-evergreen/5",
-      )}
-    >
-      <AdminExperienceSwitcher variant={variant} />
-    </div>
-  );
-}

@@ -1,11 +1,13 @@
 import { requireAuth } from "@/lib/auth/session";
-import { ROLE_LABELS } from "@/lib/auth/permissions";
+import { isAdministrator, ROLE_LABELS } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { Monitor } from "lucide-react";
 import Link from "next/link";
 
 export default async function MobileProfilePage() {
   const session = await requireAuth();
+  const isAdmin = isAdministrator(session.user.roles);
 
   return (
     <div>
@@ -13,7 +15,7 @@ export default async function MobileProfilePage() {
         <h1 className="text-xl font-bold text-graphite">Profile</h1>
       </header>
 
-      <div className="px-4 py-6 space-y-4">
+      <div className="space-y-4 px-4 py-6">
         <div className="rounded-2xl border border-sage/25 bg-white p-5 shadow-card">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-evergreen/10 text-xl font-bold text-evergreen">
             {session.user.name.charAt(0)}
@@ -32,13 +34,14 @@ export default async function MobileProfilePage() {
           </div>
         </div>
 
-        {session.user.roles.some((r) =>
-          ["shelter_staff", "veterinarian", "administrator"].includes(r),
-        ) && (
-          <Button variant="outline" asChild className="w-full rounded-full h-12">
-            <Link href="/dashboard">Open dashboard</Link>
+        {isAdmin ? (
+          <Button variant="outline" asChild className="h-12 w-full rounded-full">
+            <Link href="/dashboard">
+              <Monitor className="mr-2 h-4 w-4" aria-hidden />
+              Open dashboard
+            </Link>
           </Button>
-        )}
+        ) : null}
 
         <SignOutButton />
       </div>

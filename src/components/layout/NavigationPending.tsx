@@ -162,9 +162,8 @@ export function PendingPageSlot({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        "relative flex flex-col",
+        "relative flex min-h-0 flex-1 flex-col",
         showSkeleton && "min-h-[50vh]",
-        "lg:min-h-0 lg:flex-1",
       )}
     >
       {showProgress && navigating ? (
@@ -174,7 +173,7 @@ export function PendingPageSlot({ children }: { children: React.ReactNode }) {
       ) : null}
 
       <div
-        className="flex flex-col lg:min-h-0 lg:flex-1"
+        className="flex min-h-0 flex-1 flex-col"
         aria-busy={showSkeleton || undefined}
       >
         {children}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, MapPin, Phone } from "lucide-react";
 import { MapView } from "@/components/map/map-view-dynamic";
+import { MAP_SHELTER_FOCUS_ZOOM } from "@/components/map/map-camera";
 import {
   SHELTER_MAP_LEGEND,
   shelterMarkerColor,
@@ -28,7 +29,6 @@ const SPECIES_FILTER_OPTIONS: { value: string; label: string }[] = [
 ];
 
 function sourceLabel(source: PhilippinesShelterRecord["source"]) {
-  if (source === "demo_partner") return "ResCutes partner";
   if (source === "verified") return "Verified listing";
   return "OpenStreetMap";
 }
@@ -42,8 +42,11 @@ export function SheltersMapWorkspace({
   const [region, setRegion] = useState("All regions");
   const [speciesProfile, setSpeciesProfile] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hiddenLegendLayers, setHiddenLegendLayers] = useState<string[]>([]);
+  const listRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  const filtered = useMemo(() => {
+  const filteredByControls = useMemo(() => {
     const q = search.trim().toLowerCase();
     return shelters.filter((shelter) => {
       if (region !== "All regions" && shelter.region !== region) return false;
@@ -58,12 +61,50 @@ export function SheltersMapWorkspace({
     });
   }, [shelters, search, region, speciesProfile]);
 
-  const selected =
-    filtered.find((shelter) => shelter.id === selectedId) ??
-    filtered[0] ??
-    null;
+  const hiddenLegendSet = useMemo(
+    () => new Set(hiddenLegendLayers),
+    [hiddenLegendLayers],
+  );
 
-  const markers = filtered.map((shelter) => ({
+  const visibleShelters = useMemo(
+    () =>
+      filteredByControls.filter(
+        (shelter) => !hiddenLegendSet.has(shelter.speciesProfile),
+      ),
+    [filteredByControls, hiddenLegendSet],
+  );
+
+  const hiddenByLegendCount = filteredByControls.length - visibleShelters.length;
+
+  const selected = selectedId
+    ? visibleShelters.find((shelter) => shelter.id === selectedId) ?? null
+    : null;
+
+  useEffect(() => {
+    if (selectedId && !visibleShelters.some((shelter) => shelter.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [visibleShelters, selectedId]);
+
+  const selectShelter = useCallback((id: string) => {
+    setSelectedId(id);
+    requestAnimationFrame(() => {
+      const button = itemRefs.current.get(id);
+      const list = listRef.current;
+      if (!button || !list) return;
+
+      const listRect = list.getBoundingClientRect();
+      const buttonRect = button.getBoundingClientRect();
+      const isAbove = buttonRect.top < listRect.top;
+      const isBelow = buttonRect.bottom > listRect.bottom;
+
+      if (isAbove || isBelow) {
+        button.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    });
+  }, []);
+
+  const markers = filteredByControls.map((shelter) => ({
     id: shelter.id,
     latitude: shelter.latitude,
     longitude: shelter.longitude,
@@ -112,7 +153,11 @@ export function SheltersMapWorkspace({
             <div>
               <h2 className="text-sm font-semibold text-graphite">Shelter map</h2>
               <p className="text-xs text-graphite/50">
-                {filtered.length} location{filtered.length === 1 ? "" : "s"} shown
+                {visibleShelters.length} location
+                {visibleShelters.length === 1 ? "" : "s"} shown
+                {hiddenByLegendCount > 0
+                  ? ` · ${hiddenByLegendCount} hidden by legend`
+                  : ""}
               </p>
             </div>
             <p className="hidden text-[10px] text-graphite/45 sm:block">
@@ -127,8 +172,14 @@ export function SheltersMapWorkspace({
               markers={markers}
               legend="none"
               legendItems={SHELTER_MAP_LEGEND}
-              onMarkerClick={setSelectedId}
-              selectedMarkerId={selected?.id}
+              interactiveLegend
+              hiddenLegendLayers={hiddenLegendLayers}
+              onHiddenLegendLayersChange={setHiddenLegendLayers}
+              onMarkerClick={selectShelter}
+              selectedMarkerId={selectedId ?? undefined}
+              flyToSelectedMarker
+              pinSelectedPopup
+              selectedMarkerZoom={MAP_SHELTER_FOCUS_ZOOM}
             />
           </div>
         </section>
@@ -137,32 +188,50 @@ export function SheltersMapWorkspace({
           <div className="shrink-0 border-b border-sage/15 px-4 py-2.5">
             <h2 className="text-sm font-semibold text-graphite">Directory</h2>
             <p className="text-xs text-graphite/50">
-              Tap a pin or list item for details
+              {hiddenLegendLayers.length > 0
+                ? "Map legend filters apply to this list"
+                : "Tap a pin or list item for details"}
             </p>
           </div>
 
-          {selected ? (
-            <div className="shrink-0 border-b border-sage/15 bg-bone/35 px-4 py-3">
+          <div className="rc-scroll h-52 shrink-0 overflow-y-auto border-b border-sage/15 bg-bone/35 px-4 py-3">
+            {selected ? (
               <ShelterDetailCard shelter={selected} />
-            </div>
-          ) : null}
+            ) : (
+              <p className="text-sm text-graphite/50">
+                Select a shelter from the list or map to view details.
+              </p>
+            )}
+          </div>
 
-          <div className="rc-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
-            {filtered.length === 0 ? (
+          <div
+            ref={listRef}
+            className="rc-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-2"
+          >
+            {visibleShelters.length === 0 ? (
               <p className="px-2 py-6 text-center text-sm text-graphite/55">
-                No shelters match your filters.
+                {filteredByControls.length === 0
+                  ? "No shelters match your filters."
+                  : "No shelters visible. Show more categories in the map legend."}
               </p>
             ) : (
-              filtered.map((shelter) => (
+              visibleShelters.map((shelter) => (
                 <button
                   key={shelter.id}
+                  ref={(node) => {
+                    if (node) {
+                      itemRefs.current.set(shelter.id, node);
+                    } else {
+                      itemRefs.current.delete(shelter.id);
+                    }
+                  }}
                   type="button"
-                  onClick={() => setSelectedId(shelter.id)}
+                  onClick={() => selectShelter(shelter.id)}
                   className={cn(
-                    "w-full rounded-lg border px-3 py-2.5 text-left transition",
-                    selected?.id === shelter.id
-                      ? "border-evergreen/35 bg-evergreen/5"
-                      : "border-sage/20 bg-white hover:border-sage/35 hover:bg-bone/50",
+                    "w-full rounded-lg border px-3 py-2.5 text-left transition-colors",
+                    selectedId === shelter.id
+                      ? "border-2 border-graphite/75 bg-bone/50 shadow-sm"
+                      : "border border-sage/20 bg-white hover:border-sage/35 hover:bg-bone/50",
                   )}
                 >
                   <div className="flex items-start gap-2">
@@ -209,7 +278,7 @@ function ShelterDetailCard({ shelter }: { shelter: PhilippinesShelterRecord }) {
         </span>
         {shelter.isDemoPartner ? (
           <span className="rounded-full bg-evergreen/10 px-2 py-0.5 text-[10px] font-semibold text-evergreen">
-            Live in ResCutes routing
+            ResCutes routing partner
           </span>
         ) : null}
       </div>

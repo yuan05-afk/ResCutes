@@ -266,7 +266,7 @@ export function getNotesForAnimal(animalId: string) {
 }
 
 export function getShelters() {
-  return DEMO_SHELTERS;
+  return [...DEMO_SHELTERS].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function getShelterById(id: string) {

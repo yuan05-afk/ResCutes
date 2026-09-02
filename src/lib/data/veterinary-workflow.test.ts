@@ -17,7 +17,7 @@ import {
 
 const ANITA = DEMO_IDS.users.anita;
 const SARAH = DEMO_IDS.users.sarah;
-const PAWS = DEMO_IDS.shelters.pawsHope;
+const PAWS = DEMO_IDS.shelters.paws;
 
 function resetCase008ForVetWorkflow() {
   const caseItem = DEMO_CASES.find((c) => c.id === "case-008");

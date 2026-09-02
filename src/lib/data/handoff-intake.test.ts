@@ -18,7 +18,7 @@ import {
 } from "@/lib/data/demo-store";
 
 const SARAH = DEMO_IDS.users.sarah;
-const PAWS = DEMO_IDS.shelters.pawsHope;
+const PAWS = DEMO_IDS.shelters.paws;
 
 function resetCase008ForHandoff() {
   const caseItem = DEMO_CASES.find((c) => c.id === "case-008");

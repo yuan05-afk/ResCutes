@@ -31,16 +31,21 @@ test.describe("Administrator full access", () => {
 
     await page.goto("/mobile");
     await expect(page.getByTestId("mobile-device-frame")).toBeVisible();
-    await expect(page.getByRole("link", { name: /Dashboard/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Dashboard/i })).not.toBeVisible();
     await expect(page.getByRole("link", { name: /Report an Animal/i }).first()).toBeVisible();
+
+    await page.getByRole("link", { name: "Profile", exact: true }).click();
+    await page.waitForURL("/mobile/profile");
+    await expect(page.getByRole("link", { name: /Open dashboard/i })).toBeVisible();
 
     const assignmentLink = page.getByRole("link", { name: /View Assignment/i });
     if (await assignmentLink.count()) {
       await assignmentLink.first().click();
       await expect(page.getByRole("button", { name: /Accept Assignment/i })).toBeVisible();
+      await page.goto("/mobile/profile");
     }
 
-    await page.getByRole("link", { name: /Dashboard/i }).click();
+    await page.getByRole("link", { name: /Open dashboard/i }).click();
     await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { name: "Operations Overview" })).toBeVisible();
   });

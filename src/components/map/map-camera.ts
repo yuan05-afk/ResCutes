@@ -2,17 +2,24 @@ import mapboxgl from "mapbox-gl";
 
 export const MAP_CAMERA_FLY_MS = 900;
 export const MAP_CAMERA_EASE_MS = 280;
+export const MAP_SHELTER_FOCUS_ZOOM = 12;
 
 export function flyMapToCenter(
   map: mapboxgl.Map,
   center: { latitude: number; longitude: number },
   zoom?: number,
 ) {
+  const currentZoom = map.getZoom();
+  const targetZoom = zoom ?? currentZoom;
+  const zoomDelta = Math.abs(targetZoom - currentZoom);
+
   map.flyTo({
     center: [center.longitude, center.latitude],
-    ...(zoom != null ? { zoom } : {}),
+    zoom: targetZoom,
     duration: MAP_CAMERA_FLY_MS,
     essential: true,
+    curve: zoomDelta > 2 ? 1.35 : 1.1,
+    speed: zoomDelta > 4 ? 0.85 : 1.1,
   });
 }
 

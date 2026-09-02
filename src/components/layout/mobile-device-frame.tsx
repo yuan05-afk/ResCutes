@@ -91,8 +91,7 @@ export function MobileDeviceFrame({ children }: { children: ReactNode }) {
             screenWidth={screenWidth}
             screenType="island"
             frameColor="#1c1c1e"
-            statusbarColor="#F5F3ED"
-            hideStatusBar={false}
+            hideStatusBar
             hideNavBar
             className="rescutes-mobile-device-mockup"
           >
