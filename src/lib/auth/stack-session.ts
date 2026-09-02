@@ -1,3 +1,4 @@
+import { cache } from "react";
 import "server-only";
 
 import { hexclaveServerApp } from "@/stack/server";
@@ -19,7 +20,7 @@ function demoUserIdFromMetadata(metadata: unknown): string | undefined {
   return typeof id === "string" ? id : undefined;
 }
 
-export async function getAppSession(): Promise<AppSession | null> {
+export const getAppSession = cache(async function getAppSession(): Promise<AppSession | null> {
   const user = await hexclaveServerApp.getUser();
   const email = user?.primaryEmail?.trim().toLowerCase();
   if (!user || !email) return null;
@@ -44,4 +45,4 @@ export async function getAppSession(): Promise<AppSession | null> {
       roles,
     },
   };
-}
+});

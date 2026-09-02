@@ -1,7 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { auth } from "@/lib/auth";
+import { revalidateRescueData } from "@/lib/cache-revalidate";
 import {
   acceptAssignment,
   declineAssignment,
@@ -31,22 +32,26 @@ import {
 
 function revalidateCaseViews(
   caseId: string,
+  userId: string,
+  email: string,
   assignmentId?: string,
   animalId?: string,
 ) {
-  revalidatePath(`/rescue-cases/${caseId}`);
-  revalidatePath("/rescue-cases");
-  revalidatePath("/dashboard");
-  revalidatePath(`/mobile/cases/${caseId}`);
-  revalidatePath("/mobile/cases");
-  revalidatePath("/mobile");
-  revalidatePath("/animals");
-  if (animalId) {
-    revalidatePath(`/animals/${animalId}`);
-  }
-  if (assignmentId) {
-    revalidatePath(`/mobile/assignments/${assignmentId}`);
-  }
+  const paths = [
+    `/rescue-cases/${caseId}`,
+    "/rescue-cases",
+    "/dashboard",
+    `/mobile/cases/${caseId}`,
+    "/mobile/cases",
+    "/mobile",
+    "/animals",
+  ];
+  if (animalId) paths.push(`/animals/${animalId}`);
+  if (assignmentId) paths.push(`/mobile/assignments/${assignmentId}`);
+  revalidateRescueData(userId, paths, email);
+  revalidateTag("dashboard-metrics");
+  revalidateTag("rescue-cases");
+  revalidateTag("animals");
 }
 
 export async function acceptAssignmentAction(assignmentId: string) {
@@ -56,7 +61,12 @@ export async function acceptAssignmentAction(assignmentId: string) {
   if (!accepted) return { error: "Assignment not found or already responded" };
   const assignment = getAssignmentById(assignmentId);
   if (assignment) {
-    revalidateCaseViews(assignment.caseId, assignmentId);
+    revalidateCaseViews(
+      assignment.caseId,
+      session.user.id,
+      session.user.email,
+      assignmentId,
+    );
   }
   return { success: true };
 }
@@ -72,7 +82,12 @@ export async function declineAssignmentAction(
   if (!declined) return { error: "Assignment not found or already responded" };
   const assignment = getAssignmentById(assignmentId);
   if (assignment) {
-    revalidateCaseViews(assignment.caseId, assignmentId);
+    revalidateCaseViews(
+      assignment.caseId,
+      session.user.id,
+      session.user.email,
+      assignmentId,
+    );
   }
   return { success: true };
 }
@@ -95,7 +110,12 @@ export async function updateCaseStatusAction(caseId: string, status: string) {
   const assignment = getAssignmentsForCase(caseId).find(
     (a) => a.rescuerId === session.user!.id,
   );
-  revalidateCaseViews(caseId, assignment?.id);
+  revalidateCaseViews(
+    caseId,
+    session.user.id,
+    session.user.email,
+    assignment?.id,
+  );
   return { success: true };
 }
 
@@ -107,7 +127,7 @@ export async function verifyCaseAction(caseId: string) {
   const updated = verifyCase(caseId, session.user.id);
   if (!updated) return { error: "Case not found" };
   generateRecommendationsForCase(caseId);
-  revalidateCaseViews(caseId);
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -117,7 +137,7 @@ export async function rejectCaseAction(caseId: string, reason: string) {
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
   rejectCase(caseId, session.user.id, reason);
-  revalidateCaseViews(caseId);
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -127,7 +147,7 @@ export async function assignRescuerAction(caseId: string, rescuerId: string) {
   if (!canAssignRescuer(session.user.roles))
     return { error: "Unauthorized" };
   assignRescuer(caseId, rescuerId, session.user.id);
-  revalidateCaseViews(caseId);
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -141,7 +161,7 @@ export async function selectShelterAction(
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
   selectShelter(caseId, shelterId, session.user.id, rejectionReason);
-  revalidateCaseViews(caseId);
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -164,7 +184,12 @@ export async function confirmHandoffAction(
   const assignment = getAssignmentsForCase(caseId).find(
     (a) => a.status === "completed" || a.status === "accepted",
   );
-  revalidateCaseViews(caseId, assignment?.id);
+  revalidateCaseViews(
+    caseId,
+    session.user.id,
+    session.user.email,
+    assignment?.id,
+  );
   return { success: true };
 }
 
@@ -185,7 +210,13 @@ export async function completeShelterIntakeAction(
     return { error: "Unauthorized" };
   const result = completeShelterIntake(caseId, session.user.id, input);
   if (!result.ok) return { error: result.error };
-  revalidateCaseViews(caseId, undefined, result.animalId);
+  revalidateCaseViews(
+    caseId,
+    session.user.id,
+    session.user.email,
+    undefined,
+    result.animalId,
+  );
   return { success: true, animalId: result.animalId };
 }
 
@@ -200,6 +231,7 @@ export async function overrideUrgencyAction(
     return { error: "Unauthorized" };
   if (!reason.trim()) return { error: "Override reason required" };
   overrideUrgency(caseId, score, reason, session.user.id);
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -252,5 +284,8 @@ export async function updateShelterSettingsAction(
   if (data.capabilities) {
     updateShelterCapabilities(shelterId, data.capabilities);
   }
+  revalidateRescueData(session.user.id, ["/dashboard", "/settings"], session.user.email);
+  revalidateTag("dashboard-metrics");
+  revalidateTag("shelters");
   return { success: true };
 }

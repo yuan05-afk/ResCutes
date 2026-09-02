@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
+import { useActionPending } from "@/components/shared/useActionPending";
 import { updateMedicalClearanceAction } from "@/app/actions/case";
 import type { ClearanceStatus } from "@/lib/data/service";
 import { formatStatus } from "@/lib/utils";
@@ -35,9 +35,7 @@ export function MedicalClearanceForm({
   clearanceStatus,
   clearance,
 }: MedicalClearanceFormProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { pending: loading, error, setError, run } = useActionPending();
   const [showTreatmentFields, setShowTreatmentFields] = useState(
     clearanceStatus === "under_treatment" ||
       Boolean(clearance?.treatmentSummary?.trim()),
@@ -79,35 +77,23 @@ export function MedicalClearanceForm({
       return;
     }
 
-    setLoading(true);
     setError(null);
 
-    const result = await updateMedicalClearanceAction(animalId, {
-      generalCondition: form.generalCondition,
-      medicalPriority: form.medicalPriority,
-      treatmentSummary: form.treatmentSummary,
-      restrictions: form.restrictions,
-      followUpDate: form.followUpDate
-        ? new Date(form.followUpDate).toISOString()
-        : undefined,
-      clearanceStatus: targetStatus,
-      veterinarianNotes: form.veterinarianNotes,
-    });
-
-    if (result?.error) {
-      if (result.error.toLowerCase().includes("treatment summary")) {
-        setShowTreatmentFields(true);
-      }
-      if (result.error.toLowerCase().includes("follow-up")) {
-        setShowFollowUpFields(true);
-      }
-      setError(result.error);
-      setLoading(false);
-      return;
-    }
-
-    router.refresh();
-    setLoading(false);
+    await run(
+      () =>
+        updateMedicalClearanceAction(animalId, {
+          generalCondition: form.generalCondition,
+          medicalPriority: form.medicalPriority,
+          treatmentSummary: form.treatmentSummary,
+          restrictions: form.restrictions,
+          followUpDate: form.followUpDate
+            ? new Date(form.followUpDate).toISOString()
+            : undefined,
+          clearanceStatus: targetStatus,
+          veterinarianNotes: form.veterinarianNotes,
+        }),
+      { rewarm: [`/animals/${animalId}`, "/animals", "/dashboard"] },
+    );
   }
 
   function handleScheduleFollowUp() {

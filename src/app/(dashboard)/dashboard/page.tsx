@@ -1,4 +1,8 @@
-import { getDashboardMetrics, getCases, getAnimalById, resolveCurrentUrgency } from "@/lib/data/service";
+import { getAnimalById, resolveCurrentUrgency } from "@/lib/data/service";
+import {
+  getDashboardMapCasesCached,
+  getDashboardMetricsCached,
+} from "@/lib/data/cached-loaders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { StatusBadge } from "@/components/status/status-badge";
@@ -19,14 +23,11 @@ import {
   Stethoscope,
 } from "lucide-react";
 
-export default function DashboardPage() {
-  const metrics = getDashboardMetrics();
-  const mapCases = getCases({ sortBy: "urgency" })
-    .filter(
-      (c) =>
-        !["completed", "rejected", "duplicate", "cancelled"].includes(c.status),
-    )
-    .slice(0, 10);
+export default async function DashboardPage() {
+  const [metrics, mapCases] = await Promise.all([
+    getDashboardMetricsCached(),
+    getDashboardMapCasesCached(),
+  ]);
 
   const capacityPct = Math.round(
     (metrics.capacityUsed / metrics.capacityTotal) * 100,

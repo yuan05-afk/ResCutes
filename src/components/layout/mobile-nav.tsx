@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Home, MapPin, ClipboardList, User, Camera } from "lucide-react";
+import { prefetchRouteNow } from "@/components/layout/AppRoutePrefetcher";
+import { useNavigationPending } from "@/components/layout/NavigationPending";
 
 const navItems = [
   { href: "/mobile", label: "Home", icon: Home },
@@ -15,6 +17,8 @@ const navItems = [
 
 export function MobileNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { startPending } = useNavigationPending();
 
   return (
     <nav
@@ -33,6 +37,8 @@ export function MobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch
+                onClick={() => startPending(item.href)}
                 className="flex flex-col items-center -mt-4 min-w-[64px]"
                 aria-label="Report an animal"
               >
@@ -55,6 +61,10 @@ export function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch
+              onTouchStart={() => prefetchRouteNow(router, item.href)}
+              onMouseEnter={() => prefetchRouteNow(router, item.href)}
+              onClick={() => startPending(item.href)}
               className={cn(
                 "flex flex-col items-center gap-0.5 px-2 py-2 min-w-[56px] min-h-[44px] justify-center",
                 isActive ? "text-evergreen" : "text-graphite/45",

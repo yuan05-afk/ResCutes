@@ -5,7 +5,7 @@ import Image from "next/image";
 import { MapPin, Navigation } from "lucide-react";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { RescueProgress } from "@/components/mobile/rescue-progress";
-import { MapView } from "@/components/map/map-view";
+import { MapView } from "@/components/map/map-view-dynamic";
 import { getCitizenProgressIndex, getCitizenStatusLabel } from "@/lib/rescue-progress";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { formatStatus } from "@/lib/utils";

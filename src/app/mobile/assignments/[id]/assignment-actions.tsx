@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Navigation, CheckCircle2 } from "lucide-react";
+import { useActionPending } from "@/components/shared/useActionPending";
 import {
   acceptAssignmentAction,
   declineAssignmentAction,
@@ -34,11 +34,9 @@ export function AssignmentActionsClient({
   shelterName,
   shelterAddress,
 }: AssignmentActionsClientProps) {
-  const router = useRouter();
+  const { pending: loading, error: actionError, setError: setActionError, run } = useActionPending();
   const [declineReason, setDeclineReason] = useState("");
   const [showDecline, setShowDecline] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   function openNavigation() {
     window.open(
@@ -48,16 +46,10 @@ export function AssignmentActionsClient({
   }
 
   async function runAction(fn: () => Promise<ActionResult>) {
-    setLoading(true);
     setActionError(null);
-    const result = await fn();
-    if (result && typeof result === "object" && "error" in result && result.error) {
-      setActionError(result.error);
-      setLoading(false);
-      return;
-    }
-    router.refresh();
-    setLoading(false);
+    await run(fn, {
+      rewarm: [`/mobile/assignments/${assignmentId}`, `/mobile/cases/${caseId}`, "/mobile"],
+    });
   }
 
   return (

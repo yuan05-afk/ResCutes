@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import {
-  getNotificationsForUser,
-  getCases,
   getAssignmentsForCase,
   getShelterById,
   resolveCurrentUrgency,
 } from "@/lib/data/service";
+import { getMobileHomeDataCached } from "@/lib/data/cached-loaders";
 import { getPrimaryMobileRole, ROLES } from "@/lib/auth/permissions";
 import { MobileHeader } from "@/components/mobile/mobile-header";
 import { ReportCtaCard } from "@/components/mobile/report-cta-card";
@@ -22,13 +21,9 @@ export default async function MobileHomePage() {
   const primaryRole = getPrimaryMobileRole(roles);
   const isRescuer = primaryRole === ROLES.RESCUER;
 
-  const notifications = getNotificationsForUser(userId);
+  const { notifications, myCases } = await getMobileHomeDataCached(userId, isRescuer);
   const unreadCount = notifications.filter((n) => !n.read).length;
   const recentNotifications = notifications.slice(0, 3);
-
-  const myCases = isRescuer
-    ? getCases({ rescuerId: userId })
-    : getCases({ reporterId: userId });
 
   const activeCases = myCases.filter(
     (c) => !["completed", "rejected", "duplicate", "cancelled"].includes(c.status),

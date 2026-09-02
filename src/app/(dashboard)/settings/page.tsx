@@ -1,10 +1,10 @@
-import { getShelters } from "@/lib/data/service";
+import { getSheltersCached } from "@/lib/data/cached-loaders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShelterSettingsForm } from "./shelter-form";
 import { DashboardHeader, PageShell } from "@/components/layout/dashboard-header";
 
-export default function SettingsPage() {
-  const shelters = getShelters();
+export default async function SettingsPage() {
+  const shelters = await getSheltersCached();
 
   return (
     <PageShell>

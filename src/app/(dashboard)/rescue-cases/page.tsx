@@ -1,4 +1,8 @@
-import { getCases, getRescuers, resolveCurrentUrgency } from "@/lib/data/service";
+import {
+  getRescueCasesListCached,
+  getRescuersCached,
+} from "@/lib/data/cached-loaders";
+import { resolveCurrentUrgency } from "@/lib/data/service";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
@@ -19,7 +23,7 @@ export default async function RescueCasesPage({
   }>;
 }) {
   const params = await searchParams;
-  const cases = getCases({
+  const filtersKey = JSON.stringify({
     status: params.status,
     urgencyLevel: params.urgency,
     rescuerId: params.rescuer,
@@ -28,6 +32,11 @@ export default async function RescueCasesPage({
     sortBy: (params.sort as "urgency" | "waiting" | "date") ?? "date",
   });
 
+  const [cases, rescuers] = await Promise.all([
+    getRescueCasesListCached(filtersKey),
+    getRescuersCached(),
+  ]);
+
   return (
     <PageShell>
       <DashboardHeader
@@ -35,7 +44,7 @@ export default async function RescueCasesPage({
         subtitle={`${cases.length} case${cases.length !== 1 ? "s" : ""} in system`}
       />
 
-      <RescueCasesFilters rescuers={getRescuers()} />
+      <RescueCasesFilters rescuers={rescuers} />
 
       <Card>
         <CardContent className="p-0">

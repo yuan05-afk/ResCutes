@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useActionPending } from "@/components/shared/useActionPending";
 import {
   verifyCaseAction,
   rejectCaseAction,
@@ -46,8 +46,7 @@ export function CaseStaffActions({
   hasHandoff,
   hasAnimal,
 }: CaseStaffActionsProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const { pending: loading, error: actionError, setError: setActionError, run } = useActionPending();
   const [rejectReason, setRejectReason] = useState("");
   const [overrideScore, setOverrideScore] = useState(70);
   const [overrideReason, setOverrideReason] = useState("");
@@ -55,7 +54,6 @@ export function CaseStaffActions({
   const [selectedShelter, setSelectedShelter] = useState("");
   const [shelterRejectReason, setShelterRejectReason] = useState("");
   const [handoffNotes, setHandoffNotes] = useState("");
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const temporaryId = `A-${caseNumber.replace("RC-", "")}`;
   const showRescueStageActions =
@@ -67,16 +65,8 @@ export function CaseStaffActions({
   async function runAction(
     fn: () => Promise<{ error?: string; success?: boolean } | void>,
   ) {
-    setLoading(true);
     setActionError(null);
-    const result = await fn();
-    if (result && typeof result === "object" && "error" in result && result.error) {
-      setActionError(result.error);
-      setLoading(false);
-      return;
-    }
-    router.refresh();
-    setLoading(false);
+    await run(fn, { rewarm: [`/rescue-cases/${caseId}`, "/rescue-cases", "/dashboard"] });
   }
 
   return (

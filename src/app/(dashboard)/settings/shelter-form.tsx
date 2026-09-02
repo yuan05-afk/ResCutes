@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { cn } from "@/lib/utils";
+import { useActionPending } from "@/components/shared/useActionPending";
 import { updateShelterSettingsAction } from "@/app/actions/case";
 
 const ALL_CAPABILITIES = [
@@ -30,8 +30,7 @@ interface ShelterSettingsFormProps {
 }
 
 export function ShelterSettingsForm({ shelter }: ShelterSettingsFormProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const { pending: loading, run } = useActionPending();
   const [totalCapacity, setTotalCapacity] = useState(shelter.totalCapacity);
   const [currentOccupancy, setCurrentOccupancy] = useState(
     shelter.currentOccupancy,
@@ -40,14 +39,15 @@ export function ShelterSettingsForm({ shelter }: ShelterSettingsFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    await updateShelterSettingsAction(shelter.id, {
-      totalCapacity,
-      currentOccupancy,
-      capabilities: selectedCaps,
-    });
-    router.refresh();
-    setLoading(false);
+    await run(
+      () =>
+        updateShelterSettingsAction(shelter.id, {
+          totalCapacity,
+          currentOccupancy,
+          capabilities: selectedCaps,
+        }),
+      { rewarm: ["/settings", "/dashboard"] },
+    );
   }
 
   const available = totalCapacity - currentOccupancy;

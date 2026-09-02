@@ -1,6 +1,6 @@
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/permissions";
-import { WebSidebar } from "@/components/layout/web-sidebar";
+import { AppShell } from "@/components/layout/AppShell";
 
 export default async function DashboardLayout({
   children,
@@ -14,11 +14,8 @@ export default async function DashboardLayout({
   ]);
 
   return (
-    <div className="flex min-h-screen md:h-dvh md:overflow-hidden bg-bone">
-      <WebSidebar userName={session.user.name} userRoles={session.user.roles} />
-      <main className="flex-1 min-h-0 overflow-y-auto">
-        {children}
-      </main>
-    </div>
+    <AppShell userName={session.user.name} userRoles={session.user.roles}>
+      {children}
+    </AppShell>
   );
 }

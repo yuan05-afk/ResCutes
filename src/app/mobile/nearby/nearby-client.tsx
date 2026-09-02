@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapView } from "@/components/map/map-view";
+import { MapView } from "@/components/map/map-view-dynamic";
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
 import { Card, CardContent } from "@/components/ui/card";
 import { UrgencyBadge } from "@/components/status/urgency-badge";

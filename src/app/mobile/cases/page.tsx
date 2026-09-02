@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/auth/session";
-import { getCases, getAssignmentsForCase, resolveCurrentUrgency } from "@/lib/data/service";
+import { getAssignmentsForCase, resolveCurrentUrgency } from "@/lib/data/service";
+import { getMobileCasesListCached } from "@/lib/data/cached-loaders";
 import { getPrimaryMobileRole, ROLES } from "@/lib/auth/permissions";
 import { MobileCaseCard } from "@/components/mobile/mobile-case-card";
 import { StateMessage } from "@/components/status/state-message";
@@ -8,9 +9,7 @@ export default async function MobileCasesPage() {
   const session = await requireAuth();
   const isRescuer = getPrimaryMobileRole(session.user.roles) === ROLES.RESCUER;
 
-  const cases = isRescuer
-    ? getCases({ rescuerId: session.user.id })
-    : getCases({ reporterId: session.user.id });
+  const cases = await getMobileCasesListCached(session.user.id, isRescuer);
 
   return (
     <div>

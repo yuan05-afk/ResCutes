@@ -1,4 +1,4 @@
-import { getAnimals } from "@/lib/data/service";
+import { getAnimalsListCached } from "@/lib/data/cached-loaders";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import Link from "next/link";
@@ -13,10 +13,20 @@ export default async function AnimalsPage({
   searchParams: Promise<{ search?: string; clearance?: string }>;
 }) {
   const params = await searchParams;
-  const animals = getAnimals({
-    search: params.search,
-    clearanceStatus: params.clearance,
-  });
+  const allAnimals = await getAnimalsListCached();
+  let animals = allAnimals;
+  if (params.search) {
+    const q = params.search.toLowerCase();
+    animals = animals.filter(
+      (a) =>
+        a.name?.toLowerCase().includes(q) ||
+        a.temporaryId.toLowerCase().includes(q) ||
+        a.species.toLowerCase().includes(q),
+    );
+  }
+  if (params.clearance) {
+    animals = animals.filter((a) => a.clearanceStatus === params.clearance);
+  }
 
   return (
     <PageShell>

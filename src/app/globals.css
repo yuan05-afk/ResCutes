@@ -50,6 +50,15 @@
   }
 }
 
+@keyframes rc-nav-progress {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+.rc-nav-progress {
+  animation: rc-nav-progress 0.9s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

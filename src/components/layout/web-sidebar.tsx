@@ -14,7 +14,9 @@ import { hexclaveClientApp } from "@/stack/client";
 import { Logo } from "@/components/ui/logo";
 import type { Role } from "@/lib/auth/permissions";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
-import { useRoutePrefetch } from "@/components/layout/use-route-prefetch";
+import { prefetchRouteNow } from "@/components/layout/AppRoutePrefetcher";
+import { useNavigationPending } from "@/components/layout/NavigationPending";
+import { useRouter } from "next/navigation";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -30,8 +32,9 @@ interface WebSidebarProps {
 
 export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { startPending } = useNavigationPending();
   const primaryRole = userRoles[0];
-  useRoutePrefetch(navItems.map((item) => item.href));
 
   return (
     <aside
@@ -51,6 +54,8 @@ export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
               key={item.href}
               href={item.href}
               prefetch
+              onMouseEnter={() => prefetchRouteNow(router, item.href)}
+              onClick={() => startPending(item.href)}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors",
                 isActive

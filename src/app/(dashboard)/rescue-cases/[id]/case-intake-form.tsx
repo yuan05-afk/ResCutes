@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
+import { useActionPending } from "@/components/shared/useActionPending";
 import { completeShelterIntakeAction } from "@/app/actions/case";
 import { formatStatus } from "@/lib/utils";
 
@@ -23,9 +23,7 @@ export function CaseIntakeForm({
   temporaryId,
   injurySeverity,
 }: CaseIntakeFormProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const { pending: loading, error: actionError, setError: setActionError, run } = useActionPending();
   const [name, setName] = useState("");
   const [estimatedAge, setEstimatedAge] = useState("");
   const [sex, setSex] = useState("");
@@ -36,23 +34,19 @@ export function CaseIntakeForm({
   );
 
   async function handleSubmit() {
-    setLoading(true);
     setActionError(null);
-    const result = await completeShelterIntakeAction(caseId, {
-      name: name || undefined,
-      estimatedAge: estimatedAge || undefined,
-      sex: sex || undefined,
-      breed: breed || undefined,
-      color: color || undefined,
-      initialCondition: initialCondition || undefined,
-    });
-    if (result && "error" in result && result.error) {
-      setActionError(result.error);
-      setLoading(false);
-      return;
-    }
-    router.refresh();
-    setLoading(false);
+    await run(
+      () =>
+        completeShelterIntakeAction(caseId, {
+          name: name || undefined,
+          estimatedAge: estimatedAge || undefined,
+          sex: sex || undefined,
+          breed: breed || undefined,
+          color: color || undefined,
+          initialCondition: initialCondition || undefined,
+        }),
+      { rewarm: [`/rescue-cases/${caseId}`, "/animals", "/dashboard"] },
+    );
   }
 
   return (

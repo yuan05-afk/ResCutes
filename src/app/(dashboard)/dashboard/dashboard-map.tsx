@@ -1,6 +1,6 @@
 "use client";
 
-import { MapView } from "@/components/map/map-view";
+import { MapView } from "@/components/map/map-view-dynamic";
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
 
 interface CaseMapItem {
