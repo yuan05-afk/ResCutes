@@ -35,7 +35,7 @@ export function RescueCasesTable({ cases, rescuers }: RescueCasesTableProps) {
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
         <div className="shrink-0">
           <RescueCasesFiltersBar
             rescuers={rescuers}
@@ -53,12 +53,12 @@ export function RescueCasesTable({ cases, rescuers }: RescueCasesTableProps) {
           />
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card">
+        <div className="flex flex-col rounded-xl border border-sage/25 bg-white shadow-card lg:min-h-0 lg:flex-1 lg:overflow-hidden">
           <p className="shrink-0 border-b border-sage/15 px-4 py-2 text-xs text-graphite/50">
             {filters.filtered.length} case{filters.filtered.length !== 1 ? "s" : ""} · click a row for details
           </p>
-          <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="sticky top-0 z-10 bg-bone/95 backdrop-blur-sm">
                 <tr className="border-b border-sage/20 text-left text-[10px] font-semibold uppercase tracking-wide text-graphite/50">
                   <th className="px-4 py-2.5">Case</th>

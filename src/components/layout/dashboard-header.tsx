@@ -18,33 +18,53 @@ export function DashboardHeader({
       <div className="min-w-0">
         <h1
           className={cn(
-            "font-bold tracking-tight text-graphite",
+            "font-bold tracking-tight text-graphite break-words",
             compact ? "text-lg md:text-xl" : "text-2xl md:text-[28px]",
           )}
         >
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-0.5 text-xs text-graphite/55 sm:text-sm">{subtitle}</p>
+          <p className="mt-0.5 text-xs text-graphite/55 sm:text-sm break-words">
+            {subtitle}
+          </p>
         )}
       </div>
-      {children && <div className="flex shrink-0 items-center gap-3">{children}</div>}
+      {children && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-3">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
 
-/** Full-viewport page shell — content fits one screen; scroll only inside designated panels. */
+/**
+ * Page shell for dashboard routes.
+ *
+ * Scroll strategy (avoids nested scroll traps):
+ * - Below lg: content grows naturally; only AppShell `<main>` scrolls.
+ * - lg+: `fitViewport` locks height; body / PageScrollPanel scroll internally.
+ */
 export function PageShell({
   children,
   className,
   header,
+  fitViewport = false,
 }: {
   children: React.ReactNode;
   className?: string;
   header?: React.ReactNode;
+  fitViewport?: boolean;
 }) {
   return (
-    <div className="mx-auto flex h-full w-full max-w-[1440px] min-h-0 flex-1 flex-col overflow-hidden">
+    <div
+      className={cn(
+        "mx-auto flex w-full min-w-0 max-w-[1440px] flex-col",
+        "lg:min-h-0 lg:flex-1",
+        fitViewport && "lg:overflow-hidden",
+      )}
+    >
       {header ? (
         <header className="shrink-0 border-b border-sage/20 bg-bone/90 px-4 py-3 md:px-6">
           {header}
@@ -52,7 +72,10 @@ export function PageShell({
       ) : null}
       <div
         className={cn(
-          "flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-3 md:px-6 md:py-4",
+          "flex min-w-0 flex-col overflow-x-hidden px-4 py-3 md:px-6 md:py-4",
+          fitViewport
+            ? "lg:min-h-0 lg:flex-1 lg:overflow-hidden"
+            : "lg:min-h-0 lg:flex-1 lg:overflow-y-auto",
           className,
         )}
       >
@@ -62,7 +85,7 @@ export function PageShell({
   );
 }
 
-/** Scrollable panel inside a viewport-fitted page (tables, long lists). */
+/** Scrollable panel inside a viewport-fitted page. lg+ only. */
 export function PageScrollPanel({
   children,
   className,
@@ -73,7 +96,7 @@ export function PageScrollPanel({
   return (
     <div
       className={cn(
-        "min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain",
+        "lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden",
         className,
       )}
     >

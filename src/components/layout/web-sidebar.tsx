@@ -50,7 +50,7 @@ export function WebSidebar({ userName, userEmail, userRoles }: WebSidebarProps) 
 
   return (
     <aside
-      className="hidden md:flex w-[260px] shrink-0 flex-col sticky top-0 self-start h-dvh bg-evergreen text-white"
+      className="hidden md:flex w-[260px] shrink-0 flex-col sticky top-0 self-start min-h-[100dvh] bg-evergreen text-white"
       aria-label="Main navigation"
     >
       <div className="shrink-0 px-5 py-6 border-b border-white/10">

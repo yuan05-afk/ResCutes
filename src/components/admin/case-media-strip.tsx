@@ -2,6 +2,7 @@
 
 import { Camera, MapPin } from "lucide-react";
 import { MapView } from "@/components/map/map-view-dynamic";
+import { markerColorForUrgency } from "@/components/map/map-constants";
 import { AnimalImage } from "@/components/ui/animal-image";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +21,7 @@ interface CaseMediaStripProps {
 }
 
 function markerColor(urgencyLevel: string) {
-  if (urgencyLevel === "critical") return "#C7513A";
-  if (urgencyLevel === "high") return "#C9912F";
-  return "#183C35";
+  return markerColorForUrgency(urgencyLevel);
 }
 
 const mediaHeights = {
@@ -40,7 +39,7 @@ export function CaseMediaStrip({
   caseNumber,
   urgencyLevel,
   className,
-  mapInteractive = false,
+  mapInteractive = true,
   compact = false,
 }: CaseMediaStripProps) {
   const heightClass = compact ? mediaHeights.compact : mediaHeights.default;
@@ -76,12 +75,15 @@ export function CaseMediaStrip({
           className="h-full w-full overflow-hidden rounded-xl border border-sage/20"
           center={{ latitude, longitude }}
           zoom={14}
+          compactLegend
           markers={[
             {
               id: caseId,
               latitude,
               longitude,
-              label: caseNumber,
+              caseNumber,
+              species,
+              urgencyLevel,
               color: markerColor(urgencyLevel),
             },
           ]}

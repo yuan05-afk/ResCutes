@@ -318,7 +318,7 @@ export function MedicalClearanceForm({
 
     if (isPanel) {
       return (
-        <div className="flex h-full flex-col">
+        <div className="flex flex-col">
           <PanelHeader />
           <div className="p-3">{clearedBody}</div>
         </div>
@@ -337,9 +337,9 @@ export function MedicalClearanceForm({
 
   if (isPanel) {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex flex-col">
         <PanelHeader status={clearanceStatus} />
-        <div className="min-h-0 flex-1 space-y-2 overflow-hidden p-3">{formFields}</div>
+        <div className="space-y-2 p-3">{formFields}</div>
       </div>
     );
   }

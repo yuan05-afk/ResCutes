@@ -13,6 +13,7 @@ export default async function AnimalsPage() {
           subtitle={`${animals.length} animals in system`}
         />
       }
+      fitViewport
     >
       <AnimalsTable animals={animals} />
     </PageShell>

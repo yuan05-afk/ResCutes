@@ -115,7 +115,7 @@ export function CaseStaffActions({
       {(caseStatus === "report_submitted" ||
         caseStatus === "under_verification") && (
         <ActionBlock title="Review report">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button
               onClick={() => runAction(() => verifyCaseAction(caseId))}
               disabled={loading}
@@ -307,14 +307,12 @@ export function CaseStaffActions({
 
   if (isPanel) {
     return (
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="flex flex-col">
         <div className="shrink-0 border-b border-sage/20 bg-evergreen/5 px-3 py-2.5">
           <p className="text-xs font-bold text-evergreen">Staff Actions</p>
           <p className="text-[10px] text-graphite/50">Update case status and routing</p>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden p-2.5">
-          {body}
-        </div>
+        <div className="p-2.5">{body}</div>
       </div>
     );
   }

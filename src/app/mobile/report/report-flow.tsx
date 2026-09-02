@@ -232,7 +232,7 @@ export function ReportFlow() {
                 </Button>
               )}
               {locationStatus === "denied" && (
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-4 grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
                   <Input
                     type="number"
                     step="any"

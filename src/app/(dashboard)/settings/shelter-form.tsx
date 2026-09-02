@@ -124,9 +124,9 @@ export function ShelterSettingsForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      className="flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden"
     >
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-4">
+      <div className="space-y-5 px-5 py-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       {!canEdit && (
         <div className="rounded-xl border border-ochre/30 bg-ochre/10 px-4 py-3 text-sm text-graphite/80">
           You have view-only access. Contact an administrator to change shelter

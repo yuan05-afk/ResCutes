@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MapView } from "@/components/map/map-view-dynamic";
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
+import { markerColorForUrgency } from "@/components/map/map-constants";
 import { Card, CardContent } from "@/components/ui/card";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { StatusBadge } from "@/components/status/status-badge";
-import { formatStatus } from "@/lib/utils";
 import { CasePeekSheet, type CasePeekData } from "@/components/mobile/case-peek-sheet";
 import { useNavigationPending } from "@/components/layout/NavigationPending";
 import { useState } from "react";
@@ -34,13 +34,11 @@ export function NearbyMapClient({ cases }: { cases: CaseItem[] }) {
     id: c.id,
     latitude: c.latitude,
     longitude: c.longitude,
-    label: `${c.caseNumber} — ${formatStatus(c.species)}`,
-    color:
-      c.urgencyLevel === "critical"
-        ? "#C7513A"
-        : c.urgencyLevel === "high"
-          ? "#C9912F"
-          : "#183C35",
+    caseNumber: c.caseNumber,
+    species: c.species,
+    status: c.status,
+    urgencyLevel: c.urgencyLevel,
+    color: markerColorForUrgency(c.urgencyLevel),
   }));
 
   const center =
@@ -75,6 +73,7 @@ export function NearbyMapClient({ cases }: { cases: CaseItem[] }) {
           className="h-[45vh] min-h-[240px]"
           center={center}
           zoom={11}
+          compactLegend
           markers={markers}
           onMarkerClick={(id) => {
             const match = cases.find((c) => c.id === id);

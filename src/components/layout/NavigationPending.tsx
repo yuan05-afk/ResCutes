@@ -160,7 +160,13 @@ export function PendingPageSlot({ children }: { children: React.ReactNode }) {
   }, [navigating, pendingHref]);
 
   return (
-    <div className={cn("relative flex h-full flex-1 flex-col min-h-0 overflow-hidden", showSkeleton && "min-h-[50vh]")}>
+    <div
+      className={cn(
+        "relative flex flex-col",
+        showSkeleton && "min-h-[50vh]",
+        "lg:min-h-0 lg:flex-1",
+      )}
+    >
       {showProgress && navigating ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-0.5 overflow-hidden bg-sage/20">
           <div className="rc-nav-progress h-full w-1/3 rounded-full bg-evergreen" />
@@ -168,9 +174,7 @@ export function PendingPageSlot({ children }: { children: React.ReactNode }) {
       ) : null}
 
       <div
-        className={cn(
-          "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
-        )}
+        className="flex flex-col lg:min-h-0 lg:flex-1"
         aria-busy={showSkeleton || undefined}
       >
         {children}

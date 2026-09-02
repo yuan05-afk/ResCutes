@@ -100,9 +100,9 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
       {data && caseItem ? (
         <div
           className={cn(
-            "grid h-full min-h-0 gap-3",
+            "grid min-h-0 items-start gap-3",
             canManage
-              ? "grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]"
+              ? "grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]"
               : "grid-cols-1",
           )}
         >
@@ -110,6 +110,7 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
           <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
             <CaseMediaStrip
               compact
+              mapInteractive
               photoSrc={photoSrc}
               species={caseItem.species}
               photoAlt={`${formatStatus(caseItem.species)} rescue`}
@@ -124,7 +125,7 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
               {caseItem.description}
             </p>
 
-            <div className="grid shrink-0 grid-cols-2 gap-2">
+            <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2">
               <ModalMeta label="Species" value={formatStatus(caseItem.species)} />
               <ModalMeta label="Injury" value={formatStatus(caseItem.injurySeverity)} />
               <ModalMeta
@@ -169,7 +170,7 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
 
           {/* Staff actions — same view, right column */}
           {canManage ? (
-            <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-sage/25 bg-gradient-to-b from-bone/80 to-white shadow-card">
+            <aside className="w-full shrink-0 overflow-hidden rounded-xl border border-sage/25 bg-gradient-to-b from-bone/80 to-white shadow-card">
               <CaseStaffActions
                 variant="panel"
                 caseId={caseItem.id}

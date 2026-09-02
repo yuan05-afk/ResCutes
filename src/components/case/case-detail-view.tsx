@@ -94,14 +94,14 @@ export function CaseDetailView({
   return (
     <div
       className={cn(
-        "grid h-full min-h-0 gap-3",
+        "grid min-h-0 items-start gap-3",
         canManage
-          ? "grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]"
-          : "grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]",
+          ? "grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(260px,380px)]"
+          : "grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(240px,320px)]",
       )}
     >
       {/* Left — case intelligence */}
-      <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
+      <div className="flex min-h-0 flex-col gap-2">
         <CaseMediaStrip
           compact
           photoSrc={photoSrc}
@@ -166,7 +166,7 @@ export function CaseDetailView({
           </div>
 
           <ModalSection title="Timeline" className="min-h-0 flex flex-col">
-            <ul className="min-h-0 space-y-1 overflow-hidden">
+            <ul className="min-h-0 space-y-1">
               {history.slice(0, 4).map((h) => (
                 <li
                   key={h.id}
@@ -220,7 +220,7 @@ export function CaseDetailView({
       </div>
 
       {/* Right — context + staff actions */}
-      <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
+      <div className="flex min-h-0 flex-col gap-2">
         {!canReporter && !canManage ? null : (
           <div className="grid shrink-0 grid-cols-1 gap-2">
             {canReporter ? (
@@ -237,7 +237,7 @@ export function CaseDetailView({
         )}
 
         {canManage ? (
-          <aside className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sage/25 bg-gradient-to-b from-bone/80 to-white shadow-card">
+          <aside className="w-full shrink-0 overflow-hidden rounded-xl border border-sage/25 bg-gradient-to-b from-bone/80 to-white shadow-card">
             <CaseStaffActions
               variant="panel"
               caseId={caseItem.id}

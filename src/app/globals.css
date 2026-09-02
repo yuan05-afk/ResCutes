@@ -26,18 +26,38 @@
 }
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   * {
     @apply border-border;
   }
   body {
     @apply bg-bone text-graphite antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
+  }
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
   }
 }
 
 @layer utilities {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .app-main-pad {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 768px) {
+    .app-main-pad {
+      padding-bottom: 0;
+    }
   }
   .shadow-card {
     box-shadow: 0 1px 3px rgba(32, 40, 37, 0.06), 0 4px 12px rgba(32, 40, 37, 0.04);
@@ -57,6 +77,147 @@
 
 .rc-nav-progress {
   animation: rc-nav-progress 0.9s ease-in-out infinite;
+}
+
+/* Mapbox embeds: required © Mapbox + © OpenStreetMap stay; optional links hidden */
+.rescutes-map .mapbox-improve-map,
+.rescutes-map a[href*="openstreetmap.org/fixthemap"] {
+  display: none !important;
+}
+
+.rescutes-map .mapboxgl-ctrl-attrib {
+  font-size: 10px;
+  line-height: 1.2;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 4px 0 0 0;
+  margin: 0;
+  padding: 2px 6px;
+  max-width: calc(100% - 88px);
+}
+
+.rescutes-map .mapboxgl-ctrl-attrib a {
+  color: #4a5c56;
+}
+
+.rescutes-map .mapboxgl-ctrl-attrib-button {
+  background-color: rgba(255, 255, 255, 0.88);
+}
+
+/* Map pins — hover / selected transitions */
+.rescutes-map-marker {
+  display: block;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background-color: var(--marker-color, #183c35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  will-change: transform;
+}
+
+.rescutes-map-marker--selected {
+  width: 16px;
+  height: 16px;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--marker-color) 28%, transparent),
+    0 2px 8px rgba(0, 0, 0, 0.32);
+}
+
+.rescutes-map-marker--clickable {
+  cursor: pointer;
+}
+
+.rescutes-map-marker--clickable:not(:disabled):hover,
+.rescutes-map-marker--clickable:not(:disabled):focus-visible {
+  transform: scale(1.4);
+  border-color: #fff;
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--marker-color) 32%, transparent),
+    0 4px 14px rgba(0, 0, 0, 0.35);
+  outline: none;
+}
+
+.rescutes-map-marker--clickable:not(:disabled):active {
+  transform: scale(1.2);
+  transition-duration: 0.1s;
+}
+
+.rescutes-map-marker--selected.rescutes-map-marker--clickable:not(:disabled):hover {
+  transform: scale(1.25);
+}
+
+.rescutes-map-marker:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Legend swatches — mirror pin hover feel */
+.rescutes-map-legend-dot {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background-color: var(--legend-color, #183c35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+    box-shadow 0.22s ease;
+}
+
+.rescutes-map-legend-dot--compact {
+  width: 8px;
+  height: 8px;
+  border-width: 1.5px;
+}
+
+.group:hover .rescutes-map-legend-dot,
+.group:focus-within .rescutes-map-legend-dot {
+  transform: scale(1.35);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--legend-color) 30%, transparent),
+    0 3px 10px rgba(0, 0, 0, 0.28);
+}
+
+.rescutes-map .mapboxgl-popup.rescutes-map-popup .mapboxgl-popup-content {
+  padding: 8px 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(32, 40, 37, 0.14);
+}
+
+.rescutes-map-popup__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rescutes-map-popup__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #202825;
+}
+
+.rescutes-map-popup__meta {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #4a5751;
+}
+
+.rescutes-map-popup__status {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: #6b7872;
 }
 
 @media (prefers-reduced-motion: reduce) {

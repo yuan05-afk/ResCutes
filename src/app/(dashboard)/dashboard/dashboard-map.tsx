@@ -2,6 +2,7 @@
 
 import { MapView } from "@/components/map/map-view-dynamic";
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
+import { markerColorForUrgency } from "@/components/map/map-constants";
 import { cn } from "@/lib/utils";
 
 interface CaseMapItem {
@@ -9,6 +10,8 @@ interface CaseMapItem {
   latitude: number;
   longitude: number;
   caseNumber: string;
+  species: string;
+  status: string;
   urgencyLevel: string;
 }
 
@@ -27,13 +30,11 @@ export function DashboardMapClient({
     id: c.id,
     latitude: c.latitude,
     longitude: c.longitude,
-    label: c.caseNumber,
-    color:
-      c.urgencyLevel === "critical"
-        ? "#C7513A"
-        : c.urgencyLevel === "high"
-          ? "#C9912F"
-          : "#183C35",
+    caseNumber: c.caseNumber,
+    species: c.species,
+    status: c.status,
+    urgencyLevel: c.urgencyLevel,
+    color: markerColorForUrgency(c.urgencyLevel),
   }));
 
   return (

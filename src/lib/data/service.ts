@@ -296,11 +296,34 @@ export function getDashboardMetrics() {
     0,
   );
 
+  const criticalCount = criticalHigh.filter(
+    (c) => resolveCurrentUrgency(c).level === "critical",
+  ).length;
+  const highCount = criticalHigh.filter(
+    (c) => resolveCurrentUrgency(c).level === "high",
+  ).length;
+  const assignedCases = activeCases.length - unassigned.length;
+  const awaitingExam = awaitingMedical.filter(
+    (a) => a.clearanceStatus === "awaiting_examination",
+  ).length;
+  const underExam = awaitingMedical.filter(
+    (a) => a.clearanceStatus === "under_examination",
+  ).length;
+  const followUpRequired = awaitingMedical.filter(
+    (a) => a.clearanceStatus === "follow_up_required",
+  ).length;
+
   return {
     activeCases: activeCases.length,
     criticalHigh: criticalHigh.length,
+    criticalCount,
+    highCount,
     unassigned: unassigned.length,
+    assignedCases,
     awaitingMedical: awaitingMedical.length,
+    awaitingExam,
+    underExam,
+    followUpRequired,
     underTreatment: underTreatment.length,
     completed: completed.length,
     capacityUsed: totalOccupancy,

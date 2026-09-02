@@ -17,9 +17,11 @@ export function MobileAppShell({ children }: { children: React.ReactNode }) {
   return (
     <NavigationPendingProvider>
       <AppRoutePrefetcher />
-      <div className="min-h-screen bg-bone md:bg-[#e8e6df]">
-        <div className="mx-auto min-h-screen max-w-mobile w-full bg-bone shadow-elevated md:my-4 md:min-h-[calc(100vh-2rem)] md:rounded-2xl md:border md:border-sage/20 overflow-hidden relative pb-20 flex flex-col">
-          <PendingPageSlot>{children}</PendingPageSlot>
+      <div className="min-h-[100dvh] bg-bone md:bg-[#e8e6df]">
+        <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-mobile flex-col overflow-hidden bg-bone shadow-elevated md:my-4 md:min-h-0 md:max-h-[calc(100dvh-2rem)] md:rounded-2xl md:border md:border-sage/20">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pb-20">
+            <PendingPageSlot>{children}</PendingPageSlot>
+          </div>
           <MobileNav />
         </div>
       </div>

@@ -78,10 +78,9 @@ export function AdminModal({
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         className={cn(
-          "relative z-[81] flex w-full flex-col overflow-hidden border border-sage/25 bg-white shadow-elevated",
+          "relative z-[81] flex w-full max-h-[calc(100dvh-0.5rem)] flex-col overflow-hidden border border-sage/25 bg-white shadow-elevated sm:max-h-[calc(100dvh-2rem)]",
           sizeClasses[size],
-          fitViewport &&
-            "h-[min(700px,calc(100dvh-2rem))] sm:h-[min(740px,calc(100dvh-3rem))]",
+          fitViewport && "min-h-0 sm:min-h-[min(480px,calc(100dvh-3rem))]",
           isCenter ? "rounded-2xl" : "rounded-t-2xl sm:rounded-2xl",
         )}
       >
@@ -112,7 +111,7 @@ export function AdminModal({
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-2.5 sm:px-5 sm:py-3">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-2.5 sm:px-5 sm:py-3">
           {children}
         </div>
 
@@ -187,7 +186,7 @@ export function ModalMeta({
       <p className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
         {label}
       </p>
-      <p className="mt-0.5 text-sm font-medium leading-snug text-graphite line-clamp-2">
+      <p className="mt-0.5 text-sm font-medium leading-snug text-graphite break-words">
         {value}
       </p>
     </div>

@@ -137,8 +137,8 @@ export function RescueCasesFiltersBar({
   onClear: () => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-3 items-end">
-      <div className="flex-1 min-w-[200px]">
+    <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+      <div className="w-full min-w-0 flex-1 sm:min-w-[12rem]">
         <Input
           placeholder="Search cases..."
           value={search}
@@ -149,7 +149,7 @@ export function RescueCasesFiltersBar({
       <Select
         value={status}
         onChange={(e) => setStatus(e.target.value)}
-        className="h-9 w-[150px]"
+        className="h-9 w-full min-w-0 sm:w-auto sm:min-w-[9rem]"
       >
         <option value="">All statuses</option>
         {STATUSES.map((s) => (
@@ -161,7 +161,7 @@ export function RescueCasesFiltersBar({
       <Select
         value={urgency}
         onChange={(e) => setUrgency(e.target.value)}
-        className="h-9 w-[130px]"
+        className="h-9 w-full min-w-0 sm:w-auto sm:min-w-[8rem]"
       >
         <option value="">All urgency</option>
         {URGENCY_LEVELS.map((u) => (
@@ -173,7 +173,7 @@ export function RescueCasesFiltersBar({
       <Select
         value={rescuer}
         onChange={(e) => setRescuer(e.target.value)}
-        className="h-9 w-[150px]"
+        className="h-9 w-full min-w-0 sm:w-auto sm:min-w-[9rem]"
       >
         <option value="">All rescuers</option>
         {rescuers.map((r) => (
@@ -185,7 +185,7 @@ export function RescueCasesFiltersBar({
       <Select
         value={sort}
         onChange={(e) => setSort(e.target.value)}
-        className="h-9 w-[130px]"
+        className="h-9 w-full min-w-0 sm:w-auto sm:min-w-[8rem]"
       >
         <option value="date">Newest</option>
         <option value="urgency">Urgency</option>

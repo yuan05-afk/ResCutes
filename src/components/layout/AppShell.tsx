@@ -8,6 +8,8 @@ import {
 } from "@/components/layout/NavigationPending";
 import { markAppBooted } from "@/components/layout/RootLoadingGate";
 import { WebSidebar } from "@/components/layout/web-sidebar";
+import { WebMobileHeader } from "@/components/layout/web-mobile-header";
+import { WebMobileNav } from "@/components/layout/web-mobile-nav";
 import type { Role } from "@/lib/auth/permissions";
 
 interface AppShellProps {
@@ -25,11 +27,19 @@ export function AppShell({ children, userName, userEmail, userRoles }: AppShellP
   return (
     <NavigationPendingProvider>
       <AppRoutePrefetcher />
-      <div className="flex min-h-screen md:h-dvh md:overflow-hidden bg-bone">
+      <div className="flex h-[100dvh] bg-bone lg:overflow-hidden">
         <WebSidebar userName={userName} userEmail={userEmail} userRoles={userRoles} />
-        <main className="flex flex-1 min-h-0 flex-col overflow-hidden">
-          <PendingPageSlot>{children}</PendingPageSlot>
-        </main>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <WebMobileHeader />
+          {/*
+            Mobile / narrow: main is the ONLY vertical scroll container.
+            lg+: pages manage scroll inside PageShell (fitted layout).
+          */}
+          <main className="app-main-pad flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden lg:overflow-hidden">
+            <PendingPageSlot>{children}</PendingPageSlot>
+          </main>
+          <WebMobileNav />
+        </div>
       </div>
     </NavigationPendingProvider>
   );

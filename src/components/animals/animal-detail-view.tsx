@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ModalMeta, ModalSection } from "@/components/admin/AdminModal";
+import { ModalMeta } from "@/components/admin/AdminModal";
 import { AnimalImage } from "@/components/ui/animal-image";
 import { MedicalClearanceForm } from "@/app/(dashboard)/animals/[id]/medical-form";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/lib/utils";
 import type { ClearanceStatus } from "@/lib/data/service";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 interface NoteEntry {
   id: string;
@@ -66,6 +67,32 @@ function displayOrUnknown(value?: string | null) {
   return value?.trim() ? value : "Unknown";
 }
 
+function InfoPanel({
+  title,
+  children,
+  className,
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-0 flex-col overflow-hidden rounded-lg border border-sage/20 bg-white shadow-sm",
+        className,
+      )}
+    >
+      <div className="shrink-0 border-b border-sage/15 bg-bone/40 px-2.5 py-1.5">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wide text-graphite/50">
+          {title}
+        </h3>
+      </div>
+      <div className="min-h-0 p-2.5">{children}</div>
+    </div>
+  );
+}
+
 export function AnimalDetailView({
   animal,
   photoSrc,
@@ -111,13 +138,13 @@ export function AnimalDetailView({
   return (
     <div
       className={cn(
-        "grid h-full min-h-0 gap-3",
+        "grid min-h-0 items-start gap-3",
         canEdit || canMedical
-          ? "grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]"
+          ? "grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(260px,380px)]"
           : "grid-cols-1",
       )}
     >
-      <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
+      <div className="flex min-h-0 flex-col gap-2">
         <div className="grid shrink-0 grid-cols-1 gap-2 overflow-hidden rounded-xl border border-sage/20 bg-white shadow-card sm:grid-cols-[140px_1fr]">
           <AnimalImage
             src={photoSrc}
@@ -147,65 +174,73 @@ export function AnimalDetailView({
           />
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2">
           {rescueCase ? (
-            <ModalSection title="Rescue case">
-              <div className="rounded-lg border border-sage/20 bg-bone/50 px-2.5 py-2 text-xs">
-                <Link
-                  href={`/rescue-cases/${rescueCase.id}`}
-                  className="font-semibold text-evergreen hover:underline"
-                >
-                  {rescueCase.caseNumber}
-                </Link>
-                <p className="mt-1 line-clamp-3 leading-relaxed text-graphite/70">
-                  {rescueCase.description}
-                </p>
-                <p className="mt-1 text-[10px] text-graphite/45">
-                  {formatDateTime(rescueCase.createdAt)}
-                </p>
-              </div>
-            </ModalSection>
+            <InfoPanel title="Rescue case">
+              <Link
+                href={`/rescue-cases/${rescueCase.id}`}
+                className="text-xs font-semibold text-evergreen hover:underline"
+              >
+                {rescueCase.caseNumber}
+              </Link>
+              <p className="mt-1.5 text-xs leading-relaxed text-graphite/70 line-clamp-3">
+                {rescueCase.description}
+              </p>
+              <p className="mt-1.5 text-[10px] text-graphite/45">
+                {formatDateTime(rescueCase.createdAt)}
+              </p>
+            </InfoPanel>
           ) : null}
 
           {shelter ? (
-            <ModalSection title="Intake shelter">
-              <div className="rounded-lg border border-sage/20 bg-bone/50 px-2.5 py-2 text-xs">
-                <p className="font-semibold text-graphite">{shelter.name}</p>
-                <p className="mt-1 line-clamp-2 text-graphite/65">{shelter.address}</p>
-              </div>
-            </ModalSection>
-          ) : null}
-
-          {canMedical && medicalFields.length > 0 ? (
-            <ModalSection
-              title="Medical summary"
-              className={cn(!rescueCase || !shelter ? "" : "sm:col-span-2")}
-            >
-              <div className="grid grid-cols-2 gap-1.5">
-                {medicalFields.slice(0, 4).map((field) => (
-                  <ModalMeta key={field.label} label={field.label} value={field.value} />
-                ))}
-              </div>
-            </ModalSection>
+            <InfoPanel title="Intake shelter">
+              <p className="text-xs font-semibold text-graphite">{shelter.name}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-graphite/65 line-clamp-2">
+                {shelter.address}
+              </p>
+            </InfoPanel>
           ) : null}
         </div>
 
-        {recentNotes.length > 0 ? (
-          <ModalSection title="Recent notes" className="shrink-0">
-            <ul className="space-y-1">
-              {recentNotes.map((n) => (
-                <li
-                  key={n.id}
-                  className="rounded-lg bg-bone/60 px-2.5 py-1.5 text-[11px]"
-                >
-                  <p className="line-clamp-2 text-graphite">{n.content}</p>
-                  <p className="mt-0.5 text-[10px] text-graphite/45">
-                    {n.authorName} · {formatStatus(n.noteType)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </ModalSection>
+        {(canMedical && medicalFields.length > 0) || recentNotes.length > 0 ? (
+          <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2">
+            {canMedical && medicalFields.length > 0 ? (
+              <InfoPanel title="Medical summary">
+                <dl className="space-y-2">
+                  {medicalFields.slice(0, 4).map((field) => (
+                    <div key={field.label}>
+                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+                        {field.label}
+                      </dt>
+                      <dd className="mt-0.5 text-xs leading-relaxed text-graphite break-words">
+                        {field.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </InfoPanel>
+            ) : null}
+
+            {recentNotes.length > 0 ? (
+              <InfoPanel title="Recent notes">
+                <ul className="space-y-2">
+                  {recentNotes.map((n) => (
+                    <li
+                      key={n.id}
+                      className="rounded-md border border-sage/15 bg-bone/50 px-2 py-1.5"
+                    >
+                      <p className="text-xs leading-relaxed text-graphite line-clamp-2">
+                        {n.content}
+                      </p>
+                      <p className="mt-1 text-[10px] text-graphite/45">
+                        {n.authorName} · {formatStatus(n.noteType)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </InfoPanel>
+            ) : null}
+          </div>
         ) : null}
 
         {!canMedical ? (
@@ -216,7 +251,7 @@ export function AnimalDetailView({
       </div>
 
       {(canEdit || canMedical) && (
-        <aside className="flex min-h-0 flex-col gap-2 overflow-hidden">
+        <aside className="flex flex-col gap-2">
           <div className="grid shrink-0 grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-1">
             <ModalMeta
               label="Shelter pathway"
@@ -229,7 +264,7 @@ export function AnimalDetailView({
           </div>
 
           {canEdit ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sage/25 bg-gradient-to-b from-bone/80 to-white shadow-card">
+            <div className="w-full shrink-0 overflow-hidden rounded-xl border border-sage/25 bg-gradient-to-b from-bone/80 to-white shadow-card">
               <MedicalClearanceForm
                 variant="panel"
                 animalId={animal.id}

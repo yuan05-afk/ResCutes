@@ -20,7 +20,7 @@ export default async function SettingsPage() {
           subtitle="Manage capacity and medical capabilities for each location"
         />
       }
-      className="overflow-hidden"
+      fitViewport
     >
       <ShelterSettingsWorkspace
         shelters={shelters}

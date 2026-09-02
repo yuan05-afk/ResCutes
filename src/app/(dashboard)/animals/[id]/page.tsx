@@ -47,7 +47,7 @@ export default async function AnimalDetailPage({
           title={displayTitle}
           subtitle={`${formatStatus(animal.species)} · ${animal.temporaryId}`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={animal.clearanceStatus} size="sm" />
             <span className="inline-flex items-center rounded-full bg-sage/20 px-2.5 py-0.5 text-[11px] font-medium text-evergreen capitalize">
               {formatStatus(animal.pathwayStage)}
@@ -55,7 +55,6 @@ export default async function AnimalDetailPage({
           </div>
         </DashboardHeader>
       }
-      className="overflow-hidden"
     >
       <AnimalDetailView
         animal={{

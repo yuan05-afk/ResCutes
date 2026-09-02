@@ -86,7 +86,7 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
   }
 
   return (
-    <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row">
+    <form onSubmit={handleSave} className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-hidden">
       {/* Identity card */}
       <aside className="shrink-0 lg:w-72">
         <div className="rounded-xl border border-sage/25 bg-white p-5 shadow-card">
@@ -122,7 +122,7 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
       </aside>
 
       {/* Settings panels */}
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
+      <div className="space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         <section className="rounded-xl border border-sage/25 bg-white p-5 shadow-card">
           <div className="mb-4 flex items-center gap-2">
             <User className="h-4 w-4 text-evergreen" />

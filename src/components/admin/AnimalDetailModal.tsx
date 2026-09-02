@@ -130,7 +130,7 @@ export function AnimalDetailModal({ animalId, onClose }: AnimalDetailModalProps)
                 </div>
               </div>
 
-              <div className="grid shrink-0 grid-cols-3 gap-1.5">
+              <div className="grid shrink-0 grid-cols-1 gap-1.5 sm:grid-cols-3">
                 <ModalMeta label="Species" value={formatStatus(animal.species)} />
                 <ModalMeta
                   label="Intake"

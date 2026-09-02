@@ -6,6 +6,7 @@ import { MapPin, Navigation } from "lucide-react";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { RescueProgress } from "@/components/mobile/rescue-progress";
 import { MapView } from "@/components/map/map-view-dynamic";
+import { MAP_MARKER_COLORS } from "@/components/map/map-constants";
 import { getCitizenProgressIndex, getCitizenStatusLabel } from "@/lib/rescue-progress";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { formatStatus } from "@/lib/utils";
@@ -57,7 +58,7 @@ export function ActiveRescueCard({
       latitude: approximateLat,
       longitude: approximateLon,
       label: "Approximate location",
-      color: "#C7513A",
+      color: MAP_MARKER_COLORS.critical,
     },
   ];
 
@@ -67,9 +68,28 @@ export function ActiveRescueCard({
       latitude: shelterLat,
       longitude: shelterLon,
       label: shelterName ?? "Shelter",
-      color: "#183C35",
+      color: MAP_MARKER_COLORS.standard,
     });
   }
+
+  const mapLegendItems = [
+    {
+      id: "animal",
+      label: "Animal",
+      description: "Approximate rescue location",
+      color: MAP_MARKER_COLORS.critical,
+    },
+    ...(shelterLat && shelterLon
+      ? [
+          {
+            id: "shelter",
+            label: "Shelter",
+            description: shelterName ?? "Assigned destination",
+            color: MAP_MARKER_COLORS.standard,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <article className="rounded-2xl border border-sage/25 bg-white shadow-card overflow-hidden">
@@ -134,6 +154,8 @@ export function ActiveRescueCard({
           center={{ latitude: approximateLat, longitude: approximateLon }}
           zoom={12}
           markers={markers}
+          legendItems={mapLegendItems}
+          compactLegend
           interactive={false}
         />
       </div>

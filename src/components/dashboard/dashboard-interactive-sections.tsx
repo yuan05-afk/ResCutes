@@ -27,6 +27,8 @@ interface MapCaseItem {
   latitude: number;
   longitude: number;
   caseNumber: string;
+  species: string;
+  status: string;
   urgencyLevel: string;
 }
 
@@ -34,37 +36,46 @@ interface DashboardInteractiveSectionsProps {
   mapCases: MapCaseItem[];
   criticalCases: QueueItem[];
   waitingForRescuer: DemoCase[];
+  className?: string;
 }
 
 export function DashboardInteractiveSections({
   mapCases,
   criticalCases,
   waitingForRescuer,
+  className,
 }: DashboardInteractiveSectionsProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [panel, setPanel] = useState<"queue" | "waiting">("queue");
 
   return (
     <>
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-12">
-        {/* Map — fills remaining height */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card lg:col-span-7">
+      <div
+        className={cn(
+          "grid h-full min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-12 lg:grid-rows-1",
+          className,
+        )}
+      >
+        <section className="flex h-full min-h-[240px] flex-col overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card sm:min-h-[280px] lg:col-span-7 lg:min-h-0">
           <div className="flex shrink-0 items-center justify-between border-b border-sage/15 px-4 py-2.5">
-            <h2 className="text-sm font-semibold text-graphite">Live Rescue Activity</h2>
-            <span className="text-xs text-graphite/45">{mapCases.length} active pins</span>
+            <h2 className="text-sm font-semibold text-graphite">
+              Live Rescue Activity
+            </h2>
+            <span className="text-xs text-graphite/45">
+              {mapCases.length} active pins
+            </span>
           </div>
           <div className="relative min-h-0 flex-1 p-2">
             <DashboardMapClient
               cases={mapCases}
               onMarkerClick={(id) => setOpenId(id)}
               selectedMarkerId={openId ?? undefined}
-              className="h-full min-h-[180px]"
+              className="h-full min-h-[200px]"
             />
           </div>
         </section>
 
-        {/* Right panel — queue or waiting list */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card lg:col-span-5">
+        <section className="flex h-full min-h-[280px] flex-col overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card lg:col-span-5 lg:min-h-0">
           <div className="flex shrink-0 items-center gap-1 border-b border-sage/15 px-3 py-2">
             <button
               type="button"
@@ -92,7 +103,7 @@ export function DashboardInteractiveSections({
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 space-y-2">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
             {panel === "queue" ? (
               criticalCases.length === 0 ? (
                 <p className="py-8 text-center text-sm text-graphite/50">
@@ -121,7 +132,7 @@ export function DashboardInteractiveSections({
               </p>
             ) : (
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-white">
+                <thead className="sticky top-0 z-10 bg-white">
                   <tr className="text-left text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
                     <th className="px-2 py-1.5">Case</th>
                     <th className="px-2 py-1.5">Status</th>
@@ -136,7 +147,7 @@ export function DashboardInteractiveSections({
                         key={c.id}
                         onOpen={() => setOpenId(c.id)}
                       >
-                        <td className="px-2 py-2 font-semibold text-evergreen text-xs">
+                        <td className="px-2 py-2 text-xs font-semibold text-evergreen">
                           {c.caseNumber}
                         </td>
                         <td className="px-2 py-2">

@@ -48,7 +48,7 @@ export default async function RescueCaseDetailPage({
           title={caseItem.caseNumber}
           subtitle={`${formatStatus(caseItem.species)} · ${formatStatus(caseItem.status)}`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={caseItem.status} size="sm" />
             {currentUrgency.score > 0 && (
               <UrgencyBadge
@@ -59,7 +59,6 @@ export default async function RescueCaseDetailPage({
           </div>
         </DashboardHeader>
       }
-      className="overflow-hidden"
     >
       <CaseDetailView
         caseItem={{

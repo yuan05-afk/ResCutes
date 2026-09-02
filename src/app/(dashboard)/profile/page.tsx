@@ -15,7 +15,7 @@ export default async function ProfilePage() {
           subtitle="Manage your account details and notification preferences"
         />
       }
-      className="overflow-hidden"
+      fitViewport
     >
       <ProfileSettingsForm user={session.user} prefs={prefs} />
     </PageShell>

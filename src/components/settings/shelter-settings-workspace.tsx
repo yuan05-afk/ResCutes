@@ -51,7 +51,7 @@ export function ShelterSettingsWorkspace({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden lg:flex-row">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-hidden">
       {/* Shelter picker */}
       <aside className="flex shrink-0 flex-col gap-2 lg:w-64">
         <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
@@ -109,7 +109,7 @@ export function ShelterSettingsWorkspace({
       </aside>
 
       {/* Editor panel */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card">
+      <div className="flex flex-col rounded-xl border border-sage/25 bg-white shadow-card lg:min-h-0 lg:min-w-0 lg:flex-1 lg:overflow-hidden">
         <div className="shrink-0 border-b border-sage/15 px-5 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">

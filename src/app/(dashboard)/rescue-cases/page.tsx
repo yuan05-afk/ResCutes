@@ -17,6 +17,7 @@ export default async function RescueCasesPage() {
           subtitle={`${cases.length} cases in system`}
         />
       }
+      fitViewport
     >
       <Suspense fallback={null}>
         <RescueCasesTable cases={cases} rescuers={rescuers} />
