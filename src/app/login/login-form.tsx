@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { hexclaveClientApp } from "@/stack/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,7 +50,7 @@ export default function LoginForm() {
 
     const normalizedEmail = loginEmail.trim().toLowerCase();
     const callbackFromQuery = normalizeCallbackPath(
-      searchParams.get("callbackUrl"),
+      searchParams.get("callbackUrl") ?? searchParams.get("after"),
     );
     const roles = rolesForEmail(normalizedEmail);
     const destination =
@@ -58,25 +58,18 @@ export default function LoginForm() {
         ? callbackFromQuery
         : defaultPathForRoles(roles);
 
-    const result = await signIn("credentials", {
+    const result = await hexclaveClientApp.signInWithCredential({
       email: normalizedEmail,
       password: loginPassword,
-      redirect: false,
+      noRedirect: true,
     });
 
-    if (result?.error) {
+    if (result.status === "error") {
       setLoading(false);
       setError("Invalid email or password. Use demo1234 for all demo accounts.");
       return;
     }
 
-    if (!result?.ok) {
-      setLoading(false);
-      setError("Sign in failed. Please try again.");
-      return;
-    }
-
-    // Full navigation ensures the session cookie is applied before middleware runs.
     window.location.assign(destination);
   }
 
@@ -99,7 +92,7 @@ export default function LoginForm() {
             <PawPrint className="h-8 w-8" />
             <span className="text-2xl font-semibold">ResCutes</span>
           </Link>
-          <p className="mt-2 text-sm text-graphite/70">Demo sign in</p>
+          <p className="mt-2 text-sm text-graphite/70">Demo sign in (Neon Auth)</p>
         </div>
 
         <Card>

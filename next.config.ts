@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.join(__dirname),
   images: {
     remotePatterns: [
       {
@@ -8,6 +10,20 @@ const nextConfig: NextConfig = {
         hostname: "*.public.blob.vercel-storage.com",
       },
     ],
+  },
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-select",
+      "@radix-ui/react-tabs",
+    ],
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
   },
 };
 

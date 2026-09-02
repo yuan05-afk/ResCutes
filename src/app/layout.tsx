@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { HexclaveProvider, HexclaveTheme } from "@hexclave/next";
+import { hexclaveClientApp } from "../stack/client";
 import { Inter } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -35,7 +37,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans min-h-screen`}>
-        <Providers>{children}</Providers>
+        <HexclaveProvider app={hexclaveClientApp}>
+          <HexclaveTheme>
+            <Providers>{children}</Providers>
+          </HexclaveTheme>
+        </HexclaveProvider>
       </body>
     </html>
   );

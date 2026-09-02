@@ -1041,10 +1041,9 @@ export function updateMedicalClearance(
     veterinarianName: vet?.name,
   });
 
-  const wasCleared = currentStatus === "medically_cleared";
   applyClearanceStatusToAnimal(animal, targetStatus);
 
-  if (targetStatus === "medically_cleared" && !wasCleared) {
+  if (targetStatus === "medically_cleared") {
     const staffUsers = DEMO_USERS.filter((u) =>
       u.roles.includes("shelter_staff"),
     );

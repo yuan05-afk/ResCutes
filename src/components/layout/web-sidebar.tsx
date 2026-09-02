@@ -10,10 +10,11 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { hexclaveClientApp } from "@/stack/client";
 import { Logo } from "@/components/ui/logo";
 import type { Role } from "@/lib/auth/permissions";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
+import { useRoutePrefetch } from "@/components/layout/use-route-prefetch";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -30,6 +31,7 @@ interface WebSidebarProps {
 export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
   const pathname = usePathname();
   const primaryRole = userRoles[0];
+  useRoutePrefetch(navItems.map((item) => item.href));
 
   return (
     <aside
@@ -48,6 +50,7 @@ export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch
               className={cn(
                 "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors",
                 isActive
@@ -71,7 +74,7 @@ export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
           </p>
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => void hexclaveClientApp.redirectToSignOut()}
             className="mt-3 flex items-center gap-2 text-sm text-white/75 hover:text-white transition-colors min-h-[44px]"
           >
             <LogOut className="h-4 w-4" aria-hidden />

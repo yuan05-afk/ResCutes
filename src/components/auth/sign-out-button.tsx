@@ -1,17 +1,17 @@
-import { signOut } from "@/lib/auth";
+"use client";
+
+import { hexclaveClientApp } from "@/stack/client";
 import { Button } from "@/components/ui/button";
 
 export function SignOutButton() {
   return (
-    <form
-      action={async () => {
-        "use server";
-        await signOut({ redirectTo: "/" });
-      }}
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full rounded-full h-12"
+      onClick={() => void hexclaveClientApp.redirectToSignOut()}
     >
-      <Button type="submit" variant="outline" className="w-full rounded-full h-12">
-        Sign Out
-      </Button>
-    </form>
+      Sign Out
+    </Button>
   );
 }

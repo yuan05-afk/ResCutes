@@ -7,7 +7,11 @@ function createDb() {
   if (!url) {
     return null;
   }
-  const sql = neon(url);
+  const sql = neon(url, {
+    fetchOptions: {
+      cache: "no-store",
+    },
+  });
   return drizzle(sql, { schema });
 }
 
