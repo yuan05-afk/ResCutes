@@ -27,6 +27,28 @@ export function revalidateRescueData(
   email?: string,
 ) {
   revalidateDashboard(userId);
+  revalidateTag(`mobile:${userId}`);
   if (email) revalidateUserRoles(email);
   revalidateApp(paths);
+}
+
+/** Invalidate list caches after a new citizen report. */
+export function revalidateAfterReport(
+  userId: string,
+  caseId: string,
+  email?: string,
+) {
+  revalidateTag("dashboard-metrics");
+  revalidateTag("rescue-cases");
+  revalidateRescueData(
+    userId,
+    [
+      "/dashboard",
+      "/rescue-cases",
+      "/mobile",
+      "/mobile/cases",
+      `/mobile/cases/${caseId}`,
+    ],
+    email,
+  );
 }

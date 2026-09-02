@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { revalidateAfterReport } from "@/lib/cache-revalidate";
 import { submitReport } from "@/lib/data/service";
 import { z } from "zod";
 
@@ -28,5 +29,7 @@ export async function submitReportAction(data: z.infer<typeof reportSchema>) {
     ...parsed.data,
   });
 
-  return { caseId: newCase.id };
+  revalidateAfterReport(session.user.id, newCase.id, session.user.email);
+
+  return { caseId: newCase.id, caseNumber: newCase.caseNumber };
 }

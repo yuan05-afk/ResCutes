@@ -7,6 +7,7 @@ import {
   getAssignmentById,
 } from "@/lib/data/service";
 import { DEMO_CASES, DEMO_ASSIGNMENTS } from "@/lib/data/demo-store";
+import { seedCase004Fixtures } from "@/lib/data/workflow-test-fixtures";
 
 const JAMES = "user-james-rescuer";
 const ALEX_ADMIN = "user-alex-admin";
@@ -28,6 +29,7 @@ function resetCase004() {
 
 describe("rescuer workflow", () => {
   beforeEach(() => {
+    seedCase004Fixtures();
     resetCase004();
   });
 

@@ -14,6 +14,11 @@ import {
   DEMO_NOTIFICATIONS,
   DEMO_IDS,
 } from "@/lib/data/demo-store";
+import {
+  seedAnimal001Fixtures,
+  seedCase008Fixtures,
+  seedLunaFixtures,
+} from "@/lib/data/workflow-test-fixtures";
 
 const ANITA = DEMO_IDS.users.anita;
 const SARAH = DEMO_IDS.users.sarah;
@@ -41,6 +46,7 @@ function resetCase008ForVetWorkflow() {
 
 describe("veterinary examination workflow", () => {
   beforeEach(() => {
+    seedCase008Fixtures();
     resetCase008ForVetWorkflow();
   });
 
@@ -107,13 +113,14 @@ describe("veterinary examination workflow", () => {
     expect(animal?.clearanceStatus).toBe("medically_cleared");
     expect(animal?.pathwayStage).toBe("behavior_assessment");
     expect(animal?.recommendedNextAction).toBe("Complete behavioral assessment");
+    expect(animal?.temporaryId).toBeTruthy();
 
     expect(DEMO_NOTIFICATIONS.length).toBeGreaterThan(beforeNotifs);
     const staffNotif = DEMO_NOTIFICATIONS.find(
       (n) =>
         n.userId === SARAH &&
         n.title === "Animal medically cleared" &&
-        n.message.includes(intake.animalId === "animal-008" ? "A-2026-1008" : ""),
+        n.message.includes(animal!.temporaryId),
     );
     expect(staffNotif).toBeDefined();
   });
@@ -173,6 +180,8 @@ describe("veterinary examination workflow", () => {
   });
 
   it("locks medically cleared records", () => {
+    seedAnimal001Fixtures();
+
     const clearedAnimal = getAnimalById("animal-001");
     expect(clearedAnimal?.clearanceStatus).toBe("medically_cleared");
 
@@ -204,6 +213,7 @@ function resetLunaForVetTests() {
 
 describe("Luna veterinary workflow", () => {
   beforeEach(() => {
+    seedLunaFixtures();
     resetLunaForVetTests();
   });
   it("Luna is under treatment with examination recorded", () => {

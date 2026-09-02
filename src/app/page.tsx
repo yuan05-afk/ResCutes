@@ -120,7 +120,8 @@ export default function LandingPage() {
 
         <section className="border-t border-sage/30 py-8">
           <div className="mx-auto max-w-6xl px-4 text-center text-sm text-graphite/60 md:px-6">
-            Simulated demo data for hackathon presentation. Not connected to live rescue services.
+            No sample rescue cases are loaded. Submit a report from the mobile app to
+            start testing the workflow. Not connected to live rescue services.
           </div>
         </section>
       </main>

@@ -19,8 +19,7 @@ test.describe("Administrator full access", () => {
 
     await page.goto("/rescue-cases");
     await expect(page.getByRole("heading", { name: "Rescue Cases" })).toBeVisible();
-    await page.getByPlaceholder("Search cases...").fill("RC-2026-1042");
-    await expect(page.getByText("RC-2026-1042").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("0 cases in system")).toBeVisible();
 
     await page.goto("/animals");
     await expect(page.getByRole("heading", { name: "Animals" })).toBeVisible();

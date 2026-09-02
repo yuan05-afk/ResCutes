@@ -1,10 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import {
   getCaseById,
   getRecommendationsForCase,
   resolveCurrentUrgency,
 } from "@/lib/data/service";
 import { DEMO_RECOMMENDATIONS } from "@/lib/data/demo-store";
+import { seedCase004Fixtures } from "@/lib/data/workflow-test-fixtures";
+
+beforeAll(() => {
+  seedCase004Fixtures();
+});
 
 describe("urgency consistency", () => {
   it("resolveCurrentUrgency matches breakdown for case-004 seed factors", () => {

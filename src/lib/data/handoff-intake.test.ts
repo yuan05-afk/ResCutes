@@ -16,6 +16,7 @@ import {
   DEMO_SHELTERS,
   DEMO_IDS,
 } from "@/lib/data/demo-store";
+import { seedCase008Fixtures } from "@/lib/data/workflow-test-fixtures";
 
 const SARAH = DEMO_IDS.users.sarah;
 const PAWS = DEMO_IDS.shelters.paws;
@@ -54,6 +55,7 @@ function resetCase008ForHandoff() {
 
 describe("shelter handoff guards", () => {
   beforeEach(() => {
+    seedCase008Fixtures();
     resetCase008ForHandoff();
   });
 
