@@ -122,7 +122,7 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
       </aside>
 
       {/* Settings panels */}
-      <div className="space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      <div className="rc-scroll space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         <section className="rounded-xl border border-sage/25 bg-white p-5 shadow-card">
           <div className="mb-4 flex items-center gap-2">
             <User className="h-4 w-4 text-evergreen" />

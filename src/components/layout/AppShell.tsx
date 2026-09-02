@@ -35,7 +35,7 @@ export function AppShell({ children, userName, userEmail, userRoles }: AppShellP
             Mobile / narrow: main is the ONLY vertical scroll container.
             lg+: pages manage scroll inside PageShell (fitted layout).
           */}
-          <main className="app-main-pad flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden lg:overflow-hidden">
+          <main className="app-main-pad rc-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden lg:overflow-hidden">
             <PendingPageSlot>{children}</PendingPageSlot>
           </main>
           <WebMobileNav />

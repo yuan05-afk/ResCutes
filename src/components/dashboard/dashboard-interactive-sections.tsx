@@ -103,7 +103,7 @@ export function DashboardInteractiveSections({
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
+          <div className="rc-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
             {panel === "queue" ? (
               criticalCases.length === 0 ? (
                 <p className="py-8 text-center text-sm text-graphite/50">

@@ -111,7 +111,7 @@ export function AdminModal({
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-2.5 sm:px-5 sm:py-3">
+        <div className="rc-scroll flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-2.5 sm:px-5 sm:py-3">
           {children}
         </div>
 

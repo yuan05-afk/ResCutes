@@ -57,7 +57,7 @@ export function RescueCasesTable({ cases, rescuers }: RescueCasesTableProps) {
           <p className="shrink-0 border-b border-sage/15 px-4 py-2 text-xs text-graphite/50">
             {filters.filtered.length} case{filters.filtered.length !== 1 ? "s" : ""} · click a row for details
           </p>
-          <div className="overflow-x-auto lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+          <div className="rc-scroll overflow-x-auto lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead className="sticky top-0 z-10 bg-bone/95 backdrop-blur-sm">
                 <tr className="border-b border-sage/20 text-left text-[10px] font-semibold uppercase tracking-wide text-graphite/50">

@@ -57,7 +57,7 @@ export function WebSidebar({ userName, userEmail, userRoles }: WebSidebarProps) 
         <Logo variant="light" size="lg" />
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-5 space-y-1">
+      <nav className="rc-scroll flex-1 min-h-0 overflow-y-auto px-3 py-5 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;

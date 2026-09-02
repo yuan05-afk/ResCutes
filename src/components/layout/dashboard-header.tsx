@@ -75,7 +75,7 @@ export function PageShell({
           "flex min-w-0 flex-col overflow-x-hidden px-4 py-3 md:px-6 md:py-4",
           fitViewport
             ? "lg:min-h-0 lg:flex-1 lg:overflow-hidden"
-            : "lg:min-h-0 lg:flex-1 lg:overflow-y-auto",
+            : "lg:min-h-0 lg:flex-1 lg:overflow-y-auto rc-scroll",
           className,
         )}
       >
@@ -96,7 +96,7 @@ export function PageScrollPanel({
   return (
     <div
       className={cn(
-        "lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden",
+        "lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden rc-scroll",
         className,
       )}
     >
