@@ -44,6 +44,7 @@ const LOADING_MESSAGES: Record<string, string> = {
   "/rescue-cases": "Loading rescue cases...",
   "/animals": "Loading animals...",
   "/settings": "Loading settings...",
+  "/profile": "Loading profile...",
   "/mobile": "Loading home...",
   "/mobile/nearby": "Loading nearby map...",
   "/mobile/cases": "Loading your cases...",
@@ -159,7 +160,7 @@ export function PendingPageSlot({ children }: { children: React.ReactNode }) {
   }, [navigating, pendingHref]);
 
   return (
-    <div className={cn("relative flex flex-1 flex-col min-h-0", showSkeleton && "min-h-[50vh]")}>
+    <div className={cn("relative flex h-full flex-1 flex-col min-h-0 overflow-hidden", showSkeleton && "min-h-[50vh]")}>
       {showProgress && navigating ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-0.5 overflow-hidden bg-sage/20">
           <div className="rc-nav-progress h-full w-1/3 rounded-full bg-evergreen" />
@@ -168,8 +169,7 @@ export function PendingPageSlot({ children }: { children: React.ReactNode }) {
 
       <div
         className={cn(
-          "flex-1 min-h-0",
-          showSkeleton && navigating && "pointer-events-none opacity-0",
+          "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
         )}
         aria-busy={showSkeleton || undefined}
       >

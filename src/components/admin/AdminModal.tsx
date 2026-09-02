@@ -1,0 +1,214 @@
+"use client";
+
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const sizeClasses = {
+  sm: "max-w-md",
+  md: "max-w-lg",
+  lg: "max-w-3xl",
+  xl: "max-w-5xl",
+  "2xl": "max-w-[72rem]",
+};
+
+export function AdminModal({
+  open,
+  onClose,
+  title,
+  description,
+  headerExtra,
+  children,
+  footer,
+  size = "lg",
+  placement = "sheet",
+  fitViewport = true,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  headerExtra?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  size?: keyof typeof sizeClasses;
+  placement?: "sheet" | "center";
+  /** Lock to viewport height — no body scroll; children must fit or use tabs. */
+  fitViewport?: boolean;
+}) {
+  const titleId = useId();
+  const descId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  const isCenter = placement === "center";
+
+  return createPortal(
+    <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-graphite/50 backdrop-blur-sm"
+        aria-label="Close dialog"
+        onClick={onClose}
+      />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descId : undefined}
+        className={cn(
+          "relative z-[81] flex w-full flex-col overflow-hidden border border-sage/25 bg-white shadow-elevated",
+          sizeClasses[size],
+          fitViewport &&
+            "h-[min(700px,calc(100dvh-2rem))] sm:h-[min(740px,calc(100dvh-3rem))]",
+          isCenter ? "rounded-2xl" : "rounded-t-2xl sm:rounded-2xl",
+        )}
+      >
+        <div className="flex shrink-0 items-start gap-3 border-b border-sage/20 bg-bone/40 px-4 py-2.5 sm:px-5">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2
+                id={titleId}
+                className="text-base font-bold tracking-tight text-graphite sm:text-lg"
+              >
+                {title}
+              </h2>
+              {headerExtra}
+            </div>
+            {description ? (
+              <p id={descId} className="mt-0.5 text-xs text-graphite/55 sm:text-sm">
+                {description}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-1.5 text-graphite/45 transition hover:bg-white hover:text-graphite"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-2.5 sm:px-5 sm:py-3">
+          {children}
+        </div>
+
+        {footer ? (
+          <div className="shrink-0 border-t border-sage/20 bg-bone/30 px-4 py-2.5 sm:px-5">
+            {footer}
+          </div>
+        ) : null}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+export function ModalTabs({
+  tabs,
+  active,
+  onChange,
+  className,
+}: {
+  tabs: { id: string; label: string }[];
+  active: string;
+  onChange: (id: string) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 gap-1 rounded-lg border border-sage/20 bg-bone/60 p-1",
+        className,
+      )}
+      role="tablist"
+    >
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          role="tab"
+          aria-selected={active === tab.id}
+          onClick={() => onChange(tab.id)}
+          className={cn(
+            "flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition",
+            active === tab.id
+              ? "bg-white text-evergreen shadow-sm"
+              : "text-graphite/55 hover:text-graphite",
+          )}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Compact label/value cell for modal meta grids. */
+export function ModalMeta({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-sage/20 bg-bone/50 px-2.5 py-2",
+        className,
+      )}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+        {label}
+      </p>
+      <p className="mt-0.5 text-sm font-medium leading-snug text-graphite line-clamp-2">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+export function ModalSection({
+  title,
+  children,
+  className,
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn("min-h-0 space-y-1.5", className)}>
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}

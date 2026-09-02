@@ -9,6 +9,7 @@ import { MapView } from "@/components/map/map-view-dynamic";
 import { getCitizenProgressIndex, getCitizenStatusLabel } from "@/lib/rescue-progress";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { formatStatus } from "@/lib/utils";
+import { useNavigationPending } from "@/components/layout/NavigationPending";
 
 interface ActiveRescueCardProps {
   caseId: string;
@@ -45,6 +46,7 @@ export function ActiveRescueCard({
   shelterLon,
   detailHref,
 }: ActiveRescueCardProps) {
+  const { startPending } = useNavigationPending();
   const progressIndex = getCitizenProgressIndex(status);
   const imageUrl = getCasePhotoUrl(species, photoUrl, caseId);
   const linkHref = detailHref ?? `/mobile/cases/${caseId}`;
@@ -70,8 +72,13 @@ export function ActiveRescueCard({
   }
 
   return (
-    <Link href={linkHref} className="block group">
-      <article className="rounded-2xl border border-sage/25 bg-white shadow-card overflow-hidden transition-shadow group-hover:shadow-card-hover">
+    <article className="rounded-2xl border border-sage/25 bg-white shadow-card overflow-hidden">
+      <Link
+        href={linkHref}
+        prefetch
+        onClick={() => startPending(linkHref)}
+        className="block group transition-shadow hover:shadow-card-hover"
+      >
         <div className="p-4 pb-0">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-graphite/50">
             Active Rescue Case
@@ -119,17 +126,17 @@ export function ActiveRescueCard({
             <RescueProgress currentIndex={progressIndex} />
           </div>
         )}
+      </Link>
 
-        <div className="px-4 pb-4">
-          <MapView
-            className="h-32 rounded-xl overflow-hidden border border-sage/20"
-            center={{ latitude: approximateLat, longitude: approximateLon }}
-            zoom={12}
-            markers={markers}
-            interactive={false}
-          />
-        </div>
-      </article>
-    </Link>
+      <div className="px-4 pb-4 pointer-events-none">
+        <MapView
+          className="h-32 rounded-xl overflow-hidden border border-sage/20"
+          center={{ latitude: approximateLat, longitude: approximateLon }}
+          zoom={12}
+          markers={markers}
+          interactive={false}
+        />
+      </div>
+    </article>
   );
 }

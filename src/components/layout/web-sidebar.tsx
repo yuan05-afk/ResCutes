@@ -9,6 +9,7 @@ import {
   PawPrint,
   Settings,
   LogOut,
+  ChevronRight,
 } from "lucide-react";
 import { hexclaveClientApp } from "@/stack/client";
 import { Logo } from "@/components/ui/logo";
@@ -25,16 +26,27 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+function userInitials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 interface WebSidebarProps {
   userName: string;
+  userEmail: string;
   userRoles: Role[];
 }
 
-export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
+export function WebSidebar({ userName, userEmail, userRoles }: WebSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { startPending } = useNavigationPending();
   const primaryRole = userRoles[0];
+  const isProfileActive = pathname.startsWith("/profile");
 
   return (
     <aside
@@ -71,21 +83,51 @@ export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
         })}
       </nav>
 
-      <div className="shrink-0 border-t border-white/10 p-4">
-        <div className="rounded-xl bg-white/10 p-4">
-          <p className="text-sm font-semibold truncate">{userName}</p>
-          <p className="text-xs text-white/60 mt-0.5">
-            {primaryRole ? ROLE_LABELS[primaryRole] : "Staff"}
-          </p>
-          <button
-            type="button"
-            onClick={() => void hexclaveClientApp.redirectToSignOut()}
-            className="mt-3 flex items-center gap-2 text-sm text-white/75 hover:text-white transition-colors min-h-[44px]"
-          >
-            <LogOut className="h-4 w-4" aria-hidden />
-            Sign out
-          </button>
-        </div>
+      <div className="shrink-0 border-t border-white/10 p-3">
+        <Link
+          href="/profile"
+          prefetch
+          onMouseEnter={() => prefetchRouteNow(router, "/profile")}
+          onClick={() => startPending("/profile")}
+          className={cn(
+            "group flex items-center gap-3 rounded-xl p-3 transition-colors",
+            isProfileActive
+              ? "bg-white/15 ring-1 ring-white/20"
+              : "bg-white/10 hover:bg-white/15",
+          )}
+          aria-current={isProfileActive ? "page" : undefined}
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white">
+            {userInitials(userName)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold truncate">{userName}</p>
+            <p className="text-[11px] text-white/55 truncate">
+              {primaryRole ? ROLE_LABELS[primaryRole] : "Staff"}
+            </p>
+            <p className="text-[10px] text-white/40 truncate mt-0.5">
+              {userEmail}
+            </p>
+          </div>
+          <ChevronRight
+            className={cn(
+              "h-4 w-4 shrink-0 transition-transform",
+              isProfileActive
+                ? "text-white"
+                : "text-white/40 group-hover:translate-x-0.5 group-hover:text-white/70",
+            )}
+            aria-hidden
+          />
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => void hexclaveClientApp.redirectToSignOut()}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <LogOut className="h-4 w-4" aria-hidden />
+          Sign out
+        </button>
       </div>
     </aside>
   );

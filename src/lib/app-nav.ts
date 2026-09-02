@@ -4,6 +4,7 @@ export const DASHBOARD_PREFETCH_RANK: { href: string; weight: number }[] = [
   { href: "/rescue-cases", weight: 9 },
   { href: "/animals", weight: 7 },
   { href: "/settings", weight: 3 },
+  { href: "/profile", weight: 2 },
 ];
 
 export const DASHBOARD_ROUTE_HREFS = DASHBOARD_PREFETCH_RANK.map((r) => r.href);

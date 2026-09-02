@@ -1,31 +1,31 @@
 import { getSheltersCached } from "@/lib/data/cached-loaders";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShelterSettingsForm } from "./shelter-form";
+import { requireAuth } from "@/lib/auth/session";
+import { canManageSettings } from "@/lib/auth/permissions";
 import { DashboardHeader, PageShell } from "@/components/layout/dashboard-header";
+import { ShelterSettingsWorkspace } from "@/components/settings/shelter-settings-workspace";
 
 export default async function SettingsPage() {
-  const shelters = await getSheltersCached();
+  const [shelters, session] = await Promise.all([
+    getSheltersCached(),
+    requireAuth(),
+  ]);
+
+  const canEdit = canManageSettings(session.user.roles);
 
   return (
-    <PageShell>
-      <DashboardHeader
-        title="Settings"
-        subtitle="Shelter capacity and capability configuration"
+    <PageShell
+      header={
+        <DashboardHeader
+          title="Shelter Settings"
+          subtitle="Manage capacity and medical capabilities for each location"
+        />
+      }
+      className="overflow-hidden"
+    >
+      <ShelterSettingsWorkspace
+        shelters={shelters}
+        canEdit={canEdit}
       />
-
-      <div className="space-y-6">
-        {shelters.map((shelter) => (
-          <Card key={shelter.id}>
-            <CardHeader>
-              <CardTitle>{shelter.name}</CardTitle>
-              <p className="text-sm text-graphite/55">{shelter.address}</p>
-            </CardHeader>
-            <CardContent>
-              <ShelterSettingsForm shelter={shelter} />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </PageShell>
   );
 }

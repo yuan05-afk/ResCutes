@@ -13,10 +13,11 @@ import type { Role } from "@/lib/auth/permissions";
 interface AppShellProps {
   children: React.ReactNode;
   userName: string;
+  userEmail: string;
   userRoles: Role[];
 }
 
-export function AppShell({ children, userName, userRoles }: AppShellProps) {
+export function AppShell({ children, userName, userEmail, userRoles }: AppShellProps) {
   useEffect(() => {
     markAppBooted();
   }, []);
@@ -25,7 +26,7 @@ export function AppShell({ children, userName, userRoles }: AppShellProps) {
     <NavigationPendingProvider>
       <AppRoutePrefetcher />
       <div className="flex min-h-screen md:h-dvh md:overflow-hidden bg-bone">
-        <WebSidebar userName={userName} userRoles={userRoles} />
+        <WebSidebar userName={userName} userEmail={userEmail} userRoles={userRoles} />
         <main className="flex flex-1 min-h-0 flex-col overflow-hidden">
           <PendingPageSlot>{children}</PendingPageSlot>
         </main>

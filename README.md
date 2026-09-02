@@ -95,25 +95,40 @@ For repeatable demos, use the seeded accounts and cases (for example Luna) or fo
 ## Useful commands
 
 ```powershell
-npm run dev      # Start local dev server (http://localhost:3000)
-npm run lint     # Run ESLint
-npm test         # Run Vitest unit/integration tests
+npm run dev          # Start dev server (auto-fixes broken .next, blocks double-start)
+npm run dev:clean    # Force-delete .next then start dev
+npm run dev:webpack  # Dev without Turbopack (fallback if Turbopack misbehaves)
+npm run lint         # Run ESLint
+npm test             # Run Vitest unit/integration tests
 ```
 
 Other scripts in `package.json` (for example `npm run test:watch`, `npm run db:push`, `npm run db:seed`) are for database work and extended testing when that milestone is active.
 
 ---
 
+## Dev server / `.next` cache
+
+If the app shows unstyled HTML, 404s on `/_next/static/...`, or `ENOENT` errors for `routes-manifest.json`, the `.next` folder is usually corrupted.
+
+**Common causes**
+
+1. **Two dev servers** on the same project (e.g. port 3000 and 3001) — only run one `npm run dev`.
+2. **`npm run build` while dev is running** — `npm run build` now refuses if port 3000 is in use.
+3. **Deleting `.next` while dev is still running** — stop dev first (`Ctrl+C`), then clean.
+
+`npm run dev` automatically removes a broken `.next` on startup. Use `npm run dev:clean` only when you want a full reset.
+
+---
+
 ## Build warning
 
-**Do not run `npm run build` while `npm run dev` is running.** This project previously hit `.next` chunk corruption when build and dev overlapped.
+**Do not run `npm run build` while `npm run dev` is running.** The build script blocks this when port 3000 is in use.
 
 If you need to test a production build:
 
 1. Stop the dev server (`Ctrl+C`)
 2. Run `npm run build`
-3. Delete the `.next` folder
-4. Restart with `npm run dev`
+3. Restart with `npm run dev` (no manual `.next` delete needed in most cases)
 
 ---
 

@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { ChevronRight } from "lucide-react";
+import { useNavigationPending } from "@/components/layout/NavigationPending";
 
 interface MobileCaseCardProps {
   id: string;
@@ -28,11 +32,20 @@ export function MobileCaseCard({
   photoUrl,
   href,
 }: MobileCaseCardProps) {
+  const router = useRouter();
+  const { startPending } = useNavigationPending();
   const imageUrl = getCasePhotoUrl(species, photoUrl, id);
   const linkHref = href ?? `/mobile/cases/${id}`;
 
   return (
-    <Link href={linkHref} className="block group">
+    <Link
+      href={linkHref}
+      prefetch
+      onMouseEnter={() => router.prefetch(linkHref)}
+      onTouchStart={() => router.prefetch(linkHref)}
+      onClick={() => startPending(linkHref)}
+      className="block group"
+    >
       <article
         className="flex gap-3 rounded-2xl border border-sage/25 bg-white p-4 shadow-card transition-shadow group-hover:shadow-card-hover"
       >

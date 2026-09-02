@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,7 @@ import {
   overrideUrgencyAction,
 } from "@/app/actions/case";
 import { CaseIntakeForm } from "./case-intake-form";
+import { cn } from "@/lib/utils";
 
 interface CaseStaffActionsProps {
   caseId: string;
@@ -32,6 +33,31 @@ interface CaseStaffActionsProps {
   assignedShelterId?: string;
   hasHandoff?: boolean;
   hasAnimal?: boolean;
+  variant?: "default" | "compact" | "panel";
+}
+
+function ActionBlock({
+  title,
+  children,
+  className,
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-sage/20 bg-white p-2.5 shadow-sm",
+        className,
+      )}
+    >
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-graphite/50">
+        {title}
+      </p>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
 }
 
 export function CaseStaffActions({
@@ -45,8 +71,10 @@ export function CaseStaffActions({
   assignedShelterId,
   hasHandoff,
   hasAnimal,
+  variant = "default",
 }: CaseStaffActionsProps) {
-  const { pending: loading, error: actionError, setError: setActionError, run } = useActionPending();
+  const { pending: loading, error: actionError, setError: setActionError, run } =
+    useActionPending();
   const [rejectReason, setRejectReason] = useState("");
   const [overrideScore, setOverrideScore] = useState(70);
   const [overrideReason, setOverrideReason] = useState("");
@@ -62,114 +90,139 @@ export function CaseStaffActions({
       caseStatus,
     );
 
+  const isPanel = variant === "panel";
+  const isCompact = variant === "compact" || isPanel;
+  const inputClass = isCompact ? "h-9 text-sm" : undefined;
+  const btnSize = isCompact ? "sm" : "default";
+
   async function runAction(
     fn: () => Promise<{ error?: string; success?: boolean } | void>,
   ) {
     setActionError(null);
-    await run(fn, { rewarm: [`/rescue-cases/${caseId}`, "/rescue-cases", "/dashboard"] });
+    await run(fn, {
+      rewarm: [`/rescue-cases/${caseId}`, "/rescue-cases", "/dashboard"],
+    });
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Staff Actions</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {actionError && (
-          <p className="text-sm text-rescue rounded-lg border border-rescue/20 bg-rescue/5 px-3 py-2">
-            {actionError}
-          </p>
-        )}
-        {(caseStatus === "report_submitted" || caseStatus === "under_verification") && (
-          <div className="space-y-2">
+  const body = (
+    <div className={cn(isPanel ? "space-y-2" : "space-y-4")}>
+      {actionError && (
+        <p className="rounded-lg border border-rescue/25 bg-rescue/8 px-2.5 py-2 text-xs text-rescue">
+          {actionError}
+        </p>
+      )}
+
+      {(caseStatus === "report_submitted" ||
+        caseStatus === "under_verification") && (
+        <ActionBlock title="Review report">
+          <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={() => runAction(() => verifyCaseAction(caseId))}
               disabled={loading}
+              size={btnSize}
               className="w-full"
             >
-              Verify Report
+              Verify
             </Button>
-            <Textarea
-              placeholder="Rejection reason..."
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-            />
             <Button
               variant="destructive"
               onClick={() =>
                 runAction(() => rejectCaseAction(caseId, rejectReason))
               }
               disabled={loading || !rejectReason.trim()}
+              size={btnSize}
               className="w-full"
             >
-              Reject Report
+              Reject
             </Button>
           </div>
-        )}
+          <Textarea
+            placeholder="Rejection reason (required to reject)..."
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            rows={2}
+            className="min-h-[4rem] resize-none text-sm"
+          />
+        </ActionBlock>
+      )}
 
-        {caseStatus === "verified" && (
-          <div className="space-y-2">
-            <Select
-              value={selectedRescuer}
-              onChange={(e) => setSelectedRescuer(e.target.value)}
-            >
-              <option value="">Select rescuer...</option>
-              {rescuers.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </Select>
-            <Button
-              onClick={() =>
-                runAction(() => assignRescuerAction(caseId, selectedRescuer))
-              }
-              disabled={loading || !selectedRescuer}
-              className="w-full"
-            >
-              Assign Rescuer
-            </Button>
+      {caseStatus === "verified" && (
+        <ActionBlock title="Assign rescuer">
+          <Select
+            value={selectedRescuer}
+            onChange={(e) => setSelectedRescuer(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Choose rescuer...</option>
+            {rescuers.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </Select>
+          <Button
+            onClick={() =>
+              runAction(() => assignRescuerAction(caseId, selectedRescuer))
+            }
+            disabled={loading || !selectedRescuer}
+            className="w-full"
+            size={btnSize}
+          >
+            Assign Rescuer
+          </Button>
+        </ActionBlock>
+      )}
+
+      {showRescueStageActions && (
+        <ActionBlock title="Override urgency">
+          <div className="flex gap-2">
+            <div className="shrink-0">
+              <label className="mb-1 block text-[10px] text-graphite/45">Score</label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={overrideScore}
+                onChange={(e) => setOverrideScore(parseInt(e.target.value) || 0)}
+                className={cn(inputClass, "w-16 text-center font-semibold")}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <label className="mb-1 block text-[10px] text-graphite/45">Reason</label>
+              <Input
+                placeholder="Required..."
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+                className={inputClass}
+              />
+            </div>
           </div>
-        )}
+          <Button
+            variant={overrideReason.trim() ? "default" : "outline"}
+            onClick={() =>
+              runAction(() =>
+                overrideUrgencyAction(caseId, overrideScore, overrideReason),
+              )
+            }
+            disabled={loading || !overrideReason.trim()}
+            className="w-full"
+            size={btnSize}
+          >
+            Apply Override
+          </Button>
+        </ActionBlock>
+      )}
 
-        {showRescueStageActions && (
-          <div className="space-y-2 border-t border-sage/30 pt-4">
-            <p className="text-xs font-medium text-graphite/70">Override Urgency</p>
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              value={overrideScore}
-              onChange={(e) => setOverrideScore(parseInt(e.target.value))}
-            />
-            <Textarea
-              placeholder="Override reason (required)..."
-              value={overrideReason}
-              onChange={(e) => setOverrideReason(e.target.value)}
-            />
-            <Button
-              variant="outline"
-              onClick={() =>
-                runAction(() =>
-                  overrideUrgencyAction(caseId, overrideScore, overrideReason),
-                )
-              }
-              disabled={loading || !overrideReason.trim()}
-              className="w-full"
-            >
-              Apply Override
-            </Button>
-          </div>
-        )}
-
-        {showRescueStageActions &&
-          recommendations.length > 0 &&
-          !assignedShelterId && (
-          <div className="space-y-2 border-t border-sage/30 pt-4">
-            <p className="text-xs font-medium text-graphite/70">Select Shelter</p>
+      {showRescueStageActions &&
+        recommendations.length > 0 &&
+        !assignedShelterId && (
+          <ActionBlock title="Shelter destination">
             <Select
               value={selectedShelter}
               onChange={(e) => setSelectedShelter(e.target.value)}
+              className={inputClass}
             >
-              <option value="">Select shelter...</option>
+              <option value="">Choose shelter...</option>
               {recommendations.map((r) => (
                 <option key={r.shelterId} value={r.shelterId}>
                   #{r.rank} {r.shelterName}
@@ -180,9 +233,11 @@ export function CaseStaffActions({
               recommendations.find((r) => r.rank === 1)?.shelterId !==
                 selectedShelter && (
                 <Textarea
-                  placeholder="Reason for not selecting top recommendation (required)..."
+                  placeholder="Why not the top recommendation?"
                   value={shelterRejectReason}
                   onChange={(e) => setShelterRejectReason(e.target.value)}
+                  rows={2}
+                  className="resize-none text-sm"
                 />
               )}
             <Button
@@ -203,22 +258,24 @@ export function CaseStaffActions({
                   !shelterRejectReason.trim())
               }
               className="w-full"
+              size={btnSize}
             >
               Confirm Destination
             </Button>
-          </div>
+          </ActionBlock>
         )}
 
-        {showRescueStageActions &&
-          caseStatus === "awaiting_shelter" &&
-          assignedShelterId &&
-          !hasHandoff && (
-          <div className="space-y-2 border-t border-sage/30 pt-4">
-            <p className="text-xs font-medium text-graphite/70">Shelter Handoff</p>
+      {showRescueStageActions &&
+        caseStatus === "awaiting_shelter" &&
+        assignedShelterId &&
+        !hasHandoff && (
+          <ActionBlock title="Shelter handoff">
             <Textarea
               placeholder="Handoff notes (optional)..."
               value={handoffNotes}
               onChange={(e) => setHandoffNotes(e.target.value)}
+              rows={2}
+              className="resize-none text-sm"
             />
             <Button
               onClick={() =>
@@ -228,21 +285,57 @@ export function CaseStaffActions({
               }
               disabled={loading}
               className="w-full"
+              size={btnSize}
             >
-              Confirm Shelter Handoff
+              Confirm Handoff
             </Button>
-          </div>
+          </ActionBlock>
         )}
 
-        {caseStatus === "shelter_handoff" && hasHandoff && !hasAnimal && (
+      {caseStatus === "shelter_handoff" && hasHandoff && !hasAnimal && (
+        <ActionBlock title="Shelter intake">
           <CaseIntakeForm
             caseId={caseId}
             species={species}
             temporaryId={temporaryId}
             injurySeverity={injurySeverity}
           />
-        )}
-      </CardContent>
+        </ActionBlock>
+      )}
+    </div>
+  );
+
+  if (isPanel) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="shrink-0 border-b border-sage/20 bg-evergreen/5 px-3 py-2.5">
+          <p className="text-xs font-bold text-evergreen">Staff Actions</p>
+          <p className="text-[10px] text-graphite/50">Update case status and routing</p>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden p-2.5">
+          {body}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "compact") {
+    return (
+      <div className="p-3">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+          Staff actions
+        </p>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Staff Actions</CardTitle>
+      </CardHeader>
+      <CardContent>{body}</CardContent>
     </Card>
   );
 }
