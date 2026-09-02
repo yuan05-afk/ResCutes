@@ -160,7 +160,7 @@ export function DashboardInteractiveSections({
                               score={urgency.score}
                             />
                           ) : (
-                            <span className="text-graphite/40">—</span>
+                            <span className="text-graphite/40">-</span>
                           )}
                         </td>
                       </ClickableRow>

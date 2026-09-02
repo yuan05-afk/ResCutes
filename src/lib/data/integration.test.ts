@@ -21,7 +21,7 @@ describe("urgency consistency", () => {
     expect(caseItem).toBeDefined();
 
     const live = resolveCurrentUrgency(caseItem!);
-    // Waiting time increases after verification — live score should be authoritative.
+    // Waiting time increases after verification. Live score should be authoritative.
     expect(live.score).toBeGreaterThanOrEqual(0);
     expect(live.level).toBe(
       live.score >= 80

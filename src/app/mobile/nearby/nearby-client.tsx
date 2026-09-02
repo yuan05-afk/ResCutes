@@ -39,6 +39,12 @@ export function NearbyMapClient({ cases }: { cases: CaseItem[] }) {
     status: c.status,
     urgencyLevel: c.urgencyLevel,
     color: markerColorForUrgency(c.urgencyLevel),
+    legendLayerId:
+      c.urgencyLevel === "critical"
+        ? "critical"
+        : c.urgencyLevel === "high"
+          ? "high"
+          : "standard",
   }));
 
   const center =

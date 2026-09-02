@@ -14,7 +14,7 @@ import {
   getNotesForAnimal,
   resolveCurrentUrgency,
 } from "@/lib/data/service";
-import { canManageCases, canViewReporterInfo, canViewMedicalNotes } from "@/lib/auth/permissions";
+import { canManageCases, canViewReporterInfo, canViewMedicalNotes, canEditMedical } from "@/lib/auth/permissions";
 
 export async function fetchCaseModalData(caseId: string) {
   const session = await auth();
@@ -71,6 +71,7 @@ export async function fetchAnimalModalData(animalId: string) {
       rescueCase,
       shelter,
       canMedical: canViewMedicalNotes(session.user.roles),
+      canEdit: canEditMedical(session.user.roles),
     },
   };
 }

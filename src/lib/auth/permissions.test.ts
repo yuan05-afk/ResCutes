@@ -3,6 +3,15 @@ import {
   canViewExactLocation,
   canViewMedicalNotes,
   canManageCases,
+  canEditMedical,
+  canManageSettings,
+  canViewReporterInfo,
+  canActAsRescuer,
+  canUseCitizenMobileFeatures,
+  canAccessDashboard,
+  shouldUseRescuerMobileExperience,
+  getDisplayRoleLabel,
+  isAdministrator,
   ROLES,
 } from "@/lib/auth/permissions";
 
@@ -24,5 +33,22 @@ describe("Authorization helpers", () => {
     expect(canManageCases([ROLES.SHELTER_STAFF])).toBe(true);
     expect(canManageCases([ROLES.ADMINISTRATOR])).toBe(true);
     expect(canManageCases([ROLES.RESCUER])).toBe(false);
+  });
+
+  it("grants administrators every capability", () => {
+    const admin = [ROLES.ADMINISTRATOR];
+
+    expect(isAdministrator(admin)).toBe(true);
+    expect(canViewExactLocation(admin)).toBe(true);
+    expect(canViewReporterInfo(admin)).toBe(true);
+    expect(canViewMedicalNotes(admin)).toBe(true);
+    expect(canManageCases(admin)).toBe(true);
+    expect(canEditMedical(admin)).toBe(true);
+    expect(canManageSettings(admin)).toBe(true);
+    expect(canAccessDashboard(admin)).toBe(true);
+    expect(canActAsRescuer(admin)).toBe(true);
+    expect(canUseCitizenMobileFeatures(admin)).toBe(true);
+    expect(shouldUseRescuerMobileExperience(admin)).toBe(true);
+    expect(getDisplayRoleLabel(admin)).toBe("Administrator");
   });
 });

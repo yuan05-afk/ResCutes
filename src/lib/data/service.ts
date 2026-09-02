@@ -50,7 +50,7 @@ function urgencyInputFromCase(
   };
 }
 
-/** Authoritative live urgency for display — factors + waiting time + optional staff override. */
+/** Authoritative live urgency for display: factors, waiting time, and optional staff override. */
 export function resolveCurrentUrgency(caseItem: DemoCase): UrgencyResult {
   if (caseItem.urgencyOverrideScore != null) {
     const score = caseItem.urgencyOverrideScore;
@@ -74,7 +74,7 @@ export function resolveCurrentUrgency(caseItem: DemoCase): UrgencyResult {
       explanation:
         caseItem.urgencyScore > 0
           ? `Urgency score ${caseItem.urgencyScore}/100 (${classifyUrgencyLevel(caseItem.urgencyScore)}).`
-          : "Case not yet verified — urgency not calculated.",
+          : "Case not yet verified. Urgency not calculated.",
     };
   }
 
@@ -165,6 +165,29 @@ export function getAssignmentsForCase(caseId: string) {
 
 export function getAssignmentById(id: string) {
   return DEMO_ASSIGNMENTS.find((a) => a.id === id);
+}
+
+/** Cases visible to administrators on mobile (all assigned rescue workflows). */
+export function getAdministratorMobileCases(): DemoCase[] {
+  const caseIds = new Set(
+    DEMO_ASSIGNMENTS.filter((a) => a.status !== "declined").map((a) => a.caseId),
+  );
+  return DEMO_CASES.filter((c) => caseIds.has(c.id));
+}
+
+export function getFirstPendingAssignment() {
+  return DEMO_ASSIGNMENTS.find((a) => a.status === "pending");
+}
+
+export function canAccessAssignment(
+  assignmentId: string,
+  userId: string,
+  options?: { adminOverride?: boolean },
+): boolean {
+  const assignment = getAssignmentById(assignmentId);
+  if (!assignment) return false;
+  if (options?.adminOverride) return true;
+  return assignment.rescuerId === userId;
 }
 
 export function getRecommendationsForCase(caseId: string) {
@@ -471,9 +494,11 @@ export function assignRescuer(
 export function acceptAssignment(
   assignmentId: string,
   rescuerId: string,
+  options?: { adminOverride?: boolean },
 ): boolean {
   const assignment = DEMO_ASSIGNMENTS.find((a) => a.id === assignmentId);
-  if (!assignment || assignment.rescuerId !== rescuerId) return false;
+  if (!assignment) return false;
+  if (!options?.adminOverride && assignment.rescuerId !== rescuerId) return false;
   if (assignment.status !== "pending") return false;
 
   assignment.status = "accepted";
@@ -502,9 +527,11 @@ export function declineAssignment(
   assignmentId: string,
   rescuerId: string,
   reason: string,
+  options?: { adminOverride?: boolean },
 ): boolean {
   const assignment = DEMO_ASSIGNMENTS.find((a) => a.id === assignmentId);
-  if (!assignment || assignment.rescuerId !== rescuerId) return false;
+  if (!assignment) return false;
+  if (!options?.adminOverride && assignment.rescuerId !== rescuerId) return false;
   if (assignment.status !== "pending") return false;
 
   assignment.status = "declined";
@@ -541,12 +568,13 @@ export function updateCaseStatusAsRescuer(
   caseId: string,
   rescuerId: string,
   newStatus: string,
+  options?: { adminOverride?: boolean },
 ): { ok: true } | { ok: false; error: string } {
   const assignment = DEMO_ASSIGNMENTS.find(
     (a) =>
       a.caseId === caseId &&
-      a.rescuerId === rescuerId &&
-      a.status === "accepted",
+      a.status === "accepted" &&
+      (options?.adminOverride || a.rescuerId === rescuerId),
   );
   if (!assignment) {
     return { ok: false, error: "No active assignment for this case" };
@@ -886,7 +914,7 @@ export function completeShelterIntake(
   return { ok: true, animalId };
 }
 
-/** @deprecated Use confirmShelterHandoff — kept for internal migration */
+/** @deprecated Use confirmShelterHandoff. Kept for internal migration */
 export function confirmHandoff(
   caseId: string,
   shelterId: string,

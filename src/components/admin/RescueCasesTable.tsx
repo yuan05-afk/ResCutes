@@ -87,7 +87,7 @@ export function RescueCasesTable({ cases, rescuers }: RescueCasesTableProps) {
                             score={urgency.score}
                           />
                         ) : (
-                          <span className="text-graphite/40">—</span>
+                          <span className="text-graphite/40">-</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 capitalize text-graphite/80">

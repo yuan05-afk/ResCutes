@@ -206,6 +206,6 @@ export function getRoutingFallbackMessage(
   if (top.missingCapabilities.length > 0 && input.requiredCapabilities?.length)
     return "No shelter has all required capabilities. Review warnings before selecting.";
   if (input.caseLatitude == null || input.caseLongitude == null)
-    return "Location unavailable — distance estimates are approximate.";
+    return "Location unavailable. Distance estimates are approximate.";
   return null;
 }

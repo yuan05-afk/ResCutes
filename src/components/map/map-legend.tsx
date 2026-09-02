@@ -9,6 +9,9 @@ interface MapLegendProps {
   items: MapLegendItem[];
   compact?: boolean;
   className?: string;
+  interactive?: boolean;
+  hiddenLayerIds?: Set<string>;
+  onToggleLayer?: (layerId: string) => void;
 }
 
 interface LegendPlacement {
@@ -36,7 +39,14 @@ function measureLegendPlacement(
   return { left, bottom, maxWidth };
 }
 
-export function MapLegend({ items, compact = false, className }: MapLegendProps) {
+export function MapLegend({
+  items,
+  compact = false,
+  className,
+  interactive = false,
+  hiddenLayerIds,
+  onToggleLayer,
+}: MapLegendProps) {
   const legendRef = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<LegendPlacement | null>(null);
 
@@ -103,16 +113,10 @@ export function MapLegend({ items, compact = false, className }: MapLegendProps)
           compact ? "gap-x-2" : "gap-x-3",
         )}
       >
-        {items.map((item) => (
-          <li key={item.id} className="shrink-0">
-            <div
-              className={cn(
-                "group flex items-center gap-1.5 rounded-md transition-colors duration-200",
-                compact ? "px-0.5 py-0" : "px-1 py-0.5",
-                "hover:bg-bone/90",
-              )}
-              title={item.description}
-            >
+        {items.map((item) => {
+          const hidden = hiddenLayerIds?.has(item.id) ?? false;
+          const content = (
+            <>
               <span
                 className={cn(
                   "rescutes-map-legend-dot shrink-0",
@@ -123,15 +127,52 @@ export function MapLegend({ items, compact = false, className }: MapLegendProps)
               />
               <span
                 className={cn(
-                  "whitespace-nowrap font-semibold text-graphite transition-colors duration-200 group-hover:text-evergreen",
+                  "rescutes-map-legend-label whitespace-nowrap font-semibold text-graphite transition-colors duration-200",
                   compact ? "text-[9px] leading-none" : "text-[10px] leading-none",
+                  !hidden && "group-hover:text-evergreen",
                 )}
               >
                 {item.label}
               </span>
-            </div>
-          </li>
-        ))}
+            </>
+          );
+
+          if (!interactive) {
+            return (
+              <li key={item.id} className="shrink-0">
+                <div
+                  className={cn(
+                    "group flex items-center gap-1.5 rounded-md transition-colors duration-200",
+                    compact ? "px-0.5 py-0" : "px-1 py-0.5",
+                    "hover:bg-bone/90",
+                  )}
+                  title={item.description}
+                >
+                  {content}
+                </div>
+              </li>
+            );
+          }
+
+          return (
+            <li key={item.id} className="shrink-0">
+              <button
+                type="button"
+                className={cn(
+                  "group flex items-center gap-1.5 rounded-md transition-colors duration-200",
+                  compact ? "px-0.5 py-0" : "px-1 py-0.5",
+                  "hover:bg-bone/90",
+                  hidden && "rescutes-map-legend-item--hidden",
+                )}
+                title={hidden ? `Show ${item.label}` : `Hide ${item.label}`}
+                aria-pressed={!hidden}
+                onClick={() => onToggleLayer?.(item.id)}
+              >
+                {content}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

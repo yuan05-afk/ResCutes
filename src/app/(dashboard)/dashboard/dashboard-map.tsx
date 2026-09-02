@@ -35,6 +35,12 @@ export function DashboardMapClient({
     status: c.status,
     urgencyLevel: c.urgencyLevel,
     color: markerColorForUrgency(c.urgencyLevel),
+    legendLayerId:
+      c.urgencyLevel === "critical"
+        ? "critical"
+        : c.urgencyLevel === "high"
+          ? "high"
+          : "standard",
   }));
 
   return (
@@ -44,6 +50,7 @@ export function DashboardMapClient({
       markers={markers}
       onMarkerClick={onMarkerClick}
       selectedMarkerId={selectedMarkerId}
+      fitVisibleMarkers
       center={
         cases.length > 0
           ? { latitude: cases[0].latitude, longitude: cases[0].longitude }

@@ -15,7 +15,8 @@
     "db:seed": "tsx src/db/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "fetch:osm-shelters": "node scripts/fetch-osm-shelters.mjs"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.7.4",
@@ -39,6 +40,7 @@
     "next": "^15.1.3",
     "next-auth": "^5.0.0-beta.25",
     "react": "^19.0.0",
+    "react-device-mockup": "^1.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.0",
     "server-only": "^0.0.1",

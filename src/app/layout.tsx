@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ResCutes — Coordinated Animal Rescue",
+  title: "ResCutes | Coordinated Animal Rescue",
   description:
     "ResCutes connects citizens, rescuers, shelters, and veterinarians through one coordinated workflow.",
   manifest: "/manifest.json",

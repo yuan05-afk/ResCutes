@@ -33,7 +33,7 @@ export default function LandingPage() {
               </h1>
               <p className="mt-4 text-lg text-graphite/80">
                 ResCutes connects citizens, rescuers, shelters, and veterinarians
-                through one coordinated workflow — from animal reporting to medical
+                through one coordinated workflow, from animal reporting to medical
                 clearance.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">

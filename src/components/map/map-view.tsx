@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,13 @@ import {
   resolveMapLegendItems,
   type MapLegendItem,
 } from "@/components/map/map-constants";
+import {
+  applyMarkerHidden,
+  MAP_MARKER_FADE_MS,
+  markerDataSignature,
+  visibleMarkersBoundsSignature,
+} from "@/components/map/map-marker-fade";
+import { fitMapToMarkers, flyMapToCenter } from "@/components/map/map-camera";
 
 export interface MapMarker {
   id: string;
@@ -27,6 +34,7 @@ export interface MapMarker {
   status?: string;
   color?: string;
   urgencyLevel?: string;
+  legendLayerId?: string;
 }
 
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
@@ -44,7 +52,18 @@ interface MapViewProps {
   legend?: MapLegendMode;
   legendItems?: MapLegendItem[];
   compactLegend?: boolean;
+  interactiveLegend?: boolean;
+  hiddenLegendLayers?: string[];
+  onHiddenLegendLayersChange?: (layers: string[]) => void;
+  animateCamera?: boolean;
+  fitVisibleMarkers?: boolean;
 }
+
+type MarkerRegistryEntry = {
+  marker: mapboxgl.Marker;
+  element: HTMLElement;
+  signature: string;
+};
 
 function setMapInteractivity(map: mapboxgl.Map, enabled: boolean) {
   const toggle = enabled ? "enable" : "disable";
@@ -75,6 +94,39 @@ function resolveLegendMode(
   return mode;
 }
 
+function resolveMarkerLayerId(marker: MapMarker): string {
+  return (
+    marker.legendLayerId ??
+    (marker.urgencyLevel === "critical"
+      ? "critical"
+      : marker.urgencyLevel === "high"
+        ? "high"
+        : marker.urgencyLevel
+          ? "standard"
+          : "standard")
+  );
+}
+
+function updateMarkerElement(
+  element: HTMLElement,
+  marker: MapMarker,
+  selected: boolean,
+  clickable: boolean,
+) {
+  const color = marker.color ?? markerColorForUrgency(marker.urgencyLevel);
+  element.classList.toggle("rescutes-map-marker-shell--selected", selected);
+  element.classList.toggle("rescutes-map-marker-shell--clickable", clickable);
+  element.style.removeProperty("background");
+
+  const fade = element.querySelector<HTMLElement>(".rescutes-map-marker-fade");
+  if (fade) {
+    fade.style.setProperty("--marker-color", color);
+  }
+
+  const layerId = resolveMarkerLayerId(marker);
+  element.dataset.legendLayer = layerId;
+}
+
 export function MapView({
   center = {
     latitude: DEMO_GEO.center.latitude,
@@ -89,14 +141,34 @@ export function MapView({
   legend = "auto",
   legendItems: customLegendItems,
   compactLegend = false,
+  interactiveLegend = true,
+  hiddenLegendLayers: controlledHiddenLayers,
+  onHiddenLegendLayersChange,
+  animateCamera = true,
+  fitVisibleMarkers = true,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const registryRef = useRef<Map<string, MarkerRegistryEntry>>(new Map());
+  const removalTimersRef = useRef<Map<string, number>>(new Map());
+  const hiddenLegendLayersRef = useRef<Set<string>>(new Set());
+  const onMarkerClickRef = useRef(onMarkerClick);
   const [mapError, setMapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [internalHiddenLayers, setInternalHiddenLayers] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+  onMarkerClickRef.current = onMarkerClick;
+
+  const hiddenLegendLayers = useMemo(
+    () => new Set(controlledHiddenLayers ?? [...internalHiddenLayers]),
+    [controlledHiddenLayers, internalHiddenLayers],
+  );
+
+  hiddenLegendLayersRef.current = hiddenLegendLayers;
 
   const legendItems = useMemo(() => {
     if (customLegendItems && customLegendItems.length > 0) {
@@ -105,6 +177,34 @@ export function MapView({
     const mode = resolveLegendMode(legend, markers.length);
     return resolveMapLegendItems(markers, mode);
   }, [customLegendItems, legend, markers]);
+
+  const markerOverlaySignature = useMemo(
+    () => markers.map((marker) => markerDataSignature(marker)).sort().join("|"),
+    [markers],
+  );
+
+  const visibleBoundsSignature = useMemo(
+    () => visibleMarkersBoundsSignature(markers, hiddenLegendLayers),
+    [markers, hiddenLegendLayers],
+  );
+
+  const toggleLegendLayer = useCallback(
+    (layerId: string) => {
+      const next = new Set(hiddenLegendLayersRef.current);
+      if (next.has(layerId)) {
+        next.delete(layerId);
+      } else {
+        next.add(layerId);
+      }
+
+      if (onHiddenLegendLayersChange) {
+        onHiddenLegendLayersChange([...next]);
+      } else {
+        setInternalHiddenLayers(next);
+      }
+    },
+    [onHiddenLegendLayersChange],
+  );
 
   useEffect(() => {
     if (!containerRef.current || !token) {
@@ -147,6 +247,12 @@ export function MapView({
     });
 
     return () => {
+      for (const timer of removalTimersRef.current.values()) {
+        window.clearTimeout(timer);
+      }
+      removalTimersRef.current.clear();
+      registryRef.current.forEach((entry) => entry.marker.remove());
+      registryRef.current.clear();
       map.remove();
       mapRef.current = null;
     };
@@ -172,34 +278,74 @@ export function MapView({
   }, [interactive, loading]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    const map = mapRef.current;
+    if (!map || loading) return;
 
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    const registry = registryRef.current;
+    const nextIds = new Set(markers.map((marker) => marker.id));
+    const clickable = Boolean(onMarkerClickRef.current);
 
-    markers.forEach((marker) => {
-      const color =
-        marker.color ?? markerColorForUrgency(marker.urgencyLevel);
+    for (const [id, entry] of [...registry.entries()]) {
+      if (nextIds.has(id)) continue;
+
+      const existingTimer = removalTimersRef.current.get(id);
+      if (existingTimer) window.clearTimeout(existingTimer);
+
+      applyMarkerHidden(entry.element, true, true);
+      const timer = window.setTimeout(() => {
+        entry.marker.remove();
+        registry.delete(id);
+        removalTimersRef.current.delete(id);
+      }, MAP_MARKER_FADE_MS);
+      removalTimersRef.current.set(id, timer);
+    }
+
+    for (const marker of markers) {
+      const signature = markerDataSignature(marker);
       const selected = selectedMarkerId === marker.id;
-      const clickable = Boolean(onMarkerClick);
+      const color = marker.color ?? markerColorForUrgency(marker.urgencyLevel);
+      const layerId = resolveMarkerLayerId(marker);
+      const hidden = hiddenLegendLayersRef.current.has(layerId);
+      const existing = registry.get(marker.id);
+
+      if (existing) {
+        const pendingRemoval = removalTimersRef.current.get(marker.id);
+        if (pendingRemoval) {
+          window.clearTimeout(pendingRemoval);
+          removalTimersRef.current.delete(marker.id);
+        }
+
+        if (existing.signature !== signature) {
+          existing.marker.setLngLat([marker.longitude, marker.latitude]);
+          updateMarkerElement(existing.element, marker, selected, clickable);
+          existing.signature = signature;
+        } else {
+          updateMarkerElement(existing.element, marker, selected, clickable);
+        }
+
+        applyMarkerHidden(existing.element, hidden, true);
+        continue;
+      }
 
       const el = createMapMarkerElement({
         color,
         selected,
         clickable,
         label: marker.label,
+        legendLayerId: layerId,
       });
 
       if (clickable) {
         el.addEventListener("click", (e) => {
           e.stopPropagation();
-          onMarkerClick!(marker.id);
+          if (el.classList.contains("rescutes-map-marker--off")) return;
+          onMarkerClickRef.current?.(marker.id);
         });
       }
 
-      const m = new mapboxgl.Marker({ element: el, anchor: "center" })
+      const mapMarker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([marker.longitude, marker.latitude])
-        .addTo(mapRef.current!);
+        .addTo(map);
 
       if (hasMapPopupContent(marker)) {
         const popup = new mapboxgl.Popup({
@@ -207,23 +353,73 @@ export function MapView({
           closeButton: false,
           className: "rescutes-map-popup",
         }).setHTML(buildMapPopupHtml(marker));
-        m.setPopup(popup);
+        mapMarker.setPopup(popup);
 
         el.addEventListener("mouseenter", () => {
-          if (!mapRef.current) return;
-          popup.addTo(mapRef.current);
+          if (el.classList.contains("rescutes-map-marker--off")) return;
+          popup.addTo(map);
         });
         el.addEventListener("mouseleave", () => popup.remove());
       }
 
-      markersRef.current.push(m);
-    });
-  }, [markers, selectedMarkerId, onMarkerClick]);
+      applyMarkerHidden(el, true, false);
+      requestAnimationFrame(() => {
+        applyMarkerHidden(el, hidden, true);
+      });
+
+      registry.set(marker.id, {
+        marker: mapMarker,
+        element: el,
+        signature,
+      });
+    }
+  }, [markerOverlaySignature, selectedMarkerId, loading]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.setCenter([center.longitude, center.latitude]);
-  }, [center.latitude, center.longitude]);
+    for (const entry of registryRef.current.values()) {
+      const layerId = entry.element.dataset.legendLayer;
+      if (!layerId) continue;
+      applyMarkerHidden(
+        entry.element,
+        hiddenLegendLayers.has(layerId),
+        true,
+      );
+    }
+  }, [hiddenLegendLayers]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loading || !animateCamera) return;
+
+    const runCamera = () => {
+      const visible = markers.filter((marker) => {
+        const layerId = resolveMarkerLayerId(marker);
+        return !hiddenLegendLayers.has(layerId);
+      });
+
+      if (fitVisibleMarkers && visible.length > 0) {
+        fitMapToMarkers(map, visible);
+        return;
+      }
+
+      flyMapToCenter(map, center, zoom);
+    };
+
+    if (map.isStyleLoaded()) {
+      runCamera();
+      return;
+    }
+
+    map.once("load", runCamera);
+  }, [
+    visibleBoundsSignature,
+    center.latitude,
+    center.longitude,
+    zoom,
+    animateCamera,
+    fitVisibleMarkers,
+    loading,
+  ]);
 
   if (!token || mapError) {
     return (
@@ -245,6 +441,8 @@ export function MapView({
     );
   }
 
+  const legendIsInteractive = interactiveLegend && legendItems.length > 1;
+
   return (
     <div className={cn("rescutes-map relative overflow-hidden rounded-lg", className)}>
       {loading && (
@@ -260,7 +458,13 @@ export function MapView({
         )}
       />
       {!loading && legendItems.length > 0 ? (
-        <MapLegend items={legendItems} compact={compactLegend} />
+        <MapLegend
+          items={legendItems}
+          compact={compactLegend}
+          interactive={legendIsInteractive}
+          hiddenLayerIds={hiddenLegendLayers}
+          onToggleLayer={toggleLegendLayer}
+        />
       ) : null}
     </div>
   );

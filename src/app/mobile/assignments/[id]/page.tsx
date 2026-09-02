@@ -1,5 +1,12 @@
 import { requireAuth } from "@/lib/auth/session";
-import { getAssignmentById, getCaseById, getShelterById, resolveCurrentUrgency } from "@/lib/data/service";
+import {
+  getAssignmentById,
+  getCaseById,
+  getShelterById,
+  resolveCurrentUrgency,
+  canAccessAssignment,
+} from "@/lib/data/service";
+import { isAdministrator } from "@/lib/auth/permissions";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +27,11 @@ export default async function AssignmentDetailPage({
   const caseItem = getCaseById(assignment.caseId);
   if (!caseItem) notFound();
 
-  if (assignment.rescuerId !== session.user.id) {
+  if (
+    !canAccessAssignment(id, session.user.id, {
+      adminOverride: isAdministrator(session.user.roles),
+    })
+  ) {
     notFound();
   }
 

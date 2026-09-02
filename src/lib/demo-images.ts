@@ -7,7 +7,7 @@ export const SPECIES_DEMO_IMAGES: Record<string, string> = {
   other: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=400&fit=crop",
 };
 
-/** Luna — medium brown dog near España Boulevard, Sampaloc, Manila (demo scenario). */
+/** Luna: medium brown dog near España Boulevard, Sampaloc, Manila. */
 export const LUNA_DEMO_IMAGE =
   "https://images.unsplash.com/photo-1561037404-61cd46aa615e?w=600&h=400&fit=crop";
 

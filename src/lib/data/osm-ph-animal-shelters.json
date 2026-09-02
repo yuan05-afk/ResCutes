@@ -1,0 +1,142 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-05-31T22:37:44Z",
+    "timestamp_areas_base": "2026-05-31T22:37:44Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 3412035792,
+  "lat": 14.6508348,
+  "lon": 121.0458686,
+  "tags": {
+    "amenity": "animal_shelter",
+    "animal_shelter:release": "yes",
+    "name": "National Wildlife Rescue and Research Center"
+  }
+},
+{
+  "type": "node",
+  "id": 6228810519,
+  "lat": 10.3141658,
+  "lon": 123.9206155,
+  "tags": {
+    "addr:street": "F. Cabahug Street",
+    "amenity": "animal_shelter",
+    "name": "Cebu City Pound",
+    "operator": "Cebu City Department of Veterinary Services"
+  }
+},
+{
+  "type": "node",
+  "id": 6904297004,
+  "lat": 11.2777620,
+  "lon": 124.9590701,
+  "tags": {
+    "amenity": "animal_shelter"
+  }
+},
+{
+  "type": "node",
+  "id": 11028848104,
+  "lat": 14.5272519,
+  "lon": 120.9987537,
+  "tags": {
+    "amenity": "animal_shelter",
+    "name": "Pasay City Animal Shelter"
+  }
+},
+{
+  "type": "node",
+  "id": 11757810212,
+  "lat": 14.5490297,
+  "lon": 121.0762493,
+  "tags": {
+    "amenity": "animal_shelter",
+    "animal_shelter": "cat",
+    "check_date": "2024-03-24",
+    "name": "Lexington Garden Village Cat Village"
+  }
+},
+{
+  "type": "node",
+  "id": 12071642241,
+  "lat": 14.5136983,
+  "lon": 121.2364402,
+  "tags": {
+    "amenity": "animal_shelter",
+    "name": "BigDipper Rottweilers"
+  }
+},
+{
+  "type": "way",
+  "id": 286364551,
+  "center": {
+    "lat": 6.9345208,
+    "lon": 122.0517282
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "City Pound",
+    "operator": "Office of the City Veterinarian",
+    "operator:type": "government",
+    "owner": "city",
+    "roof:shape": "hipped"
+  }
+},
+{
+  "type": "way",
+  "id": 335235400,
+  "center": {
+    "lat": 11.8429067,
+    "lon": 124.8283002
+  },
+  "tags": {
+    "amenity": "animal_shelter"
+  }
+},
+{
+  "type": "way",
+  "id": 606631181,
+  "center": {
+    "lat": 14.7381899,
+    "lon": 120.9598385
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes",
+    "name": "Animal Hospital"
+  }
+},
+{
+  "type": "way",
+  "id": 875036290,
+  "center": {
+    "lat": 15.6210514,
+    "lon": 120.3776465
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1434820993,
+  "center": {
+    "lat": 14.6515342,
+    "lon": 121.0457868
+  },
+  "tags": {
+    "amenity": "animal_shelter",
+    "name": "Wildlife rescue center"
+  }
+}
+
+  ]
+}

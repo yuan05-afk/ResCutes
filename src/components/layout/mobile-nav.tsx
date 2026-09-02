@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Home, MapPin, ClipboardList, User, Camera } from "lucide-react";
 import { prefetchRouteNow } from "@/components/layout/AppRoutePrefetcher";
 import { useNavigationPending } from "@/components/layout/NavigationPending";
+import { useMobileShellFrame } from "@/components/layout/mobile-device-frame";
 
 const navItems = [
   { href: "/mobile", label: "Home", icon: Home },
@@ -19,13 +20,19 @@ export function MobileNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { startPending } = useNavigationPending();
+  const { isFramed } = useMobileShellFrame();
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-mobile border-t border-sage/25 bg-white safe-bottom md:rounded-b-2xl"
+      className={cn(
+        "z-50 shrink-0 border-t border-sage/25 bg-white safe-bottom",
+        isFramed
+          ? "relative w-full"
+          : "fixed bottom-0 left-0 right-0 mx-auto max-w-mobile",
+      )}
       aria-label="Mobile navigation"
     >
-      <div className="flex items-end justify-around px-2 pb-2 pt-1 max-w-mobile mx-auto">
+      <div className="mx-auto flex max-w-mobile items-end justify-around px-2 pb-2 pt-1">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||

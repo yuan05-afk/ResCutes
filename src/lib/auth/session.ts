@@ -6,7 +6,7 @@ import type { AppSession } from "@/lib/auth/types";
 export async function requireAuth(): Promise<AppSession> {
   const session = await getAppSession();
   if (!session?.user) {
-    redirect("/handler/sign-in");
+    redirect("/login");
   }
   return session;
 }

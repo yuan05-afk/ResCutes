@@ -160,7 +160,7 @@ export function AnimalsTable({ animals }: AnimalsTableProps) {
                             View case
                           </Link>
                         ) : (
-                          "—"
+                          "-"
                         )}
                       </td>
                     </ClickableRow>

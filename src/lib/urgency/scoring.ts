@@ -136,7 +136,7 @@ function getInjuryExplanation(severity: InjurySeverity): string {
     minor: "Minor visible injury reported",
     moderate: "Moderate injury requiring attention",
     severe: "Severe injury requiring urgent care",
-    critical: "Critical injury — immediate response needed",
+    critical: "Critical injury. Immediate response needed",
   };
   return map[severity];
 }
@@ -156,10 +156,10 @@ function getDangerExplanation(danger: EnvironmentalDanger): string {
 function getVulnerabilityExplanation(vuln: Vulnerability): string {
   const map: Record<Vulnerability, string> = {
     adult_healthy: "Adult animal, appears healthy",
-    juvenile: "Young animal — higher vulnerability",
-    elderly: "Elderly animal — higher vulnerability",
-    pregnant: "Pregnant animal — requires careful handling",
-    nursing: "Nursing mother — offspring may be nearby",
+    juvenile: "Young animal. Higher vulnerability",
+    elderly: "Elderly animal. Higher vulnerability",
+    pregnant: "Pregnant animal. Requires careful handling",
+    nursing: "Nursing mother. Offspring may be nearby",
     disabled: "Disabled or impaired animal",
   };
   return map[vuln];
@@ -169,13 +169,13 @@ function getWaitingExplanation(
   verifiedAt?: Date | null,
   points?: number,
 ): string {
-  if (!verifiedAt) return "Case not yet verified — no waiting time applied";
+  if (!verifiedAt) return "Case not yet verified. No waiting time applied";
   const hours = Math.floor(
     (Date.now() - verifiedAt.getTime()) / (1000 * 60 * 60),
   );
   if (points === 0 || hours < 1)
-    return "Recently verified — minimal waiting time";
-  return `Verified ${hours} hour(s) ago — waiting time increases urgency`;
+    return "Recently verified. Minimal waiting time";
+  return `Verified ${hours} hour(s) ago. Waiting time increases urgency`;
 }
 
 function buildExplanation(

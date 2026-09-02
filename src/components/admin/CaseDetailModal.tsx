@@ -168,7 +168,7 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
             ) : null}
           </div>
 
-          {/* Staff actions — same view, right column */}
+          {/* Staff actions: same view, right column */}
           {canManage ? (
             <aside className="w-full shrink-0 overflow-hidden rounded-xl border border-sage/25 bg-gradient-to-b from-bone/80 to-white shadow-card">
               <CaseStaffActions

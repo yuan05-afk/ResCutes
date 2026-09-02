@@ -10,11 +10,13 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  MapPinned,
 } from "lucide-react";
 import { hexclaveClientApp } from "@/stack/client";
 import { Logo } from "@/components/ui/logo";
 import type { Role } from "@/lib/auth/permissions";
-import { ROLE_LABELS } from "@/lib/auth/permissions";
+import { getDisplayRoleLabel } from "@/lib/auth/permissions";
+import { AdminExperienceSwitcher } from "@/components/layout/admin-experience-switcher";
 import { prefetchRouteNow } from "@/components/layout/AppRoutePrefetcher";
 import { useNavigationPending } from "@/components/layout/NavigationPending";
 import { useRouter } from "next/navigation";
@@ -23,6 +25,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/rescue-cases", label: "Rescue Cases", icon: ClipboardList },
   { href: "/animals", label: "Animals", icon: PawPrint },
+  { href: "/shelters", label: "Shelter Map", icon: MapPinned },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -39,13 +42,18 @@ interface WebSidebarProps {
   userName: string;
   userEmail: string;
   userRoles: Role[];
+  isAdministrator?: boolean;
 }
 
-export function WebSidebar({ userName, userEmail, userRoles }: WebSidebarProps) {
+export function WebSidebar({
+  userName,
+  userEmail,
+  userRoles,
+  isAdministrator = false,
+}: WebSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { startPending } = useNavigationPending();
-  const primaryRole = userRoles[0];
   const isProfileActive = pathname.startsWith("/profile");
 
   return (
@@ -83,6 +91,15 @@ export function WebSidebar({ userName, userEmail, userRoles }: WebSidebarProps) 
         })}
       </nav>
 
+      {isAdministrator ? (
+        <div className="shrink-0 border-t border-white/10 px-3 py-3">
+          <AdminExperienceSwitcher
+            variant="web"
+            className="w-full justify-center border-white/25 bg-white/10 text-white hover:bg-white/20"
+          />
+        </div>
+      ) : null}
+
       <div className="shrink-0 border-t border-white/10 p-3">
         <Link
           href="/profile"
@@ -103,7 +120,7 @@ export function WebSidebar({ userName, userEmail, userRoles }: WebSidebarProps) 
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold truncate">{userName}</p>
             <p className="text-[11px] text-white/55 truncate">
-              {primaryRole ? ROLE_LABELS[primaryRole] : "Staff"}
+              {getDisplayRoleLabel(userRoles)}
             </p>
             <p className="text-[10px] text-white/40 truncate mt-0.5">
               {userEmail}

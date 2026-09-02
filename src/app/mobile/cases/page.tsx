@@ -1,22 +1,33 @@
 import { requireAuth } from "@/lib/auth/session";
 import { getAssignmentsForCase, resolveCurrentUrgency } from "@/lib/data/service";
 import { getMobileCasesListCached } from "@/lib/data/cached-loaders";
-import { getPrimaryMobileRole, ROLES } from "@/lib/auth/permissions";
+import {
+  isAdministrator,
+  shouldUseRescuerMobileExperience,
+} from "@/lib/auth/permissions";
 import { MobileCaseCard } from "@/components/mobile/mobile-case-card";
 import { StateMessage } from "@/components/status/state-message";
 
 export default async function MobileCasesPage() {
   const session = await requireAuth();
-  const isRescuer = getPrimaryMobileRole(session.user.roles) === ROLES.RESCUER;
+  const isAdmin = isAdministrator(session.user.roles);
+  const isRescuer = shouldUseRescuerMobileExperience(session.user.roles);
 
-  const cases = await getMobileCasesListCached(session.user.id, isRescuer);
+  const cases = await getMobileCasesListCached(session.user.id, {
+    isRescuer,
+    isAdministrator: isAdmin,
+  });
 
   return (
     <div>
       <header className="border-b border-sage/20 bg-white px-4 py-5">
         <h1 className="text-xl font-bold text-graphite">My Cases</h1>
         <p className="text-sm text-graphite/55 mt-1">
-          {isRescuer ? "Your assigned rescue cases" : "Cases you reported"}
+          {isAdmin
+            ? "All active rescue workflows"
+            : isRescuer
+              ? "Your assigned rescue cases"
+              : "Cases you reported"}
         </p>
       </header>
 
@@ -34,10 +45,12 @@ export default async function MobileCasesPage() {
         ) : (
           cases.map((c) => {
             const pendingAssignment = isRescuer
-              ? getAssignmentsForCase(c.id).find(
-                  (a) =>
-                    a.rescuerId === session.user.id && a.status === "pending",
-                )
+              ? isAdmin
+                ? getAssignmentsForCase(c.id).find((a) => a.status === "pending")
+                : getAssignmentsForCase(c.id).find(
+                    (a) =>
+                      a.rescuerId === session.user.id && a.status === "pending",
+                  )
               : undefined;
 
             const urgency = resolveCurrentUrgency(c);
@@ -56,7 +69,7 @@ export default async function MobileCasesPage() {
                 href={
                   pendingAssignment
                     ? `/mobile/assignments/${pendingAssignment.id}`
-                    : undefined
+                    : `/mobile/cases/${c.id}`
                 }
               />
             );

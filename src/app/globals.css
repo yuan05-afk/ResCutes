@@ -154,7 +154,91 @@
   background-color: rgba(255, 255, 255, 0.88);
 }
 
-/* Map pins — hover / selected transitions */
+/* Map pins: fade shell keeps Mapbox wrapper at opacity 1 while inner node animates */
+.rescutes-map-marker-shell {
+  display: block;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.rescutes-map-marker-fade {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background-color: var(--marker-color, #183c35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  transform-origin: center center;
+  opacity: 1;
+  transition:
+    opacity 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.mapboxgl-marker.rescutes-map-marker--off {
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+.mapboxgl-marker.rescutes-map-marker--off .rescutes-map-marker-fade {
+  opacity: 0;
+  transform: scale(0.86);
+}
+
+.mapboxgl-marker.rescutes-map-marker--instant .rescutes-map-marker-fade {
+  transition: none !important;
+}
+
+.rescutes-map-marker-shell--selected {
+  width: 16px;
+  height: 16px;
+}
+
+.rescutes-map-marker-shell--selected .rescutes-map-marker-fade {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--marker-color) 28%, transparent),
+    0 2px 8px rgba(0, 0, 0, 0.32);
+}
+
+.rescutes-map-marker-shell--clickable {
+  cursor: pointer;
+}
+
+.rescutes-map-marker-shell--clickable:not(:disabled):hover .rescutes-map-marker-fade,
+.rescutes-map-marker-shell--clickable:not(:disabled):focus-visible .rescutes-map-marker-fade {
+  transform: scale(1.4);
+  border-color: #fff;
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--marker-color) 32%, transparent),
+    0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.rescutes-map-marker-shell--clickable:not(:disabled):focus-visible {
+  outline: none;
+}
+
+.rescutes-map-marker-shell--clickable:not(:disabled):active .rescutes-map-marker-fade {
+  transform: scale(1.2);
+  transition-duration: 0.1s;
+}
+
+.rescutes-map-marker-shell--selected.rescutes-map-marker-shell--clickable:not(:disabled):hover .rescutes-map-marker-fade {
+  transform: scale(1.25);
+}
+
+.rescutes-map-marker-shell:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Legacy class names kept for any stale markup */
 .rescutes-map-marker {
   display: block;
   width: 12px;
@@ -207,7 +291,7 @@
   pointer-events: none;
 }
 
-/* Legend swatches — mirror pin hover feel */
+/* Legend swatches: mirror pin hover feel */
 .rescutes-map-legend-dot {
   width: 10px;
   height: 10px;
@@ -232,6 +316,17 @@
   box-shadow:
     0 0 0 4px color-mix(in srgb, var(--legend-color) 30%, transparent),
     0 3px 10px rgba(0, 0, 0, 0.28);
+}
+
+.rescutes-map-legend-item--hidden .rescutes-map-legend-dot {
+  opacity: 0.35;
+  transform: scale(0.9);
+}
+
+.rescutes-map-legend-item--hidden .rescutes-map-legend-label {
+  opacity: 0.45;
+  text-decoration: line-through;
+  text-decoration-color: rgba(32, 40, 37, 0.35);
 }
 
 .rescutes-map .mapboxgl-popup.rescutes-map-popup .mapboxgl-popup-content {
@@ -269,6 +364,12 @@
   font-weight: 500;
   line-height: 1.3;
   color: #6b7872;
+}
+
+/* Desktop phone mockup: compact dynamic island in the status bar row */
+.rescutes-mobile-device-mockup > div > div > div > div:first-child > div {
+  transform: scale(0.72);
+  transform-origin: top center;
 }
 
 @media (prefers-reduced-motion: reduce) {

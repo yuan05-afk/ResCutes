@@ -8,7 +8,7 @@ import { getNavigationGeneration } from "@/lib/navigation-generation";
 type ActionResult = { error?: string; success?: boolean } | void;
 
 /**
- * Clears pending when the server action returns — not when router.refresh() finishes.
+ * Clears pending when the server action returns, not when router.refresh() finishes.
  */
 export function useActionPending() {
   const [pending, setPending] = useState(false);

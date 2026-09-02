@@ -134,7 +134,7 @@ export function AnimalDetailModal({ animalId, onClose }: AnimalDetailModalProps)
                 <ModalMeta label="Species" value={formatStatus(animal.species)} />
                 <ModalMeta
                   label="Intake"
-                  value={animal.intakeDate ? formatDate(animal.intakeDate) : "—"}
+                  value={animal.intakeDate ? formatDate(animal.intakeDate) : "-"}
                 />
                 <ModalMeta
                   label="Stage"
@@ -200,7 +200,7 @@ export function AnimalDetailModal({ animalId, onClose }: AnimalDetailModalProps)
                       {n.content}
                     </p>
                     <p className="mt-1 text-[10px] text-graphite/45">
-                      {n.authorName} — {formatDateTime(n.createdAt)}
+                      {n.authorName} · {formatDateTime(n.createdAt)}
                     </p>
                   </li>
                 ))}

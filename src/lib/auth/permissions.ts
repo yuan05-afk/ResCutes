@@ -18,67 +18,74 @@ export function hasAnyRole(userRoles: Role[], roles: Role[]): boolean {
   return roles.some((r) => userRoles.includes(r));
 }
 
+/** Administrators have full access to every capability in the app. */
+export function isAdministrator(userRoles: Role[]): boolean {
+  return hasRole(userRoles, ROLES.ADMINISTRATOR);
+}
+
+function hasFullAccess(userRoles: Role[]): boolean {
+  return isAdministrator(userRoles);
+}
+
 export function canViewExactLocation(userRoles: Role[]): boolean {
+  if (hasFullAccess(userRoles)) return true;
   return hasAnyRole(userRoles, [
     ROLES.RESCUER,
     ROLES.SHELTER_STAFF,
     ROLES.VETERINARIAN,
-    ROLES.ADMINISTRATOR,
   ]);
 }
 
 export function canViewReporterInfo(userRoles: Role[]): boolean {
-  return hasAnyRole(userRoles, [
-    ROLES.SHELTER_STAFF,
-    ROLES.ADMINISTRATOR,
-  ]);
+  if (hasFullAccess(userRoles)) return true;
+  return hasAnyRole(userRoles, [ROLES.SHELTER_STAFF]);
 }
 
 export function canViewMedicalNotes(userRoles: Role[]): boolean {
-  return hasAnyRole(userRoles, [
-    ROLES.SHELTER_STAFF,
-    ROLES.VETERINARIAN,
-    ROLES.ADMINISTRATOR,
-  ]);
+  if (hasFullAccess(userRoles)) return true;
+  return hasAnyRole(userRoles, [ROLES.SHELTER_STAFF, ROLES.VETERINARIAN]);
 }
 
 export function canManageCases(userRoles: Role[]): boolean {
-  return hasAnyRole(userRoles, [
-    ROLES.SHELTER_STAFF,
-    ROLES.ADMINISTRATOR,
-  ]);
+  if (hasFullAccess(userRoles)) return true;
+  return hasAnyRole(userRoles, [ROLES.SHELTER_STAFF]);
 }
 
 export function canAssignRescuer(userRoles: Role[]): boolean {
-  return hasAnyRole(userRoles, [
-    ROLES.SHELTER_STAFF,
-    ROLES.ADMINISTRATOR,
-  ]);
+  if (hasFullAccess(userRoles)) return true;
+  return hasAnyRole(userRoles, [ROLES.SHELTER_STAFF]);
 }
 
 export function canEditMedical(userRoles: Role[]): boolean {
-  return hasAnyRole(userRoles, [
-    ROLES.VETERINARIAN,
-    ROLES.ADMINISTRATOR,
-  ]);
+  if (hasFullAccess(userRoles)) return true;
+  return hasAnyRole(userRoles, [ROLES.VETERINARIAN]);
 }
 
 export function canManageSettings(userRoles: Role[]): boolean {
-  return hasAnyRole(userRoles, [
-    ROLES.SHELTER_STAFF,
-    ROLES.ADMINISTRATOR,
-  ]);
+  if (hasFullAccess(userRoles)) return true;
+  return hasAnyRole(userRoles, [ROLES.SHELTER_STAFF]);
 }
 
 export function canAccessDashboard(userRoles: Role[]): boolean {
+  if (hasFullAccess(userRoles)) return true;
   return hasAnyRole(userRoles, [
     ROLES.SHELTER_STAFF,
     ROLES.VETERINARIAN,
-    ROLES.ADMINISTRATOR,
   ]);
+}
+
+export function canActAsRescuer(userRoles: Role[]): boolean {
+  if (hasFullAccess(userRoles)) return true;
+  return hasRole(userRoles, ROLES.RESCUER);
+}
+
+export function canUseCitizenMobileFeatures(userRoles: Role[]): boolean {
+  if (hasFullAccess(userRoles)) return true;
+  return hasRole(userRoles, ROLES.CITIZEN);
 }
 
 export function isStaffOrAdmin(userRoles: Role[]): boolean {
+  if (hasFullAccess(userRoles)) return true;
   return hasAnyRole(userRoles, [
     ROLES.SHELTER_STAFF,
     ROLES.VETERINARIAN,
@@ -86,9 +93,20 @@ export function isStaffOrAdmin(userRoles: Role[]): boolean {
   ]);
 }
 
+/** Rescuer mobile workflows (assignments, field updates). */
+export function shouldUseRescuerMobileExperience(userRoles: Role[]): boolean {
+  return canActAsRescuer(userRoles);
+}
+
 export function getPrimaryMobileRole(userRoles: Role[]): Role {
-  if (hasRole(userRoles, ROLES.RESCUER)) return ROLES.RESCUER;
+  if (shouldUseRescuerMobileExperience(userRoles)) return ROLES.RESCUER;
   return ROLES.CITIZEN;
+}
+
+export function getDisplayRoleLabel(userRoles: Role[]): string {
+  if (isAdministrator(userRoles)) return ROLE_LABELS.administrator;
+  const primary = userRoles[0];
+  return primary ? ROLE_LABELS[primary] : "User";
 }
 
 export function approximateLocation(
@@ -146,6 +164,6 @@ export const DEMO_ACCOUNTS = [
     password: "demo1234",
     name: "Alex Wong",
     role: ROLES.ADMINISTRATOR,
-    description: "Full system administration",
+    description: "Full access to web dashboard and mobile app",
   },
 ] as const;

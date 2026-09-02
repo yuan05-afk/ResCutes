@@ -179,7 +179,7 @@ export function ReportFlow() {
               )}
             </button>
             <p className="text-xs text-center text-graphite/50">
-              Demo: tap the area above to use a sample photo for the selected species.
+              Tip: tap the area above to use a sample photo for the selected species.
             </p>
           </div>
         )}

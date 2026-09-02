@@ -1,6 +1,6 @@
 import type { Role } from "@/lib/auth/permissions";
 
-/** Lightweight user list for auth — kept separate from demo-store for Edge middleware. */
+/** Lightweight user list for auth. Kept separate from demo-store for Edge middleware. */
 export interface AuthDemoUser {
   id: string;
   email: string;
@@ -43,7 +43,7 @@ export const AUTH_DEMO_USERS: AuthDemoUser[] = [
     email: "admin@rescutes.demo",
     name: "Alex Wong",
     password: "demo1234",
-    roles: ["administrator", "shelter_staff"],
+    roles: ["administrator"],
   },
   {
     id: "user-rescuer-2",

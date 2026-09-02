@@ -2,11 +2,17 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import {
   getAssignmentsForCase,
+  getCaseById,
+  getFirstPendingAssignment,
   getShelterById,
   resolveCurrentUrgency,
 } from "@/lib/data/service";
 import { getMobileHomeDataCached } from "@/lib/data/cached-loaders";
-import { getPrimaryMobileRole, ROLES } from "@/lib/auth/permissions";
+import {
+  isAdministrator,
+  shouldUseRescuerMobileExperience,
+  canUseCitizenMobileFeatures,
+} from "@/lib/auth/permissions";
 import { MobileHeader } from "@/components/mobile/mobile-header";
 import { ReportCtaCard } from "@/components/mobile/report-cta-card";
 import { ActiveRescueCard } from "@/components/mobile/active-rescue-card";
@@ -18,10 +24,14 @@ export default async function MobileHomePage() {
   const session = await requireAuth();
   const userId = session.user.id;
   const roles = session.user.roles;
-  const primaryRole = getPrimaryMobileRole(roles);
-  const isRescuer = primaryRole === ROLES.RESCUER;
+  const isAdmin = isAdministrator(roles);
+  const isRescuer = shouldUseRescuerMobileExperience(roles);
+  const showCitizenFeatures = canUseCitizenMobileFeatures(roles);
 
-  const { notifications, myCases } = await getMobileHomeDataCached(userId, isRescuer);
+  const { notifications, myCases } = await getMobileHomeDataCached(userId, {
+    isRescuer,
+    isAdministrator: isAdmin,
+  });
   const unreadCount = notifications.filter((n) => !n.read).length;
   const recentNotifications = notifications.slice(0, 3);
 
@@ -34,11 +44,19 @@ export default async function MobileHomePage() {
   )[0];
 
   const pendingAssignment = isRescuer
-    ? myCases
-        .flatMap((c) =>
-          getAssignmentsForCase(c.id).map((a) => ({ ...a, case: c })),
-        )
-        .find((a) => a.rescuerId === userId && a.status === "pending")
+    ? (() => {
+        if (isAdmin) {
+          const assignment = getFirstPendingAssignment();
+          if (!assignment) return null;
+          const caseItem = getCaseById(assignment.caseId);
+          return caseItem ? { ...assignment, case: caseItem } : null;
+        }
+        return myCases
+          .flatMap((c) =>
+            getAssignmentsForCase(c.id).map((a) => ({ ...a, case: c })),
+          )
+          .find((a) => a.rescuerId === userId && a.status === "pending");
+      })()
     : null;
 
   let rescuerName: string | undefined;
@@ -68,7 +86,7 @@ export default async function MobileHomePage() {
       />
 
       <main className="px-4 py-5 space-y-5">
-        {!isRescuer && <ReportCtaCard />}
+        {showCitizenFeatures && <ReportCtaCard />}
 
         {pendingAssignment && (
           <div className="rounded-2xl border border-ochre/30 bg-ochre/5 p-4">
@@ -95,7 +113,7 @@ export default async function MobileHomePage() {
           </div>
         )}
 
-        {activeCase && !isRescuer && (
+        {activeCase && showCitizenFeatures && !isRescuer && (
           <ActiveRescueCard
             caseId={activeCase.id}
             caseNumber={activeCase.caseNumber}

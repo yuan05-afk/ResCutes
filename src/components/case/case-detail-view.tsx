@@ -100,7 +100,7 @@ export function CaseDetailView({
           : "grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(240px,320px)]",
       )}
     >
-      {/* Left — case intelligence */}
+      {/* Left: case intelligence */}
       <div className="flex min-h-0 flex-col gap-2">
         <CaseMediaStrip
           compact
@@ -219,7 +219,7 @@ export function CaseDetailView({
         )}
       </div>
 
-      {/* Right — context + staff actions */}
+      {/* Right: context and staff actions */}
       <div className="flex min-h-0 flex-col gap-2">
         {!canReporter && !canManage ? null : (
           <div className="grid shrink-0 grid-cols-1 gap-2">

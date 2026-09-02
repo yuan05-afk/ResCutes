@@ -34,7 +34,7 @@ export function AdminModal({
   footer?: ReactNode;
   size?: keyof typeof sizeClasses;
   placement?: "sheet" | "center";
-  /** Lock to viewport height — no body scroll; children must fit or use tabs. */
+  /** Lock to viewport height. No body scroll; children must fit or use tabs. */
   fitViewport?: boolean;
 }) {
   const titleId = useId();

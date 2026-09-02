@@ -28,6 +28,7 @@ import {
   canAssignRescuer,
   canEditMedical,
   canManageSettings,
+  isAdministrator,
 } from "@/lib/auth/permissions";
 
 function revalidateCaseViews(
@@ -57,7 +58,8 @@ function revalidateCaseViews(
 export async function acceptAssignmentAction(assignmentId: string) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
-  const accepted = acceptAssignment(assignmentId, session.user.id);
+  const adminOverride = isAdministrator(session.user.roles);
+  const accepted = acceptAssignment(assignmentId, session.user.id, { adminOverride });
   if (!accepted) return { error: "Assignment not found or already responded" };
   const assignment = getAssignmentById(assignmentId);
   if (assignment) {
@@ -78,7 +80,10 @@ export async function declineAssignmentAction(
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
   if (!reason.trim()) return { error: "Reason required" };
-  const declined = declineAssignment(assignmentId, session.user.id, reason);
+  const adminOverride = isAdministrator(session.user.roles);
+  const declined = declineAssignment(assignmentId, session.user.id, reason, {
+    adminOverride,
+  });
   if (!declined) return { error: "Assignment not found or already responded" };
   const assignment = getAssignmentById(assignmentId);
   if (assignment) {
@@ -96,19 +101,27 @@ export async function updateCaseStatusAction(caseId: string, status: string) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
 
-  if (canManageCases(session.user.roles)) {
-    updateCaseStatus(caseId, status, session.user.id);
-  } else {
-    const result = updateCaseStatusAsRescuer(
+  const adminOverride = isAdministrator(session.user.roles);
+
+  if (adminOverride) {
+    const rescuerResult = updateCaseStatusAsRescuer(
       caseId,
       session.user.id,
       status,
+      { adminOverride: true },
     );
+    if (!rescuerResult.ok) {
+      updateCaseStatus(caseId, status, session.user.id);
+    }
+  } else if (canManageCases(session.user.roles)) {
+    updateCaseStatus(caseId, status, session.user.id);
+  } else {
+    const result = updateCaseStatusAsRescuer(caseId, session.user.id, status);
     if (!result.ok) return { error: result.error };
   }
 
   const assignment = getAssignmentsForCase(caseId).find(
-    (a) => a.rescuerId === session.user!.id,
+    (a) => a.rescuerId === session.user!.id || adminOverride,
   );
   revalidateCaseViews(
     caseId,

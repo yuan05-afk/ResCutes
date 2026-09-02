@@ -1,6 +1,6 @@
 "use client";
 
-/** In-content soft-nav placeholder — shown only when navigation is slow. */
+/** In-content soft-nav placeholder, shown only when navigation is slow. */
 export function PageSkeleton({ message }: { message?: string }) {
   return (
     <div className="w-full space-y-4 p-4" aria-busy="true">

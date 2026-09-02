@@ -9,6 +9,7 @@ import {
 import { DEMO_CASES, DEMO_ASSIGNMENTS } from "@/lib/data/demo-store";
 
 const JAMES = "user-james-rescuer";
+const ALEX_ADMIN = "user-alex-admin";
 
 function resetCase004() {
   const caseItem = DEMO_CASES.find((c) => c.id === "case-004");
@@ -96,5 +97,20 @@ describe("rescuer workflow", () => {
     if (!invalid.ok) {
       expect(invalid.error).toBe("Invalid status transition");
     }
+  });
+
+  it("allows administrators to act on another rescuer's assignment", () => {
+    const accepted = acceptAssignment("assignment-004", ALEX_ADMIN, {
+      adminOverride: true,
+    });
+    expect(accepted).toBe(true);
+
+    const progressed = updateCaseStatusAsRescuer(
+      "case-004",
+      ALEX_ADMIN,
+      "rescue_in_progress",
+      { adminOverride: true },
+    );
+    expect(progressed.ok).toBe(true);
   });
 });

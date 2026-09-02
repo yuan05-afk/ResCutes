@@ -7,6 +7,7 @@ import {
   getShelters,
   getRescuers,
   getNotificationsForUser,
+  getAdministratorMobileCases,
 } from "@/lib/data/service";
 import { dashboardTag } from "@/lib/cache-revalidate";
 
@@ -76,27 +77,37 @@ export const getRescuersCached = cache(function getRescuersCached() {
   )();
 });
 
-export function getMobileHomeDataCached(userId: string, isRescuer: boolean) {
+export function getMobileHomeDataCached(
+  userId: string,
+  options: { isRescuer: boolean; isAdministrator?: boolean },
+) {
   return unstable_cache(
     async () => {
       const notifications = getNotificationsForUser(userId);
-      const myCases = isRescuer
-        ? getCases({ rescuerId: userId })
-        : getCases({ reporterId: userId });
+      const myCases = options.isAdministrator
+        ? getAdministratorMobileCases()
+        : options.isRescuer
+          ? getCases({ rescuerId: userId })
+          : getCases({ reporterId: userId });
       return { notifications, myCases };
     },
-    ["mobile-home", userId, String(isRescuer)],
+    ["mobile-home", userId, String(options.isRescuer), String(options.isAdministrator)],
     { revalidate: 60, tags: [dashboardTag(userId), `mobile:${userId}`] },
   )();
 }
 
-export function getMobileCasesListCached(userId: string, isRescuer: boolean) {
+export function getMobileCasesListCached(
+  userId: string,
+  options: { isRescuer: boolean; isAdministrator?: boolean },
+) {
   return unstable_cache(
     async () =>
-      isRescuer
-        ? getCases({ rescuerId: userId })
-        : getCases({ reporterId: userId }),
-    ["mobile-cases", userId, String(isRescuer)],
+      options.isAdministrator
+        ? getAdministratorMobileCases()
+        : options.isRescuer
+          ? getCases({ rescuerId: userId })
+          : getCases({ reporterId: userId }),
+    ["mobile-cases", userId, String(options.isRescuer), String(options.isAdministrator)],
     { revalidate: 60, tags: [dashboardTag(userId), `mobile:${userId}`] },
   )();
 }

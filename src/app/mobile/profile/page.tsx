@@ -36,7 +36,7 @@ export default async function MobileProfilePage() {
           ["shelter_staff", "veterinarian", "administrator"].includes(r),
         ) && (
           <Button variant="outline" asChild className="w-full rounded-full h-12">
-            <Link href="/dashboard">Open Web Dashboard</Link>
+            <Link href="/dashboard">Open dashboard</Link>
           </Button>
         )}
 
