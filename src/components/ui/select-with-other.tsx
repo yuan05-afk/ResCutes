@@ -52,10 +52,8 @@ export function SelectWithOtherSplit({
         onChange={(e) => onChoiceChange(e.target.value)}
         className={cn("h-9", selectClassName)}
         aria-invalid={Boolean(error)}
+        placeholder={placeholder}
       >
-        {placeholder && !options.some((o) => o.value === "") ? (
-          <option value="">{placeholder}</option>
-        ) : null}
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}

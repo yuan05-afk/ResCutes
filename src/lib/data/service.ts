@@ -910,13 +910,16 @@ export async function updateMedicalClearance(
       targetStatus === "follow_up_required" ||
       targetStatus === "medically_cleared");
 
+  const existing = await getMedicalClearanceForAnimal(animalId);
+
   if (completingExam && !data.generalCondition?.trim()) {
     return { ok: false, error: "General condition is required to record examination" };
   }
   if (
     targetStatus === "under_treatment" &&
     targetStatus !== currentStatus &&
-    !data.treatmentSummary?.trim()
+    !data.treatmentSummary?.trim() &&
+    !existing?.treatmentSummary?.trim()
   ) {
     return { ok: false, error: "Treatment summary is required for under treatment" };
   }
@@ -928,7 +931,6 @@ export async function updateMedicalClearance(
     return { ok: false, error: "Follow-up date is required" };
   }
 
-  const existing = await getMedicalClearanceForAnimal(animalId);
   const examinationDate =
     data.examinationDate ??
     existing?.examinationDate ??
@@ -941,7 +943,8 @@ export async function updateMedicalClearance(
     medicalPriority:
       (data.medicalPriority as typeof import("@/db/schema").medicalClearances.$inferInsert.medicalPriority) ??
       (existing?.medicalPriority as typeof import("@/db/schema").medicalClearances.$inferInsert.medicalPriority),
-    treatmentSummary: data.treatmentSummary ?? existing?.treatmentSummary,
+    treatmentSummary:
+      data.treatmentSummary?.trim() || existing?.treatmentSummary,
     restrictions: data.restrictions ?? existing?.restrictions,
     followUpDate: data.followUpDate ? new Date(data.followUpDate) : undefined,
     veterinarianNotes: data.veterinarianNotes ?? existing?.veterinarianNotes,

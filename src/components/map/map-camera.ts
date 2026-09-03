@@ -13,6 +13,8 @@ export function flyMapToCenter(
   const targetZoom = zoom ?? currentZoom;
   const zoomDelta = Math.abs(targetZoom - currentZoom);
 
+  // Cancel any in-progress fit/ease so selection focus always wins.
+  map.stop();
   map.flyTo({
     center: [center.longitude, center.latitude],
     zoom: targetZoom,

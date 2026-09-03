@@ -460,14 +460,22 @@ export function MapView({
     const marker = markers.find((item) => item.id === selectedMarkerId);
     if (!marker) return;
 
-    const fly = () => flyMapToCenter(map, marker, selectedMarkerZoom);
+    const fly = () => {
+      // Keep camera correct if a modal/layout shift hits during selection.
+      map.resize();
+      flyMapToCenter(map, marker, selectedMarkerZoom);
+    };
 
     if (map.isStyleLoaded()) {
-      fly();
-      return;
+      // Defer one frame so overlay/modal paint does not cancel the fly.
+      const frame = window.requestAnimationFrame(fly);
+      return () => window.cancelAnimationFrame(frame);
     }
 
     map.once("load", fly);
+    return () => {
+      map.off("load", fly);
+    };
   }, [
     selectedMarkerId,
     flyToSelectedMarker,

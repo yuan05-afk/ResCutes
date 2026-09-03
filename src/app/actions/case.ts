@@ -40,6 +40,10 @@ import {
   isMedicalPriority,
   validateOptionalText,
 } from "@/lib/forms/animal-field-options";
+import {
+  followUpDateBounds,
+  validateIsoDate,
+} from "@/lib/forms/date-validation";
 
 function revalidateCaseViews(
   caseId: string,
@@ -359,8 +363,37 @@ export async function updateMedicalClearanceAction(
     if (err) return { error: err };
   }
 
+  let normalizedFollowUp: string | undefined = data.followUpDate;
+  if (data.clearanceStatus === "follow_up_required" || data.followUpDate) {
+    const bounds = followUpDateBounds();
+    const raw = data.followUpDate?.trim() ?? "";
+    // Prefer calendar day (YYYY-MM-DD). If a full ISO datetime arrives, use UTC
+    // date parts so timezone conversion does not shift the scheduled day.
+    const asDay = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+      ? raw
+      : (() => {
+          const d = new Date(raw);
+          if (Number.isNaN(d.getTime())) return "";
+          const y = d.getUTCFullYear();
+          const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+          const day = String(d.getUTCDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        })();
+    const dateErr = validateIsoDate(asDay, {
+      required: data.clearanceStatus === "follow_up_required",
+      label: "Follow-up date",
+      notBeforeToday: true,
+      min: bounds.min,
+      max: bounds.max,
+    });
+    if (dateErr) return { error: dateErr };
+    // Store noon UTC so the calendar day is stable across timezones.
+    normalizedFollowUp = asDay ? `${asDay}T12:00:00.000Z` : undefined;
+  }
+
   const result = await updateMedicalClearance(animalId, session.user.id, {
     ...data,
+    followUpDate: normalizedFollowUp,
     clearanceStatus: data.clearanceStatus as ClearanceStatus,
   });
 

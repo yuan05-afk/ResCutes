@@ -65,11 +65,17 @@ function fireChange(
 export interface SelectProps
   extends Omit<
     React.SelectHTMLAttributes<HTMLSelectElement>,
-    "onChange" | "value" | "defaultValue"
+    "onChange" | "value" | "defaultValue" | "placeholder"
   > {
   value?: string;
   defaultValue?: string;
   onChange?: React.ChangeEventHandler<HTMLSelectElement>;
+  /**
+   * Closed-state hint when value is empty.
+   * When set, empty `<option value="">` rows are not listed in the open menu
+   * (avoids duplicate “Select…” + selected value rows).
+   */
+  placeholder?: string;
 }
 
 const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
@@ -84,6 +90,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       required,
       id,
       name,
+      placeholder: placeholderProp,
       "aria-label": ariaLabel,
       "aria-labelledby": ariaLabelledBy,
     },
@@ -95,9 +102,23 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
     const currentValue = isControlled ? (value ?? "") : uncontrolled;
 
     const placeholderOption = options.find((option) => option.value === "");
-    const placeholder = placeholderOption?.label ?? "Select...";
+    const placeholder =
+      placeholderProp ?? placeholderOption?.label ?? "Select...";
 
-    if (options.length === 0) return null;
+    // Placeholder-only empty rows (form fields) stay out of the open list.
+    // Filter dropdowns without `placeholder` prop still list "" as a real choice.
+    const listOptions = placeholderProp
+      ? options.filter((option) => option.value !== "")
+      : options;
+
+    if (options.length === 0 && !placeholderProp) return null;
+
+    const rootValue =
+      currentValue === ""
+        ? placeholderProp || !placeholderOption
+          ? undefined
+          : EMPTY_VALUE
+        : currentValue;
 
     return (
       <>
@@ -105,7 +126,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           <input type="hidden" name={name} value={currentValue} readOnly />
         ) : null}
         <SelectPrimitive.Root
-          value={toInternalValue(currentValue)}
+          value={rootValue}
           onValueChange={(next) =>
             fireChange(
               onChange,
@@ -169,7 +190,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
               }}
             >
               <SelectPrimitive.Viewport className="rc-scroll-dropdown min-h-0 flex-1 p-1 pr-0.5">
-                {options.map((option) => (
+                {listOptions.map((option) => (
                   <SelectPrimitive.Item
                     key={option.value || EMPTY_VALUE}
                     value={toInternalValue(option.value)}

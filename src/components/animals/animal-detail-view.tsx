@@ -115,7 +115,8 @@ export function AnimalDetailView({
 }: AnimalDetailViewProps) {
   const displayTitle = animal.name ?? animal.temporaryId;
   const recentNotes = notes.slice(0, 3);
-  const showAside = canEdit || canMedical || canManageProfile;
+  const showAside = canManageProfile;
+  const showMedicalBlock = canMedical || canEdit;
 
   const medicalFields = clearance
     ? (
@@ -143,6 +144,10 @@ export function AnimalDetailView({
           hasMeaningfulValue(clearance.restrictions) && {
             label: "Restrictions",
             value: clearance.restrictions!,
+          },
+          clearance.followUpDate && {
+            label: "Follow-up",
+            value: formatDate(clearance.followUpDate),
           },
         ] as ({ label: string; value: string } | false | undefined | "")[]
       ).filter(Boolean) as { label: string; value: string }[]
@@ -273,43 +278,70 @@ export function AnimalDetailView({
           )}
         </div>
 
-        {canMedical && medicalFields.length > 0 ? (
-          <Section
-            title="Medical summary"
-            action={
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/medical?animal=${animal.id}`}>
-                  <Stethoscope className="mr-1.5 h-3.5 w-3.5" />
-                  Open Medical
-                </Link>
-              </Button>
-            }
-          >
-            <dl className="grid gap-3 sm:grid-cols-2">
-              {medicalFields.map((field) => (
-                <div key={field.label}>
-                  <dt className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
-                    {field.label}
-                  </dt>
-                  <dd className="mt-0.5 text-sm leading-relaxed text-graphite">
-                    {field.value}
-                  </dd>
+        {showMedicalBlock ? (
+          <section className="overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sage/15 bg-evergreen/5 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Stethoscope className="h-4 w-4 text-evergreen" aria-hidden />
+                <div>
+                  <h2 className="text-sm font-semibold text-graphite">
+                    Medical clearance
+                  </h2>
+                  <p className="text-[11px] text-graphite/50">
+                    Exam details on this profile · actions on Medical
+                  </p>
                 </div>
-              ))}
-            </dl>
-          </Section>
-        ) : canEdit || canMedical ? (
-          <Section title="Medical summary">
-            <p className="text-sm text-graphite/60">
-              No exam details recorded yet.
-            </p>
-            <Button className="mt-3" size="sm" asChild>
-              <Link href={`/medical?animal=${animal.id}`}>
-                <Stethoscope className="mr-1.5 h-3.5 w-3.5" />
-                Open Medical Clearance
-              </Link>
-            </Button>
-          </Section>
+              </div>
+              <StatusBadge status={animal.clearanceStatus} size="sm" />
+            </div>
+
+            <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
+              <div className="space-y-3 p-4">
+                {medicalFields.length > 0 ? (
+                  <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {medicalFields.map((field) => (
+                      <div key={field.label}>
+                        <dt className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+                          {field.label}
+                        </dt>
+                        <dd className="mt-0.5 text-sm leading-relaxed text-graphite">
+                          {field.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="text-sm text-graphite/60">
+                    No exam details recorded yet.
+                  </p>
+                )}
+                {hasMeaningfulValue(clearance?.veterinarianNotes) ? (
+                  <div className="rounded-lg border border-sage/15 bg-bone/40 px-3 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+                      Clinical notes
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-graphite/75">
+                      {clearance!.veterinarianNotes}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex flex-col justify-center gap-2.5 border-t border-sage/15 bg-bone/30 p-4 md:border-l md:border-t-0">
+                <p className="text-xs leading-relaxed text-graphite/60">
+                  {canEdit
+                    ? "Update examination, treatment, and clearance on the Medical workspace."
+                    : "Veterinary actions are managed on the Medical page."}
+                </p>
+                <Button size="sm" className="w-full" asChild>
+                  <Link href={`/medical?animal=${animal.id}`}>
+                    <Stethoscope className="mr-1.5 h-3.5 w-3.5" />
+                    {canEdit ? "Open Medical workspace" : "Open Medical"}
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </section>
         ) : null}
 
         {recentNotes.length > 0 ? (
@@ -342,49 +374,21 @@ export function AnimalDetailView({
 
       {showAside ? (
         <aside className="space-y-4 xl:sticky xl:top-3 xl:self-start">
-          {canManageProfile ? (
-            <AnimalProfileEditor
-              animal={{
-                id: animal.id,
-                name: animal.name,
-                temporaryId: animal.temporaryId,
-                species: animal.species,
-                bio: animal.bio,
-                temperament: animal.temperament,
-                pathwayStage: animal.pathwayStage,
-                sex: animal.sex,
-                estimatedAge: animal.estimatedAge,
-                breed: animal.breed,
-                color: animal.color,
-              }}
-            />
-          ) : null}
-
-          {canEdit ? (
-            <div className="rounded-xl border border-sage/25 bg-white p-4 shadow-card">
-              <div className="mb-2 flex items-center gap-2">
-                <Stethoscope className="h-4 w-4 text-evergreen" />
-                <p className="text-sm font-semibold text-graphite">
-                  Medical Clearance
-                </p>
-              </div>
-              <p className="text-xs leading-relaxed text-graphite/60">
-                Veterinary exam, treatment, and clearance decisions live on the
-                Medical page — not on this profile.
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <StatusBadge
-                  status={animal.clearanceStatus}
-                  size="sm"
-                />
-              </div>
-              <Button className="mt-3 w-full" size="sm" asChild>
-                <Link href={`/medical?animal=${animal.id}`}>
-                  Open Medical workspace
-                </Link>
-              </Button>
-            </div>
-          ) : null}
+          <AnimalProfileEditor
+            animal={{
+              id: animal.id,
+              name: animal.name,
+              temporaryId: animal.temporaryId,
+              species: animal.species,
+              bio: animal.bio,
+              temperament: animal.temperament,
+              pathwayStage: animal.pathwayStage,
+              sex: animal.sex,
+              estimatedAge: animal.estimatedAge,
+              breed: animal.breed,
+              color: animal.color,
+            }}
+          />
         </aside>
       ) : null}
     </div>

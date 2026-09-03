@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { SelectWithOtherSplit } from "@/components/ui/select-with-other";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useActionPending } from "@/components/shared/useActionPending";
 import { updateMedicalClearanceAction } from "@/app/actions/case";
 import type { ClearanceStatus } from "@/lib/data/types";
@@ -20,6 +20,10 @@ import {
   splitSelectOther,
   validateSelectOther,
 } from "@/lib/forms/animal-field-options";
+import {
+  followUpDateBounds,
+  validateIsoDate,
+} from "@/lib/forms/date-validation";
 
 const PRIORITIES = MEDICAL_PRIORITY_VALUES;
 
@@ -49,6 +53,11 @@ export function MedicalClearanceForm({
   const isWorkspace = variant === "workspace";
   const isPanel = variant === "panel";
   const showFullFields = variant === "default" || isWorkspace;
+  const followUpBounds = followUpDateBounds();
+  const treatmentInputRef = useRef<HTMLTextAreaElement>(null);
+  const [focusTreatment, setFocusTreatment] = useState(false);
+  const initialFollowUpDate =
+    clearance?.followUpDate?.slice(0, 10) ?? "";
 
   const [showTreatmentFields, setShowTreatmentFields] = useState(
     clearanceStatus === "under_treatment" ||
@@ -58,13 +67,21 @@ export function MedicalClearanceForm({
     clearanceStatus === "follow_up_required" ||
       Boolean(clearance?.followUpDate),
   );
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [dateError, setDateError] = useState<string | null>(null);
+  /** After Schedule follow-up, picking a date submits immediately. */
+  const [autoSubmitOnPick, setAutoSubmitOnPick] = useState(false);
+  /** Saved follow-up day; Confirm stays disabled until the user picks a different day. */
+  const [baselineFollowUpDate, setBaselineFollowUpDate] =
+    useState(initialFollowUpDate);
+
   const [form, setForm] = useState({
     generalCondition: clearance?.generalCondition ?? "",
     medicalPriority: clearance?.medicalPriority ?? "routine",
     treatmentSummary: clearance?.treatmentSummary ?? "",
     restrictions: clearance?.restrictions ?? "",
     veterinarianNotes: clearance?.veterinarianNotes ?? "",
-    followUpDate: clearance?.followUpDate?.split("T")[0] ?? "",
+    followUpDate: initialFollowUpDate,
   });
   const conditionInit = splitSelectOther(
     clearance?.generalCondition,
@@ -75,40 +92,64 @@ export function MedicalClearanceForm({
   );
   const [conditionOther, setConditionOther] = useState(conditionInit.other);
 
-  const isExamPhase =
-    clearanceStatus === "awaiting_examination" ||
-    clearanceStatus === "under_examination";
+  useEffect(() => {
+    if (!focusTreatment || !showTreatmentFields) return;
+    treatmentInputRef.current?.focus();
+    setFocusTreatment(false);
+  }, [focusTreatment, showTreatmentFields]);
 
-  async function submitStatus(targetStatus: ClearanceStatus) {
-    if (
-      targetStatus === "under_treatment" &&
-      !showTreatmentFields &&
-      isExamPhase
-    ) {
-      setShowTreatmentFields(true);
-      setError("Add treatment details below, then submit again.");
-      return;
-    }
+  function openTreatmentPlanner() {
+    setShowTreatmentFields(true);
+    setFocusTreatment(true);
+    setError(null);
+  }
 
-    if (targetStatus === "follow_up_required" && !showFollowUpFields) {
-      setShowFollowUpFields(true);
-      setError("Set a follow-up date below, then submit again.");
-      return;
-    }
+  const followUpDirty =
+    Boolean(form.followUpDate) &&
+    form.followUpDate !== baselineFollowUpDate;
 
-    if (
-      targetStatus === "under_treatment" &&
-      !form.treatmentSummary.trim()
-    ) {
-      setShowTreatmentFields(true);
+  async function submitStatus(
+    targetStatus: ClearanceStatus,
+    followUpOverride?: string,
+  ) {
+    const followUpDate = followUpOverride ?? form.followUpDate;
+
+    // Same pattern as Schedule follow-up: reveal fields first, warn only on
+    // a second attempt while the treatment plan is still empty.
+    if (targetStatus === "under_treatment" && !form.treatmentSummary.trim()) {
+      if (!showTreatmentFields) {
+        openTreatmentPlanner();
+        return;
+      }
       setError("Treatment summary is required before starting treatment.");
       return;
     }
 
-    if (targetStatus === "follow_up_required" && !form.followUpDate) {
-      setShowFollowUpFields(true);
-      setError("Follow-up date is required.");
-      return;
+    if (targetStatus === "follow_up_required") {
+      const dateErr = validateIsoDate(followUpDate, {
+        required: true,
+        label: "Follow-up date",
+        notBeforeToday: true,
+        min: followUpBounds.min,
+        max: followUpBounds.max,
+      });
+      if (dateErr) {
+        setShowFollowUpFields(true);
+        setCalendarOpen(true);
+        setDateError(dateErr);
+        setError(null);
+        return;
+      }
+      // Already scheduled for this day — do not re-save or rewrite the date.
+      if (
+        clearanceStatus === "follow_up_required" &&
+        followUpDate === baselineFollowUpDate
+      ) {
+        setDateError(null);
+        setError(null);
+        return;
+      }
+      setDateError(null);
     }
 
     if (
@@ -132,7 +173,7 @@ export function MedicalClearanceForm({
     }
     const generalCondition =
       resolveSelectOther(conditionChoice, conditionOther) ?? "";
-    const payload = { ...form, generalCondition };
+    const payload = { ...form, generalCondition, followUpDate };
 
     await run(
       () =>
@@ -141,9 +182,11 @@ export function MedicalClearanceForm({
           medicalPriority: payload.medicalPriority,
           treatmentSummary: payload.treatmentSummary,
           restrictions: payload.restrictions,
-          followUpDate: payload.followUpDate
-            ? new Date(payload.followUpDate).toISOString()
-            : undefined,
+          // Pass calendar day only — avoids timezone shifting to another day.
+          followUpDate:
+            targetStatus === "follow_up_required" || followUpDate
+              ? followUpDate || undefined
+              : undefined,
           clearanceStatus: targetStatus,
           veterinarianNotes: payload.veterinarianNotes,
         }),
@@ -155,13 +198,39 @@ export function MedicalClearanceForm({
           "/dashboard",
           "/adoption",
         ],
+        onSuccess: () => {
+          if (targetStatus === "follow_up_required" && followUpDate) {
+            setBaselineFollowUpDate(followUpDate);
+            setForm((prev) => ({ ...prev, followUpDate }));
+            setAutoSubmitOnPick(false);
+          }
+        },
       },
     );
   }
 
-  function handleScheduleFollowUp() {
+  function openFollowUpScheduler() {
+    setAutoSubmitOnPick(true);
     setShowFollowUpFields(true);
-    void submitStatus("follow_up_required");
+    setError(null);
+    setDateError(null);
+    setCalendarOpen(true);
+  }
+
+  function handleFollowUpDateChange(iso: string) {
+    setForm((prev) => ({ ...prev, followUpDate: iso }));
+    const err = validateIsoDate(iso, {
+      required: true,
+      label: "Follow-up date",
+      notBeforeToday: true,
+      min: followUpBounds.min,
+      max: followUpBounds.max,
+    });
+    setDateError(err);
+    if (!err && iso && autoSubmitOnPick) {
+      setAutoSubmitOnPick(false);
+      void submitStatus("follow_up_required", iso);
+    }
   }
 
   const actionButtons = (
@@ -183,9 +252,19 @@ export function MedicalClearanceForm({
             className="w-full"
             variant="outline"
             size="sm"
-            onClick={() => void submitStatus("under_treatment")}
+            onClick={() => {
+              if (!form.treatmentSummary.trim() && !showTreatmentFields) {
+                openTreatmentPlanner();
+                return;
+              }
+              void submitStatus("under_treatment");
+            }}
           >
-            {loading ? "Saving..." : "Needs treatment"}
+            {loading
+              ? "Saving..."
+              : showTreatmentFields && !form.treatmentSummary.trim()
+                ? "Confirm treatment"
+                : "Needs treatment"}
           </Button>
           <Button
             type="button"
@@ -193,7 +272,7 @@ export function MedicalClearanceForm({
             className="w-full"
             variant="secondary"
             size="sm"
-            onClick={() => void submitStatus("follow_up_required")}
+            onClick={openFollowUpScheduler}
           >
             {loading ? "Saving..." : "Schedule follow-up"}
           </Button>
@@ -207,9 +286,19 @@ export function MedicalClearanceForm({
             disabled={loading}
             className="w-full"
             size="sm"
-            onClick={() => void submitStatus("under_treatment")}
+            onClick={() => {
+              if (!form.treatmentSummary.trim() && !showTreatmentFields) {
+                openTreatmentPlanner();
+                return;
+              }
+              void submitStatus("under_treatment");
+            }}
           >
-            {loading ? "Saving..." : "Needs treatment"}
+            {loading
+              ? "Saving..."
+              : showTreatmentFields && !form.treatmentSummary.trim()
+                ? "Confirm treatment"
+                : "Needs treatment"}
           </Button>
           <Button
             type="button"
@@ -217,7 +306,7 @@ export function MedicalClearanceForm({
             className="w-full"
             variant="secondary"
             size="sm"
-            onClick={() => void submitStatus("follow_up_required")}
+            onClick={openFollowUpScheduler}
           >
             {loading ? "Saving..." : "Schedule follow-up"}
           </Button>
@@ -242,7 +331,7 @@ export function MedicalClearanceForm({
             className="w-full"
             variant="secondary"
             size="sm"
-            onClick={handleScheduleFollowUp}
+            onClick={openFollowUpScheduler}
           >
             {loading ? "Saving..." : "Schedule follow-up"}
           </Button>
@@ -266,9 +355,19 @@ export function MedicalClearanceForm({
             className="w-full"
             variant="outline"
             size="sm"
-            onClick={() => void submitStatus("under_treatment")}
+            onClick={() => {
+              if (!form.treatmentSummary.trim() && !showTreatmentFields) {
+                openTreatmentPlanner();
+                return;
+              }
+              void submitStatus("under_treatment");
+            }}
           >
-            {loading ? "Saving..." : "Resume treatment"}
+            {loading
+              ? "Saving..."
+              : showTreatmentFields && !form.treatmentSummary.trim()
+                ? "Confirm treatment"
+                : "Resume treatment"}
           </Button>
           <Button
             type="button"
@@ -334,6 +433,7 @@ export function MedicalClearanceForm({
               Treatment plan
             </Label>
             <Textarea
+              ref={treatmentInputRef}
               value={form.treatmentSummary}
               onChange={(e) =>
                 setForm({ ...form, treatmentSummary: e.target.value })
@@ -342,6 +442,12 @@ export function MedicalClearanceForm({
               rows={isPanel ? 2 : 3}
               className={cn(isPanel && "min-h-0 resize-none text-sm")}
             />
+            {!form.treatmentSummary.trim() ? (
+              <p className="text-[11px] text-graphite/50">
+                Add the treatment plan, then confirm to move this animal under
+                treatment.
+              </p>
+            ) : null}
           </div>
           {showFullFields ? (
             <div className="space-y-1">
@@ -361,14 +467,38 @@ export function MedicalClearanceForm({
       ) : null}
 
       {showFollowUpFields ? (
-        <div className="space-y-1">
-          <Label className={isPanel ? "text-xs" : undefined}>Follow-up date</Label>
-          <Input
-            type="date"
+        <div className="space-y-1.5 rounded-lg border border-sage/25 bg-bone/40 p-2.5">
+          <DatePicker
+            id="medical-follow-up-date"
+            label="Follow-up date"
             value={form.followUpDate}
-            onChange={(e) => setForm({ ...form, followUpDate: e.target.value })}
-            className={isPanel ? "h-9 text-sm" : undefined}
+            onChange={handleFollowUpDateChange}
+            open={calendarOpen}
+            onOpenChange={setCalendarOpen}
+            notBeforeToday
+            min={followUpBounds.min}
+            max={followUpBounds.max}
+            required
+            disabled={loading}
+            placeholder="Pick follow-up day"
+            error={dateError}
           />
+          <p className="text-[11px] text-graphite/50">
+            {baselineFollowUpDate
+              ? "Change the day above to reschedule. Confirm stays off until the date changes."
+              : "Choose a day from today through the next 12 months. Selecting a day schedules the follow-up."}
+          </p>
+          {followUpDirty && !autoSubmitOnPick ? (
+            <Button
+              type="button"
+              size="sm"
+              className="w-full"
+              disabled={loading || Boolean(dateError)}
+              onClick={() => void submitStatus("follow_up_required")}
+            >
+              {loading ? "Saving..." : "Confirm follow-up"}
+            </Button>
+          ) : null}
         </div>
       ) : null}
 

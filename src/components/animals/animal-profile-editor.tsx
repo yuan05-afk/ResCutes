@@ -26,6 +26,7 @@ import {
   COAT_COLOR_OPTIONS,
   PATHWAY_STAGE_OPTIONS,
   TEMPERAMENT_PILL_OPTIONS,
+  OTHER_VALUE,
   breedOptionsForSpecies,
   isPathwayStage,
   resolveSelectOther,
@@ -77,14 +78,23 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
 
   const initialPills = temperamentToPills(animal.temperament ?? "");
   const knownPillValues = new Set(
-    TEMPERAMENT_PILL_OPTIONS.map((o) => o.value.toLowerCase()),
+    TEMPERAMENT_PILL_OPTIONS.filter((o) => o.value !== OTHER_VALUE).map((o) =>
+      o.value.toLowerCase(),
+    ),
   );
+  const initialKnown = initialPills.filter((p) =>
+    knownPillValues.has(p.toLowerCase()),
+  );
+  const initialOtherNote = initialPills
+    .filter((p) => !knownPillValues.has(p.toLowerCase()))
+    .join(", ");
   const [temperamentPills, setTemperamentPills] = useState(
-    initialPills.filter((p) => knownPillValues.has(p.toLowerCase())),
+    initialOtherNote
+      ? [...initialKnown, OTHER_VALUE]
+      : initialKnown,
   );
-  const [temperamentNote, setTemperamentNote] = useState(
-    initialPills.filter((p) => !knownPillValues.has(p.toLowerCase())).join(", "),
-  );
+  const [temperamentNote, setTemperamentNote] = useState(initialOtherNote);
+  const showTemperamentOther = temperamentPills.includes(OTHER_VALUE);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -103,10 +113,18 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
     if (nameErr) next.name = nameErr;
     const bioErr = validateOptionalText("Bio", bio, { maxLen: 2000 });
     if (bioErr) next.bio = bioErr;
-    const noteErr = validateOptionalText("Temperament note", temperamentNote, {
-      maxLen: 240,
-    });
-    if (noteErr) next.temperament = noteErr;
+    if (showTemperamentOther) {
+      if (!temperamentNote.trim()) {
+        next.temperament = "Describe the other temperament.";
+      } else {
+        const noteErr = validateOptionalText(
+          "Other temperament",
+          temperamentNote,
+          { minLen: 2, maxLen: 240 },
+        );
+        if (noteErr) next.temperament = noteErr;
+      }
+    }
     if (!isPathwayStage(pathwayStage)) {
       next.pathway = "Select a valid pathway stage.";
     }
@@ -126,7 +144,10 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
     const breed = resolveSelectOther(breedChoice, breedOther);
     const color = resolveSelectOther(colorChoice, colorOther);
     const temperament =
-      pillsToTemperament(temperamentPills, temperamentNote) || null;
+      pillsToTemperament(
+        temperamentPills.filter((p) => p !== OTHER_VALUE),
+        showTemperamentOther ? temperamentNote : undefined,
+      ) || null;
 
     await run(
       () =>
@@ -260,18 +281,33 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
         <OptionPills
           options={TEMPERAMENT_PILL_OPTIONS}
           value={temperamentPills}
-          onChange={setTemperamentPills}
+          onChange={(next) => {
+            const wasOther = temperamentPills.includes(OTHER_VALUE);
+            const isOther = next.includes(OTHER_VALUE);
+            setTemperamentPills(next);
+            if (wasOther && !isOther) {
+              setTemperamentNote("");
+              setFieldErrors((prev) => {
+                if (!prev.temperament) return prev;
+                const { temperament: _, ...rest } = prev;
+                return rest;
+              });
+            }
+          }}
           disabled={pending}
         />
-        <Textarea
-          id="animal-temperament-note"
-          rows={2}
-          value={temperamentNote}
-          onChange={(e) => setTemperamentNote(e.target.value)}
-          className="resize-none text-sm"
-          placeholder="Optional extra notes (not covered by pills)"
-          maxLength={240}
-        />
+        {showTemperamentOther ? (
+          <Textarea
+            id="animal-temperament-note"
+            rows={2}
+            value={temperamentNote}
+            onChange={(e) => setTemperamentNote(e.target.value)}
+            className="resize-none text-sm"
+            placeholder="Describe other temperament…"
+            maxLength={240}
+            autoFocus
+          />
+        ) : null}
         {fieldErrors.temperament ? (
           <p className="text-[11px] text-rescue">{fieldErrors.temperament}</p>
         ) : null}

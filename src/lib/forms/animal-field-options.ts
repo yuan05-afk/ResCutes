@@ -93,6 +93,7 @@ export const TEMPERAMENT_PILL_OPTIONS: FieldOption[] = [
   { value: "Anxious", label: "Anxious" },
   { value: "Food-motivated", label: "Food-motivated" },
   { value: "Reserved at first", label: "Reserved" },
+  { value: OTHER_VALUE, label: "Other…" },
 ];
 
 export const PATHWAY_STAGE_OPTIONS: FieldOption[] = [

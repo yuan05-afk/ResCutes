@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AttentionQueueItem } from "@/components/dashboard/attention-queue-item";
 import { CaseDetailModal } from "@/components/admin/CaseDetailModal";
 import { DashboardMapClient } from "@/app/(dashboard)/dashboard/dashboard-map";
@@ -12,6 +12,9 @@ interface QueueItem {
   id: string;
   caseNumber: string;
   species: string;
+  status: string;
+  latitude: number;
+  longitude: number;
   urgencyLevel: string;
   urgencyScore: number;
   description: string;
@@ -36,6 +39,48 @@ interface DashboardInteractiveSectionsProps {
   className?: string;
 }
 
+function mergeMapCases(
+  base: MapCaseItem[],
+  criticalCases: QueueItem[],
+  waitingForRescuer: RescueCaseRecord[],
+): MapCaseItem[] {
+  const byId = new Map(base.map((item) => [item.id, item]));
+
+  for (const item of criticalCases) {
+    if (byId.has(item.id)) continue;
+    if (!Number.isFinite(item.latitude) || !Number.isFinite(item.longitude)) {
+      continue;
+    }
+    byId.set(item.id, {
+      id: item.id,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      caseNumber: item.caseNumber,
+      species: item.species,
+      status: item.status,
+      urgencyLevel: item.urgencyLevel,
+    });
+  }
+
+  for (const item of waitingForRescuer) {
+    if (byId.has(item.id)) continue;
+    if (!Number.isFinite(item.latitude) || !Number.isFinite(item.longitude)) {
+      continue;
+    }
+    byId.set(item.id, {
+      id: item.id,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      caseNumber: item.caseNumber,
+      species: item.species,
+      status: item.status,
+      urgencyLevel: resolveCurrentUrgency(item).level,
+    });
+  }
+
+  return [...byId.values()];
+}
+
 export function DashboardInteractiveSections({
   mapCases,
   criticalCases,
@@ -44,6 +89,11 @@ export function DashboardInteractiveSections({
 }: DashboardInteractiveSectionsProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [panel, setPanel] = useState<"queue" | "waiting">("queue");
+
+  const mapPins = useMemo(
+    () => mergeMapCases(mapCases, criticalCases, waitingForRescuer),
+    [mapCases, criticalCases, waitingForRescuer],
+  );
 
   return (
     <>
@@ -59,17 +109,17 @@ export function DashboardInteractiveSections({
               Live Rescue Activity
             </h2>
             <span className="text-xs text-graphite/45">
-              {mapCases.length} active pins
+              {mapPins.length} active pins
             </span>
           </div>
           <div className="relative min-h-0 flex-1 p-2">
             <DashboardMapClient
-              cases={mapCases}
+              cases={mapPins}
               onMarkerClick={(id) => setOpenId(id)}
               selectedMarkerId={openId ?? undefined}
               className="h-full min-h-[200px]"
             />
-            {mapCases.length === 0 ? (
+            {mapPins.length === 0 ? (
               <div className="pointer-events-none absolute inset-2 flex items-center justify-center rounded-lg bg-bone/70 backdrop-blur-[1px]">
                 <p className="max-w-[16rem] text-center text-sm text-graphite/60">
                   No active rescue pins yet. New verified cases will appear here.

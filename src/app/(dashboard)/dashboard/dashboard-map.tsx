@@ -51,6 +51,8 @@ export function DashboardMapClient({
       onMarkerClick={onMarkerClick}
       selectedMarkerId={selectedMarkerId}
       fitVisibleMarkers
+      flyToSelectedMarker
+      selectedMarkerZoom={14}
       center={
         cases.length > 0
           ? { latitude: cases[0].latitude, longitude: cases[0].longitude }
