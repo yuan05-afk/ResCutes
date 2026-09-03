@@ -18,8 +18,8 @@ export const ANIMAL_SEX_OPTIONS: FieldOption[] = [
 
 export const ANIMAL_AGE_OPTIONS: FieldOption[] = [
   { value: "unknown", label: "Unknown" },
-  { value: "neonate", label: "Neonate (< 8 weeks)" },
-  { value: "kitten", label: "Kitten / puppy (juvenile)" },
+  { value: "neonate", label: "Neonate (<8 wk)" },
+  { value: "kitten", label: "Kitten / puppy" },
   { value: "juvenile", label: "Juvenile" },
   { value: "young_adult", label: "Young adult" },
   { value: "adult", label: "Adult" },
@@ -29,29 +29,29 @@ export const ANIMAL_AGE_OPTIONS: FieldOption[] = [
 
 /** Common Philippine shelter dog breeds + mixes. */
 export const DOG_BREED_OPTIONS: FieldOption[] = [
-  { value: "Aspin", label: "Aspin (Philippine native)" },
+  { value: "Aspin", label: "Aspin" },
   { value: "Aspin mix", label: "Aspin mix" },
   { value: "Mix", label: "Mixed breed" },
   { value: "Shih-tzu mix", label: "Shih Tzu mix" },
-  { value: "Labrador Retriever", label: "Labrador Retriever" },
+  { value: "Labrador Retriever", label: "Labrador" },
   { value: "German Shepherd", label: "German Shepherd" },
   { value: "Poodle", label: "Poodle" },
   { value: "Beagle", label: "Beagle" },
   { value: "Chihuahua", label: "Chihuahua" },
   { value: "Husky", label: "Husky" },
-  { value: "Belgian Malinois", label: "Belgian Malinois" },
+  { value: "Belgian Malinois", label: "Malinois" },
   { value: "Rottweiler", label: "Rottweiler" },
   { value: OTHER_VALUE, label: "Other…" },
 ];
 
 /** Common Philippine shelter cat types. */
 export const CAT_BREED_OPTIONS: FieldOption[] = [
-  { value: "Domestic shorthair", label: "Domestic shorthair (Puspin)" },
-  { value: "Domestic longhair", label: "Domestic longhair" },
+  { value: "Domestic shorthair", label: "Shorthair (Puspin)" },
+  { value: "Domestic longhair", label: "Longhair" },
   { value: "Mix", label: "Mixed / unknown" },
   { value: "Siamese", label: "Siamese" },
   { value: "Persian", label: "Persian" },
-  { value: "British Shorthair", label: "British Shorthair" },
+  { value: "British Shorthair", label: "British SH" },
   { value: OTHER_VALUE, label: "Other…" },
 ];
 
@@ -74,7 +74,7 @@ export const COAT_COLOR_OPTIONS: FieldOption[] = [
   { value: "gray tabby", label: "Gray tabby" },
   { value: "calico", label: "Calico" },
   { value: "tri-color", label: "Tri-color" },
-  { value: "black with white chest", label: "Black with white markings" },
+  { value: "black with white chest", label: "Black & white" },
   { value: "white-brown", label: "White & brown" },
   { value: "golden brown", label: "Golden brown" },
   { value: OTHER_VALUE, label: "Other…" },
@@ -87,20 +87,20 @@ export const TEMPERAMENT_PILL_OPTIONS: FieldOption[] = [
   { value: "Playful", label: "Playful" },
   { value: "Independent", label: "Independent" },
   { value: "People-oriented", label: "People-oriented" },
-  { value: "Soft with children", label: "Soft with children" },
+  { value: "Soft with children", label: "Kids-friendly" },
   { value: "Good with dogs", label: "Good with dogs" },
   { value: "Good with cats", label: "Good with cats" },
   { value: "Anxious", label: "Anxious" },
   { value: "Food-motivated", label: "Food-motivated" },
-  { value: "Reserved at first", label: "Reserved at first" },
+  { value: "Reserved at first", label: "Reserved" },
 ];
 
 export const PATHWAY_STAGE_OPTIONS: FieldOption[] = [
   { value: "intake", label: "Intake" },
-  { value: "medical_clearance", label: "Medical clearance" },
-  { value: "behavior_assessment", label: "Behavior assessment" },
-  { value: "ready_for_foster", label: "Ready for foster" },
-  { value: "ready_for_adoption", label: "Ready for adoption" },
+  { value: "medical_clearance", label: "Medical" },
+  { value: "behavior_assessment", label: "Behavior" },
+  { value: "ready_for_foster", label: "Foster ready" },
+  { value: "ready_for_adoption", label: "Adoption ready" },
   { value: "long_stay", label: "Long stay" },
   { value: "transferred", label: "Transferred" },
 ];
@@ -109,7 +109,7 @@ export const HOME_TYPE_OPTIONS: FieldOption[] = [
   { value: "house", label: "House" },
   { value: "apartment", label: "Apartment" },
   { value: "condo", label: "Condo" },
-  { value: "boarding_house", label: "Boarding house" },
+  { value: "boarding_house", label: "Boarding" },
   { value: OTHER_VALUE, label: "Other…" },
 ];
 
@@ -119,20 +119,20 @@ export const DEPARTMENT_OPTIONS: FieldOption[] = [
   { value: "Veterinary", label: "Veterinary" },
   { value: "Operations", label: "Operations" },
   { value: "Adoption", label: "Adoption" },
-  { value: "Field Rescue", label: "Field Rescue" },
-  { value: "Administration", label: "Administration" },
+  { value: "Field Rescue", label: "Field rescue" },
+  { value: "Administration", label: "Admin" },
   { value: OTHER_VALUE, label: "Other…" },
 ];
 
 export const GENERAL_CONDITION_OPTIONS: FieldOption[] = [
-  { value: "Stable and fit for placement", label: "Stable / fit for placement" },
-  { value: "Responding to treatment", label: "Responding to treatment" },
+  { value: "Stable and fit for placement", label: "Stable / placeable" },
+  { value: "Responding to treatment", label: "Responding" },
   { value: "Needs scheduled follow-up", label: "Needs follow-up" },
-  { value: "Pending full assessment", label: "Pending full assessment" },
+  { value: "Pending full assessment", label: "Pending assess" },
   { value: "Underweight", label: "Underweight" },
   { value: "Dehydrated", label: "Dehydrated" },
   { value: "Lethargic", label: "Lethargic" },
-  { value: "Injured / wound present", label: "Injured / wound present" },
+  { value: "Injured / wound present", label: "Injured / wound" },
   { value: "Lameness", label: "Lameness" },
   { value: "Skin condition", label: "Skin condition" },
   { value: OTHER_VALUE, label: "Other…" },

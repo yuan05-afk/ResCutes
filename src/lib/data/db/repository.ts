@@ -627,6 +627,43 @@ export async function fetchMedicalClearanceForAnimal(
   };
 }
 
+export async function fetchAllMedicalClearances(): Promise<
+  MedicalClearanceRecord[]
+> {
+  const db = getDb();
+  const rows = await db.select().from(medicalClearances);
+  if (rows.length === 0) return [];
+
+  const vetIds = [
+    ...new Set(rows.map((r) => r.veterinarianId).filter(Boolean)),
+  ] as string[];
+  const vetRows =
+    vetIds.length > 0
+      ? await db
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(inArray(users.id, vetIds))
+      : [];
+  const vetNameById = new Map(vetRows.map((v) => [v.id, v.name]));
+
+  return rows.map((row) => ({
+    id: row.id,
+    animalId: row.animalId,
+    veterinarianId: row.veterinarianId ?? undefined,
+    veterinarianName: row.veterinarianId
+      ? vetNameById.get(row.veterinarianId)
+      : undefined,
+    examinationDate: toIso(row.examinationDate),
+    generalCondition: row.generalCondition ?? undefined,
+    medicalPriority: row.medicalPriority ?? undefined,
+    treatmentSummary: row.treatmentSummary ?? undefined,
+    restrictions: row.restrictions ?? undefined,
+    followUpDate: toIso(row.followUpDate),
+    clearanceStatus: row.clearanceStatus,
+    veterinarianNotes: row.veterinarianNotes ?? undefined,
+  }));
+}
+
 export async function fetchNotesForAnimal(
   animalId: string,
 ): Promise<AnimalNoteRecord[]> {

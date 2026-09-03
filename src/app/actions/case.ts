@@ -368,6 +368,7 @@ export async function updateMedicalClearanceAction(
 
   revalidatePath("/dashboard");
   revalidatePath("/animals");
+  revalidatePath("/medical");
   revalidatePath(`/animals/${animalId}`);
   return { success: true };
 }

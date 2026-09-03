@@ -149,7 +149,7 @@ export default async function DashboardPage() {
           value={metrics.awaitingMedical}
           icon="stethoscope"
           accent="ochre"
-          href="/animals"
+          href="/medical"
           hrefLabel="View animals"
           detail={`${metrics.underTreatment} currently in treatment`}
         >

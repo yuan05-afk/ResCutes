@@ -4,9 +4,17 @@ import { useMemo, useState } from "react";
 import { ModalTabs } from "@/components/admin/AdminModal";
 import { AdoptionAnimalCard } from "@/components/adoption/adoption-animal-card";
 import { AdoptionApplicationForm } from "@/components/adoption/adoption-application-form";
-import { AdoptionReviewActions } from "@/components/adoption/adoption-review-actions";
+import { AdoptionApplicationDetailModal } from "@/components/adoption/adoption-application-detail-modal";
+import { AnimalImage } from "@/components/ui/animal-image";
 import { StatusBadge } from "@/components/status/status-badge";
 import { ToastViewport } from "@/components/ui/toast";
+import {
+  ClickableRow,
+  stopRowClick,
+  tableTdClass,
+  tableThClass,
+} from "@/components/admin/ClickableTable";
+import { getCasePhotoUrl } from "@/lib/demo-images";
 import { formatDateTime, formatStatus } from "@/lib/utils";
 import type {
   AdoptionApplicationRecord,
@@ -28,6 +36,7 @@ export function AdoptionWorkspace({
 }: AdoptionWorkspaceProps) {
   const [tab, setTab] = useState<TabId>("animals");
   const [applyAnimal, setApplyAnimal] = useState<AnimalRecord | null>(null);
+  const [openAppId, setOpenAppId] = useState<string | null>(null);
 
   const pendingCount = useMemo(
     () =>
@@ -36,6 +45,9 @@ export function AdoptionWorkspace({
       ).length,
     [applications],
   );
+
+  const openApplication =
+    applications.find((a) => a.id === openAppId) ?? null;
 
   return (
     <>
@@ -75,77 +87,103 @@ export function AdoptionWorkspace({
           </div>
         ) : (
           <div className="flex flex-col overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card lg:min-h-0 lg:flex-1">
+            <div className="shrink-0 border-b border-sage/20 bg-bone/40 px-4 py-2.5 text-xs text-graphite/55">
+              {applications.length} application
+              {applications.length !== 1 ? "s" : ""} · click a row for full
+              details
+            </div>
             <div className="rc-scroll overflow-x-auto lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-              <table className="w-full min-w-[720px] text-sm">
-                <thead className="sticky top-0 z-10 bg-bone/95 backdrop-blur-sm">
-                  <tr className="border-b border-sage/20 text-left text-[10px] font-semibold uppercase tracking-wide text-graphite/50">
-                    <th className="px-4 py-2.5">Applicant</th>
-                    <th className="px-4 py-2.5">Animal</th>
-                    <th className="px-4 py-2.5">Home</th>
-                    <th className="px-4 py-2.5">Submitted</th>
-                    <th className="px-4 py-2.5">Status</th>
-                    {canManage ? <th className="px-4 py-2.5">Review</th> : null}
+              <table className="w-full min-w-[860px] text-sm">
+                <thead className="sticky top-0 z-10 bg-white">
+                  <tr className="border-b border-sage/20 text-left">
+                    <th className={tableThClass}>Applicant</th>
+                    <th className={tableThClass}>Animal</th>
+                    <th className={tableThClass}>Motivation</th>
+                    <th className={tableThClass}>Home</th>
+                    <th className={tableThClass}>Submitted</th>
+                    <th className={tableThClass}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {applications.map((app) => (
-                    <tr
-                      key={app.id}
-                      className="border-b border-sage/10 align-top last:border-0"
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-graphite">
-                          {app.applicantName}
-                        </p>
-                        <p className="text-[11px] text-graphite/50">
-                          {app.applicantEmail}
-                        </p>
-                        {app.applicantPhone ? (
-                          <p className="text-[11px] text-graphite/45">
-                            {app.applicantPhone}
+                  {applications.map((app) => {
+                    const animalLabel =
+                      app.animalName ?? app.animalTemporaryId ?? "Animal";
+                    const img = getCasePhotoUrl(
+                      app.animalSpecies ?? "other",
+                      app.animalPhotoUrl,
+                    );
+                    return (
+                      <ClickableRow
+                        key={app.id}
+                        onOpen={() => setOpenAppId(app.id)}
+                      >
+                        <td className={tableTdClass}>
+                          <p className="font-semibold text-graphite">
+                            {app.applicantName}
                           </p>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-graphite">
-                          {app.animalName ?? app.animalTemporaryId ?? "Animal"}
-                        </p>
-                        <p className="text-[11px] capitalize text-graphite/50">
-                          {app.animalSpecies
-                            ? formatStatus(app.animalSpecies)
-                            : "—"}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-graphite/70">
-                        <p className="capitalize">{app.homeType}</p>
-                        <p className="text-[11px] text-graphite/45">
-                          {app.householdSize} in home
-                          {app.hasYard ? " · yard" : ""}
-                          {app.hasOtherPets ? " · other pets" : ""}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-graphite/65">
-                        {formatDateTime(app.submittedAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={app.status} />
-                      </td>
-                      {canManage ? (
-                        <td className="px-4 py-3">
-                          <AdoptionReviewActions
-                            applicationId={app.id}
-                            applicantName={app.applicantName}
-                            animalLabel={
-                              app.animalName ??
-                              app.animalTemporaryId ??
-                              "this animal"
-                            }
-                            status={app.status}
-                          />
+                          <p className="truncate text-[11px] text-graphite/50">
+                            {app.applicantEmail}
+                          </p>
+                          {app.applicantPhone ? (
+                            <p className="text-[11px] text-graphite/45">
+                              {app.applicantPhone}
+                            </p>
+                          ) : null}
                         </td>
-                      ) : null}
-                    </tr>
-                  ))}
+                        <td
+                          className={tableTdClass}
+                          onClick={stopRowClick}
+                          onKeyDown={stopRowClick}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <AnimalImage
+                              src={img}
+                              species={app.animalSpecies ?? "other"}
+                              alt={animalLabel}
+                              containerClassName="h-9 w-9 shrink-0 rounded-lg"
+                              sizes="36px"
+                              objectPosition="center top"
+                              expandable
+                              lightboxCaption={animalLabel}
+                              showExpandHint={false}
+                            />
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-graphite">
+                                {animalLabel}
+                              </p>
+                              <p className="text-[11px] capitalize text-graphite/50">
+                                {app.animalSpecies
+                                  ? formatStatus(app.animalSpecies)
+                                  : "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className={`${tableTdClass} text-graphite/65`}>
+                          <p className="line-clamp-2 max-w-[16rem] text-xs leading-relaxed">
+                            {app.motivation?.trim() ||
+                              "No motivation provided."}
+                          </p>
+                        </td>
+                        <td className={`${tableTdClass} text-graphite/70`}>
+                          <p className="capitalize">
+                            {formatStatus(app.homeType)}
+                          </p>
+                          <p className="text-[11px] text-graphite/45">
+                            {app.householdSize} in home
+                            {app.hasYard ? " · yard" : ""}
+                            {app.hasOtherPets ? " · pets" : ""}
+                          </p>
+                        </td>
+                        <td className={`${tableTdClass} text-graphite/65`}>
+                          {formatDateTime(app.submittedAt)}
+                        </td>
+                        <td className={tableTdClass}>
+                          <StatusBadge status={app.status} />
+                        </td>
+                      </ClickableRow>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -157,6 +195,11 @@ export function AdoptionWorkspace({
         open={Boolean(applyAnimal)}
         animal={applyAnimal}
         onClose={() => setApplyAnimal(null)}
+      />
+      <AdoptionApplicationDetailModal
+        application={openApplication}
+        canManage={canManage}
+        onClose={() => setOpenAppId(null)}
       />
       <ToastViewport />
     </>

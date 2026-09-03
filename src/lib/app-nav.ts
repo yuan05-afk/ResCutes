@@ -3,6 +3,7 @@ export const DASHBOARD_PREFETCH_RANK: { href: string; weight: number }[] = [
   { href: "/dashboard", weight: 10 },
   { href: "/rescue-cases", weight: 9 },
   { href: "/animals", weight: 7 },
+  { href: "/medical", weight: 7 },
   { href: "/adoption", weight: 6 },
   { href: "/shelters", weight: 5 },
   { href: "/settings", weight: 3 },

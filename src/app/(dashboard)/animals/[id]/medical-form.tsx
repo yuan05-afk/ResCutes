@@ -36,7 +36,7 @@ interface MedicalClearanceFormProps {
     clearanceStatus: string;
     veterinarianNotes?: string;
   };
-  variant?: "default" | "panel";
+  variant?: "default" | "panel" | "workspace";
 }
 
 export function MedicalClearanceForm({
@@ -46,12 +46,17 @@ export function MedicalClearanceForm({
   variant = "default",
 }: MedicalClearanceFormProps) {
   const { pending: loading, error, setError, run } = useActionPending();
+  const isWorkspace = variant === "workspace";
+  const isPanel = variant === "panel";
+  const showFullFields = variant === "default" || isWorkspace;
+
   const [showTreatmentFields, setShowTreatmentFields] = useState(
     clearanceStatus === "under_treatment" ||
       Boolean(clearance?.treatmentSummary?.trim()),
   );
   const [showFollowUpFields, setShowFollowUpFields] = useState(
-    clearanceStatus === "follow_up_required" || Boolean(clearance?.followUpDate),
+    clearanceStatus === "follow_up_required" ||
+      Boolean(clearance?.followUpDate),
   );
   const [form, setForm] = useState({
     generalCondition: clearance?.generalCondition ?? "",
@@ -70,7 +75,6 @@ export function MedicalClearanceForm({
   );
   const [conditionOther, setConditionOther] = useState(conditionInit.other);
 
-  const isPanel = variant === "panel";
   const isExamPhase =
     clearanceStatus === "awaiting_examination" ||
     clearanceStatus === "under_examination";
@@ -89,6 +93,30 @@ export function MedicalClearanceForm({
     if (targetStatus === "follow_up_required" && !showFollowUpFields) {
       setShowFollowUpFields(true);
       setError("Set a follow-up date below, then submit again.");
+      return;
+    }
+
+    if (
+      targetStatus === "under_treatment" &&
+      !form.treatmentSummary.trim()
+    ) {
+      setShowTreatmentFields(true);
+      setError("Treatment summary is required before starting treatment.");
+      return;
+    }
+
+    if (targetStatus === "follow_up_required" && !form.followUpDate) {
+      setShowFollowUpFields(true);
+      setError("Follow-up date is required.");
+      return;
+    }
+
+    if (
+      targetStatus === "medically_cleared" &&
+      !conditionChoice &&
+      !conditionOther.trim()
+    ) {
+      setError("Record general condition before marking medically cleared.");
       return;
     }
 
@@ -119,37 +147,45 @@ export function MedicalClearanceForm({
           clearanceStatus: targetStatus,
           veterinarianNotes: payload.veterinarianNotes,
         }),
-      { rewarm: [`/animals/${animalId}`, "/animals", "/dashboard"] },
+      {
+        rewarm: [
+          `/animals/${animalId}`,
+          "/animals",
+          "/medical",
+          "/dashboard",
+          "/adoption",
+        ],
+      },
     );
   }
 
   function handleScheduleFollowUp() {
     setShowFollowUpFields(true);
-    submitStatus("follow_up_required");
+    void submitStatus("follow_up_required");
   }
 
   const actionButtons = (
-    <div className={cn("space-y-1.5", isPanel && "pt-1")}>
+    <div className={cn("space-y-1.5", (isPanel || isWorkspace) && "pt-1")}>
       {clearanceStatus === "awaiting_examination" && (
         <>
           <Button
             type="button"
             disabled={loading}
             className="w-full"
-            variant="outline"
             size="sm"
-            onClick={() => submitStatus("under_examination")}
+            onClick={() => void submitStatus("under_examination")}
           >
-            {loading ? "Saving..." : "Start Examination"}
+            {loading ? "Saving..." : "Start examination"}
           </Button>
           <Button
             type="button"
             disabled={loading}
             className="w-full"
+            variant="outline"
             size="sm"
-            onClick={() => submitStatus("under_treatment")}
+            onClick={() => void submitStatus("under_treatment")}
           >
-            {loading ? "Saving..." : "Requires Treatment"}
+            {loading ? "Saving..." : "Needs treatment"}
           </Button>
           <Button
             type="button"
@@ -157,9 +193,9 @@ export function MedicalClearanceForm({
             className="w-full"
             variant="secondary"
             size="sm"
-            onClick={() => submitStatus("follow_up_required")}
+            onClick={() => void submitStatus("follow_up_required")}
           >
-            {loading ? "Saving..." : "Follow-Up Required"}
+            {loading ? "Saving..." : "Schedule follow-up"}
           </Button>
         </>
       )}
@@ -171,9 +207,9 @@ export function MedicalClearanceForm({
             disabled={loading}
             className="w-full"
             size="sm"
-            onClick={() => submitStatus("under_treatment")}
+            onClick={() => void submitStatus("under_treatment")}
           >
-            {loading ? "Saving..." : "Requires Treatment"}
+            {loading ? "Saving..." : "Needs treatment"}
           </Button>
           <Button
             type="button"
@@ -181,9 +217,9 @@ export function MedicalClearanceForm({
             className="w-full"
             variant="secondary"
             size="sm"
-            onClick={() => submitStatus("follow_up_required")}
+            onClick={() => void submitStatus("follow_up_required")}
           >
-            {loading ? "Saving..." : "Follow-Up Required"}
+            {loading ? "Saving..." : "Schedule follow-up"}
           </Button>
           <Button
             type="button"
@@ -191,9 +227,9 @@ export function MedicalClearanceForm({
             className="w-full"
             variant="outline"
             size="sm"
-            onClick={() => submitStatus("medically_cleared")}
+            onClick={() => void submitStatus("medically_cleared")}
           >
-            {loading ? "Saving..." : "Mark Medically Cleared"}
+            {loading ? "Saving..." : "Mark medically cleared"}
           </Button>
         </>
       )}
@@ -208,16 +244,16 @@ export function MedicalClearanceForm({
             size="sm"
             onClick={handleScheduleFollowUp}
           >
-            {loading ? "Saving..." : "Schedule Follow-Up"}
+            {loading ? "Saving..." : "Schedule follow-up"}
           </Button>
           <Button
             type="button"
             disabled={loading}
             className="w-full"
             size="sm"
-            onClick={() => submitStatus("medically_cleared")}
+            onClick={() => void submitStatus("medically_cleared")}
           >
-            {loading ? "Saving..." : "Mark Medically Cleared"}
+            {loading ? "Saving..." : "Mark medically cleared"}
           </Button>
         </>
       )}
@@ -230,18 +266,18 @@ export function MedicalClearanceForm({
             className="w-full"
             variant="outline"
             size="sm"
-            onClick={() => submitStatus("under_treatment")}
+            onClick={() => void submitStatus("under_treatment")}
           >
-            {loading ? "Saving..." : "Resume Treatment"}
+            {loading ? "Saving..." : "Resume treatment"}
           </Button>
           <Button
             type="button"
             disabled={loading}
             className="w-full"
             size="sm"
-            onClick={() => submitStatus("medically_cleared")}
+            onClick={() => void submitStatus("medically_cleared")}
           >
-            {loading ? "Saving..." : "Mark Medically Cleared"}
+            {loading ? "Saving..." : "Mark medically cleared"}
           </Button>
         </>
       )}
@@ -275,23 +311,28 @@ export function MedicalClearanceForm({
           ))}
         </Select>
       </div>
-      {!isPanel && (
+
+      {showFullFields ? (
         <div className="space-y-1">
-          <Label>Veterinarian Notes</Label>
+          <Label>Clinical notes</Label>
           <Textarea
             value={form.veterinarianNotes}
             onChange={(e) =>
               setForm({ ...form, veterinarianNotes: e.target.value })
             }
-            placeholder="Private clinical notes"
+            placeholder="Exam findings, vaccines, parasite prevention, disclosures for adopters"
+            rows={isWorkspace ? 3 : 4}
+            className={cn(isWorkspace && "resize-none text-sm")}
           />
         </div>
-      )}
+      ) : null}
 
-      {showTreatmentFields && (
+      {showTreatmentFields ? (
         <>
           <div className="space-y-1">
-            <Label className={isPanel ? "text-xs" : undefined}>Treatment</Label>
+            <Label className={isPanel ? "text-xs" : undefined}>
+              Treatment plan
+            </Label>
             <Textarea
               value={form.treatmentSummary}
               onChange={(e) =>
@@ -302,22 +343,24 @@ export function MedicalClearanceForm({
               className={cn(isPanel && "min-h-0 resize-none text-sm")}
             />
           </div>
-          {!isPanel && (
+          {showFullFields ? (
             <div className="space-y-1">
-              <Label>Restrictions</Label>
+              <Label>Care restrictions</Label>
               <Textarea
                 value={form.restrictions}
                 onChange={(e) =>
                   setForm({ ...form, restrictions: e.target.value })
                 }
-                placeholder="Activity or care restrictions"
+                placeholder="Activity limits, isolation, meds to send with adopter"
+                rows={2}
+                className={cn(isWorkspace && "resize-none text-sm")}
               />
             </div>
-          )}
+          ) : null}
         </>
-      )}
+      ) : null}
 
-      {showFollowUpFields && (
+      {showFollowUpFields ? (
         <div className="space-y-1">
           <Label className={isPanel ? "text-xs" : undefined}>Follow-up date</Label>
           <Input
@@ -327,9 +370,9 @@ export function MedicalClearanceForm({
             className={isPanel ? "h-9 text-sm" : undefined}
           />
         </div>
-      )}
+      ) : null}
 
-      {error && <p className="text-xs text-rescue">{error}</p>}
+      {error ? <p className="text-xs text-rescue">{error}</p> : null}
       {actionButtons}
     </>
   );
@@ -338,16 +381,29 @@ export function MedicalClearanceForm({
     const clearedBody = (
       <div className="space-y-2 text-sm">
         <StatusBadge status="medically_cleared" size="sm" />
-        <p className="text-xs text-graphite/70">
-          Medical clearance is complete. Further veterinary edits are locked.
+        <p className="text-xs leading-relaxed text-graphite/70">
+          Medical clearance is complete. Pathway moves to behavior assessment;
+          staff can then set Adoption ready or Foster ready.
         </p>
+        {clearance?.generalCondition ? (
+          <p className="text-xs text-graphite/65">
+            <span className="font-medium text-graphite">Condition: </span>
+            {clearance.generalCondition}
+          </p>
+        ) : null}
+        {clearance?.veterinarianNotes ? (
+          <p className="text-xs text-graphite/65">
+            <span className="font-medium text-graphite">Notes: </span>
+            {clearance.veterinarianNotes}
+          </p>
+        ) : null}
       </div>
     );
 
-    if (isPanel) {
+    if (isPanel || isWorkspace) {
       return (
         <div className="flex flex-col">
-          <PanelHeader />
+          <FormHeader variant={variant} />
           <div className="p-3">{clearedBody}</div>
         </div>
       );
@@ -356,18 +412,20 @@ export function MedicalClearanceForm({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Veterinary Actions</CardTitle>
+          <CardTitle className="text-base">Medical clearance</CardTitle>
         </CardHeader>
         <CardContent>{clearedBody}</CardContent>
       </Card>
     );
   }
 
-  if (isPanel) {
+  if (isPanel || isWorkspace) {
     return (
       <div className="flex flex-col">
-        <PanelHeader status={clearanceStatus} />
-        <div className="space-y-2 p-3">{formFields}</div>
+        <FormHeader variant={variant} status={clearanceStatus} />
+        <div className={cn("space-y-2.5", isWorkspace ? "p-3.5" : "p-3")}>
+          {formFields}
+        </div>
       </div>
     );
   }
@@ -375,7 +433,7 @@ export function MedicalClearanceForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Veterinary Actions</CardTitle>
+        <CardTitle className="text-base">Medical clearance</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="mb-4 flex items-center gap-2">
@@ -389,13 +447,23 @@ export function MedicalClearanceForm({
   );
 }
 
-function PanelHeader({ status }: { status?: string }) {
+function FormHeader({
+  status,
+  variant,
+}: {
+  status?: string;
+  variant: "default" | "panel" | "workspace";
+}) {
   return (
     <div className="shrink-0 border-b border-sage/20 bg-evergreen/5 px-3 py-2.5">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-xs font-bold text-evergreen">Veterinary Actions</p>
-          <p className="text-[10px] text-graphite/50">Update clearance and treatment</p>
+          <p className="text-xs font-bold text-evergreen">
+            {variant === "workspace" ? "Update clearance" : "Medical actions"}
+          </p>
+          <p className="text-[10px] text-graphite/50">
+            Exam, treatment, and clearance decisions
+          </p>
         </div>
         {status ? <StatusBadge status={status} size="sm" /> : null}
       </div>

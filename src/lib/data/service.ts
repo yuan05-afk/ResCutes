@@ -12,6 +12,7 @@ import type {
   AnimalRecord,
   AssignmentRecord,
   ClearanceStatus,
+  MedicalClearanceRecord,
   RescueCaseRecord,
   ShelterRecord,
 } from "@/lib/data/types";
@@ -187,6 +188,51 @@ export async function getAnimalById(id: string) {
 
 export async function getMedicalClearanceForAnimal(animalId: string) {
   return (await dataRepo()).fetchMedicalClearanceForAnimal(animalId);
+}
+
+export async function getAllMedicalClearances() {
+  return (await dataRepo()).fetchAllMedicalClearances();
+}
+
+/** Animals in the veterinary clearance pipeline, with clearance details. */
+export async function getMedicalQueue(): Promise<
+  {
+    animal: AnimalRecord;
+    clearance: MedicalClearanceRecord | null;
+  }[]
+> {
+  const [animals, clearances] = await Promise.all([
+    getAnimals(),
+    getAllMedicalClearances(),
+  ]);
+  const clearanceByAnimal = new Map(clearances.map((c) => [c.animalId, c]));
+
+  return animals
+    .filter(
+      (a) =>
+        a.clearanceStatus !== "medically_cleared" ||
+        a.pathwayStage === "medical_clearance" ||
+        a.pathwayStage === "behavior_assessment",
+    )
+    .map((animal) => ({
+      animal,
+      clearance: clearanceByAnimal.get(animal.id) ?? null,
+    }))
+    .sort((a, b) => {
+      const order: Record<string, number> = {
+        awaiting_examination: 0,
+        under_examination: 1,
+        under_treatment: 2,
+        follow_up_required: 3,
+        medically_cleared: 4,
+      };
+      const ao = order[a.animal.clearanceStatus] ?? 9;
+      const bo = order[b.animal.clearanceStatus] ?? 9;
+      if (ao !== bo) return ao - bo;
+      return (a.animal.name ?? a.animal.temporaryId).localeCompare(
+        b.animal.name ?? b.animal.temporaryId,
+      );
+    });
 }
 
 export async function getNotesForAnimal(animalId: string) {

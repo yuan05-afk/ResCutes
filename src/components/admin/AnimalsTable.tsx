@@ -123,11 +123,11 @@ export function AnimalsTable({
             aria-label="Filter by medical clearance"
           >
             <option value="">All clearance</option>
-            <option value="awaiting_examination">Awaiting examination</option>
-            <option value="under_examination">Under examination</option>
+            <option value="awaiting_examination">Awaiting exam</option>
+            <option value="under_examination">Under exam</option>
             <option value="under_treatment">Under treatment</option>
-            <option value="follow_up_required">Follow-up required</option>
-            <option value="medically_cleared">Medically cleared</option>
+            <option value="follow_up_required">Follow-up</option>
+            <option value="medically_cleared">Cleared</option>
           </Select>
           <Button
             type="button"

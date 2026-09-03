@@ -116,6 +116,9 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           }
           disabled={disabled}
           required={required}
+          // Avoid body pointer-events lock that can freeze the page if the
+          // menu is clipped inside overflow containers.
+          modal={false}
         >
           <SelectPrimitive.Trigger
             ref={ref}
@@ -123,7 +126,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledBy}
             className={cn(
-              "flex h-10 w-full items-center justify-between gap-2 rounded-md border border-sage/40 bg-white px-3 py-2 text-sm text-graphite ring-offset-white transition-colors",
+              "flex h-10 w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-md border border-sage/40 bg-white px-3 py-2 text-sm text-graphite ring-offset-white transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-evergreen focus-visible:ring-offset-2",
               "disabled:cursor-not-allowed disabled:opacity-50",
               "data-[placeholder]:text-graphite/50",
@@ -132,7 +135,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           >
             <SelectPrimitive.Value
               placeholder={placeholder}
-              className="min-w-0 flex-1 truncate text-left"
+              className="min-w-0 flex-1 truncate whitespace-nowrap text-left"
             />
             <SelectPrimitive.Icon asChild>
               <ChevronDown
@@ -172,13 +175,13 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                     value={toInternalValue(option.value)}
                     disabled={option.disabled}
                     className={cn(
-                      "relative flex w-full cursor-default select-none items-start rounded-sm py-2 pl-8 pr-3 text-sm outline-none",
+                      "relative flex w-full cursor-default select-none items-center rounded-sm py-2 pl-8 pr-3 text-sm outline-none",
                       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
                       "data-[highlighted]:bg-bone data-[highlighted]:text-graphite",
                       "data-[state=checked]:font-semibold data-[state=checked]:text-evergreen",
                     )}
                   >
-                    <span className="absolute left-2 top-2 flex h-4 w-4 items-center justify-center">
+                    <span className="absolute left-2 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center">
                       <SelectPrimitive.ItemIndicator>
                         <Check
                           className="h-3.5 w-3.5 text-evergreen"
@@ -186,7 +189,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                         />
                       </SelectPrimitive.ItemIndicator>
                     </span>
-                    <SelectPrimitive.ItemText className="whitespace-normal break-words leading-snug">
+                    <SelectPrimitive.ItemText className="block truncate whitespace-nowrap leading-none">
                       {option.label}
                     </SelectPrimitive.ItemText>
                   </SelectPrimitive.Item>

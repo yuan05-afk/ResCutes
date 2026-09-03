@@ -28,6 +28,28 @@ export function formatDateTime(date: Date | string | null | undefined): string {
 }
 
 export function formatStatus(status: string): string {
+  const shortLabels: Record<string, string> = {
+    medical_clearance: "Medical",
+    behavior_assessment: "Behavior",
+    ready_for_foster: "Foster ready",
+    ready_for_adoption: "Adoption ready",
+    awaiting_examination: "Awaiting exam",
+    under_examination: "Under exam",
+    under_treatment: "Under treatment",
+    follow_up_required: "Follow-up",
+    medically_cleared: "Cleared",
+    report_submitted: "Submitted",
+    under_verification: "Verifying",
+    rescuer_assigned: "Assigned",
+    rescue_accepted: "Accepted",
+    rescue_in_progress: "In progress",
+    animal_secured: "Secured",
+    awaiting_shelter: "Awaiting shelter",
+    shelter_handoff: "Handoff",
+    under_review: "In review",
+    boarding_house: "Boarding",
+  };
+  if (shortLabels[status]) return shortLabels[status];
   return status
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());

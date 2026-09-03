@@ -13,6 +13,8 @@ interface AdoptionReviewActionsProps {
   applicantName: string;
   animalLabel: string;
   status: string;
+  /** Called after a successful approve/reject (e.g. close detail modal). */
+  onDecided?: () => void;
 }
 
 export function AdoptionReviewActions({
@@ -20,6 +22,7 @@ export function AdoptionReviewActions({
   applicantName,
   animalLabel,
   status,
+  onDecided,
 }: AdoptionReviewActionsProps) {
   const { pending, error, setError, run } = useActionPending();
   const [notes, setNotes] = useState("");
@@ -47,6 +50,7 @@ export function AdoptionReviewActions({
           );
           setConfirm(null);
           setNotes("");
+          onDecided?.();
         },
       },
     );

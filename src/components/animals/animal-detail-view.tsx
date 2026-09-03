@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, Stethoscope } from "lucide-react";
 import { AnimalImage } from "@/components/ui/animal-image";
-import { MedicalClearanceForm } from "@/app/(dashboard)/animals/[id]/medical-form";
 import { AnimalProfileEditor } from "@/components/animals/animal-profile-editor";
 import { StatusBadge } from "@/components/status/status-badge";
+import { Button } from "@/components/ui/button";
 import {
   formatDate,
   formatDateTime,
@@ -13,7 +13,6 @@ import {
   hasMeaningfulValue,
   cn,
 } from "@/lib/utils";
-import type { ClearanceStatus } from "@/lib/data/types";
 import type { ReactNode } from "react";
 
 interface NoteEntry {
@@ -275,7 +274,17 @@ export function AnimalDetailView({
         </div>
 
         {canMedical && medicalFields.length > 0 ? (
-          <Section title="Medical summary">
+          <Section
+            title="Medical summary"
+            action={
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/medical?animal=${animal.id}`}>
+                  <Stethoscope className="mr-1.5 h-3.5 w-3.5" />
+                  Open Medical
+                </Link>
+              </Button>
+            }
+          >
             <dl className="grid gap-3 sm:grid-cols-2">
               {medicalFields.map((field) => (
                 <div key={field.label}>
@@ -288,6 +297,18 @@ export function AnimalDetailView({
                 </div>
               ))}
             </dl>
+          </Section>
+        ) : canEdit || canMedical ? (
+          <Section title="Medical summary">
+            <p className="text-sm text-graphite/60">
+              No exam details recorded yet.
+            </p>
+            <Button className="mt-3" size="sm" asChild>
+              <Link href={`/medical?animal=${animal.id}`}>
+                <Stethoscope className="mr-1.5 h-3.5 w-3.5" />
+                Open Medical Clearance
+              </Link>
+            </Button>
           </Section>
         ) : null}
 
@@ -340,13 +361,28 @@ export function AnimalDetailView({
           ) : null}
 
           {canEdit ? (
-            <div className="overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card">
-              <MedicalClearanceForm
-                variant="panel"
-                animalId={animal.id}
-                clearanceStatus={animal.clearanceStatus as ClearanceStatus}
-                clearance={clearance ?? undefined}
-              />
+            <div className="rounded-xl border border-sage/25 bg-white p-4 shadow-card">
+              <div className="mb-2 flex items-center gap-2">
+                <Stethoscope className="h-4 w-4 text-evergreen" />
+                <p className="text-sm font-semibold text-graphite">
+                  Medical Clearance
+                </p>
+              </div>
+              <p className="text-xs leading-relaxed text-graphite/60">
+                Veterinary exam, treatment, and clearance decisions live on the
+                Medical page — not on this profile.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <StatusBadge
+                  status={animal.clearanceStatus}
+                  size="sm"
+                />
+              </div>
+              <Button className="mt-3 w-full" size="sm" asChild>
+                <Link href={`/medical?animal=${animal.id}`}>
+                  Open Medical workspace
+                </Link>
+              </Button>
             </div>
           ) : null}
         </aside>

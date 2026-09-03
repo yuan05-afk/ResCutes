@@ -139,26 +139,27 @@ export function ModalTabs({
 }) {
   return (
     <div
-      className={cn(
-        "flex shrink-0 gap-1 rounded-lg border border-sage/20 bg-bone/60 p-1",
-        className,
-      )}
-      role="tablist"
-    >
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected={active === tab.id}
-          onClick={() => onChange(tab.id)}
           className={cn(
-            "flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition",
-            active === tab.id
-              ? "bg-white text-evergreen shadow-sm"
-              : "text-graphite/55 hover:text-graphite",
+            "flex shrink-0 gap-1 overflow-x-auto rounded-lg border border-sage/20 bg-bone/60 p-1",
+            className,
           )}
+          role="tablist"
         >
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active === tab.id}
+              onClick={() => onChange(tab.id)}
+              className={cn(
+                "shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-evergreen/40",
+                active === tab.id
+                  ? "bg-white text-evergreen shadow-sm"
+                  : "text-graphite/55 hover:bg-white/60 hover:text-graphite",
+              )}
+            >
           {tab.label}
         </button>
       ))}

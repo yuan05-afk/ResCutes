@@ -10,6 +10,7 @@ import { Search } from "lucide-react";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { AppUser, RescueCaseRecord } from "@/lib/data/types";
 import { resolveCurrentUrgency } from "@/lib/data/urgency";
+import { formatStatus } from "@/lib/utils";
 
 const STATUSES = [
   "report_submitted",
@@ -155,7 +156,7 @@ export function RescueCasesFiltersBar({
         <option value="">All statuses</option>
         {STATUSES.map((s) => (
           <option key={s} value={s}>
-            {s.replace(/_/g, " ")}
+            {formatStatus(s)}
           </option>
         ))}
       </Select>
