@@ -30,6 +30,16 @@ import {
   canManageSettings,
   isAdministrator,
 } from "@/lib/auth/permissions";
+import {
+  ANIMAL_AGE_OPTIONS,
+  ANIMAL_SEX_OPTIONS,
+  COAT_COLOR_OPTIONS,
+  GENERAL_CONDITION_OPTIONS,
+  isAllowedBreed,
+  isAllowedCatalogOrOther,
+  isMedicalPriority,
+  validateOptionalText,
+} from "@/lib/forms/animal-field-options";
 
 function revalidateCaseViews(
   caseId: string,
@@ -80,6 +90,11 @@ export async function declineAssignmentAction(
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
   if (!reason.trim()) return { error: "Reason required" };
+  const reasonErr = validateOptionalText("Decline reason", reason, {
+    minLen: 3,
+    maxLen: 500,
+  });
+  if (reasonErr) return { error: reasonErr };
   const adminOverride = isAdministrator(session.user.roles);
   const declined = await declineAssignment(assignmentId, session.user.id, reason, {
     adminOverride,
@@ -150,7 +165,13 @@ export async function rejectCaseAction(caseId: string, reason: string) {
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  await rejectCase(caseId, session.user.id, reason);
+  if (!reason.trim()) return { error: "Rejection reason required" };
+  const reasonErr = validateOptionalText("Rejection reason", reason, {
+    minLen: 3,
+    maxLen: 500,
+  });
+  if (reasonErr) return { error: reasonErr };
+  await rejectCase(caseId, session.user.id, reason.trim());
   revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
@@ -223,6 +244,41 @@ export async function completeShelterIntakeAction(
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
+
+  if (input) {
+    const nameErr = validateOptionalText("Name", input.name ?? "", {
+      maxLen: 80,
+    });
+    if (nameErr) return { error: nameErr };
+    if (
+      input.sex !== undefined &&
+      !isAllowedCatalogOrOther(input.sex, ANIMAL_SEX_OPTIONS)
+    ) {
+      return { error: "Invalid sex value" };
+    }
+    if (
+      input.estimatedAge !== undefined &&
+      !isAllowedCatalogOrOther(input.estimatedAge, ANIMAL_AGE_OPTIONS)
+    ) {
+      return { error: "Invalid age value" };
+    }
+    if (
+      input.color !== undefined &&
+      !isAllowedCatalogOrOther(input.color, COAT_COLOR_OPTIONS)
+    ) {
+      return { error: "Invalid color value" };
+    }
+    if (input.breed !== undefined && !isAllowedBreed(input.breed)) {
+      return { error: "Invalid breed value" };
+    }
+    const condErr = validateOptionalText(
+      "Initial condition",
+      input.initialCondition ?? "",
+      { maxLen: 2000 },
+    );
+    if (condErr) return { error: condErr };
+  }
+
   const result = await completeShelterIntake(caseId, session.user.id, input);
   if (!result.ok) return { error: result.error };
   revalidateCaseViews(
@@ -245,7 +301,15 @@ export async function overrideUrgencyAction(
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
   if (!reason.trim()) return { error: "Override reason required" };
-  await overrideUrgency(caseId, score, reason, session.user.id);
+  const reasonErr = validateOptionalText("Override reason", reason, {
+    minLen: 3,
+    maxLen: 500,
+  });
+  if (reasonErr) return { error: reasonErr };
+  if (!Number.isFinite(score) || score < 0 || score > 100) {
+    return { error: "Urgency score must be between 0 and 100" };
+  }
+  await overrideUrgency(caseId, score, reason.trim(), session.user.id);
   revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
@@ -267,6 +331,33 @@ export async function updateMedicalClearanceAction(
   if (!session?.user) return { error: "Unauthorized" };
   if (!canEditMedical(session.user.roles))
     return { error: "Unauthorized" };
+
+  if (
+    data.generalCondition !== undefined &&
+    data.generalCondition.trim() &&
+    !isAllowedCatalogOrOther(data.generalCondition, GENERAL_CONDITION_OPTIONS, {
+      allowEmpty: true,
+      maxLen: 200,
+    })
+  ) {
+    return { error: "Invalid general condition" };
+  }
+
+  if (
+    data.medicalPriority !== undefined &&
+    !isMedicalPriority(data.medicalPriority)
+  ) {
+    return { error: "Invalid medical priority" };
+  }
+
+  for (const [label, value, max] of [
+    ["Treatment summary", data.treatmentSummary, 2000],
+    ["Restrictions", data.restrictions, 1000],
+    ["Veterinarian notes", data.veterinarianNotes, 2000],
+  ] as const) {
+    const err = validateOptionalText(label, value ?? "", { maxLen: max });
+    if (err) return { error: err };
+  }
 
   const result = await updateMedicalClearance(animalId, session.user.id, {
     ...data,

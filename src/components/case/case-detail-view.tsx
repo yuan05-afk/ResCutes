@@ -106,7 +106,12 @@ export function CaseDetailView({
           compact
           photoSrc={photoSrc}
           species={caseItem.species}
-          photoAlt={`${formatStatus(caseItem.species)} rescue`}
+          photoAlt={
+            animal?.name
+              ? `${animal.name} · ${caseItem.caseNumber}`
+              : `${formatStatus(caseItem.species)} · ${caseItem.caseNumber}`
+          }
+          photoCaption={caseItem.caseNumber}
           latitude={caseItem.latitude}
           longitude={caseItem.longitude}
           caseId={caseItem.id}

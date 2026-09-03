@@ -20,14 +20,27 @@ import {
 } from "lucide-react";
 import { submitReportAction } from "@/app/actions/report";
 import { getSpeciesImage } from "@/lib/demo-images";
+import {
+  REPORT_CONTACT,
+  REPORT_DANGER,
+  REPORT_INJURY,
+  REPORT_SPECIES,
+  REPORT_VULNERABILITY,
+} from "@/lib/forms/animal-field-options";
 
 const STEPS = ["Photo", "Location", "Animal", "Condition", "Contact", "Review"];
 
-const SPECIES = ["dog", "cat", "bird", "rabbit", "other"];
-const INJURY = ["none_visible", "minor", "moderate", "severe", "critical"];
-const DANGER = ["none", "traffic", "weather", "predators", "trapped", "other_danger"];
-const VULNERABILITY = ["adult_healthy", "juvenile", "elderly", "pregnant", "nursing", "disabled"];
-const CONTACT = ["in_app", "phone", "email", "no_contact"];
+type ReportSpecies = (typeof REPORT_SPECIES)[number];
+type ReportInjury = (typeof REPORT_INJURY)[number];
+type ReportDanger = (typeof REPORT_DANGER)[number];
+type ReportVulnerability = (typeof REPORT_VULNERABILITY)[number];
+type ReportContact = (typeof REPORT_CONTACT)[number];
+
+const SPECIES: ReportSpecies[] = [...REPORT_SPECIES];
+const INJURY: ReportInjury[] = [...REPORT_INJURY];
+const DANGER: ReportDanger[] = [...REPORT_DANGER];
+const VULNERABILITY: ReportVulnerability[] = [...REPORT_VULNERABILITY];
+const CONTACT: ReportContact[] = [...REPORT_CONTACT];
 
 export function ReportFlow() {
   const router = useRouter();
@@ -35,12 +48,16 @@ export function ReportFlow() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [species, setSpecies] = useState("dog");
-  const [injurySeverity, setInjurySeverity] = useState("none_visible");
-  const [environmentalDanger, setEnvironmentalDanger] = useState("none");
-  const [vulnerability, setVulnerability] = useState("adult_healthy");
+  const [species, setSpecies] = useState<ReportSpecies>("dog");
+  const [injurySeverity, setInjurySeverity] =
+    useState<ReportInjury>("none_visible");
+  const [environmentalDanger, setEnvironmentalDanger] =
+    useState<ReportDanger>("none");
+  const [vulnerability, setVulnerability] =
+    useState<ReportVulnerability>("adult_healthy");
   const [description, setDescription] = useState("");
-  const [contactPreference, setContactPreference] = useState("in_app");
+  const [contactPreference, setContactPreference] =
+    useState<ReportContact>("in_app");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "denied" | "ok">("idle");
@@ -110,6 +127,10 @@ export function ReportFlow() {
     }
     if (step === 3 && description.trim().length < 10) {
       setError("Please add a short description (at least 10 characters).");
+      return;
+    }
+    if (step === 3 && description.trim().length > 2000) {
+      setError("Description must be under 2000 characters.");
       return;
     }
     setError("");
@@ -291,7 +312,11 @@ export function ReportFlow() {
                 placeholder="Describe what you observed..."
                 rows={4}
                 className="rounded-xl"
+                maxLength={2000}
               />
+              <p className="text-[11px] text-graphite/45">
+                {description.trim().length}/2000 · at least 10 characters
+              </p>
             </div>
           </div>
         )}
@@ -364,16 +389,16 @@ export function ReportFlow() {
   );
 }
 
-function OptionGrid({
+function OptionGrid<T extends string>({
   label,
   options,
   value,
   onChange,
 }: {
   label: string;
-  options: string[];
-  value: string;
-  onChange: (v: string) => void;
+  options: readonly T[];
+  value: T;
+  onChange: (v: T) => void;
 }) {
   return (
     <div className="space-y-3">

@@ -23,7 +23,7 @@ test.describe("Animals, adoption, shelter map, notifications", () => {
     await expect(page.getByText("Luna").first()).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("Bella").first()).toBeVisible();
     await expect(page.getByText("Rocky").first()).toBeVisible();
-    await expect(page.getByText("RC-SEED-001").first()).toBeVisible();
+    await expect(page.getByText("RC-26-001").first()).toBeVisible();
 
     const deleteBtn = page
       .locator("table")

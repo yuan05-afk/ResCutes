@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   DashboardHeader,
   PageShell,
@@ -22,7 +23,15 @@ export default function SheltersPage() {
       }
       className="flex min-h-0 flex-1 flex-col lg:overflow-hidden"
     >
-      <SheltersMapWorkspace shelters={shelters} />
+      <Suspense
+        fallback={
+          <div className="rounded-xl border border-sage/25 bg-white p-6 text-sm text-graphite/55 shadow-card">
+            Loading shelter map…
+          </div>
+        }
+      >
+        <SheltersMapWorkspace shelters={shelters} />
+      </Suspense>
     </PageShell>
   );
 }

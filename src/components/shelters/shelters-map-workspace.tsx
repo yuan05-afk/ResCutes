@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, MapPin, Phone } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { MapView } from "@/components/map/map-view-dynamic";
 import { MAP_SHELTER_FOCUS_ZOOM } from "@/components/map/map-camera";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/components/map/shelter-map-constants";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { ShelterContactBlock } from "@/components/shelters/shelter-contact-block";
 import {
   formatShelterSpeciesLabel,
   PHILIPPINES_MAP_CENTER,
@@ -24,7 +25,10 @@ import { cn } from "@/lib/utils";
 const SPECIES_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "All animal types" },
   ...(
-    Object.entries(SHELTER_SPECIES_PROFILE_LABELS) as [ShelterSpeciesProfile, string][]
+    Object.entries(SHELTER_SPECIES_PROFILE_LABELS) as [
+      ShelterSpeciesProfile,
+      string,
+    ][]
   ).map(([value, label]) => ({ value, label })),
 ];
 
@@ -38,25 +42,34 @@ export function SheltersMapWorkspace({
 }: {
   shelters: PhilippinesShelterRecord[];
 }) {
+  const searchParams = useSearchParams();
+  const highlightParam = searchParams.get("highlight");
   const [search, setSearch] = useState("");
   const [region, setRegion] = useState("All regions");
   const [speciesProfile, setSpeciesProfile] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    highlightParam && shelters.some((s) => s.id === highlightParam)
+      ? highlightParam
+      : null,
+  );
   const [hiddenLegendLayers, setHiddenLegendLayers] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const didApplyHighlight = useRef(false);
 
   const filteredByControls = useMemo(() => {
     const q = search.trim().toLowerCase();
     return shelters.filter((shelter) => {
       if (region !== "All regions" && shelter.region !== region) return false;
-      if (speciesProfile && shelter.speciesProfile !== speciesProfile) return false;
+      if (speciesProfile && shelter.speciesProfile !== speciesProfile)
+        return false;
       if (!q) return true;
       return (
         shelter.name.toLowerCase().includes(q) ||
         shelter.city.toLowerCase().includes(q) ||
         shelter.address.toLowerCase().includes(q) ||
-        shelter.region.toLowerCase().includes(q)
+        shelter.region.toLowerCase().includes(q) ||
+        (shelter.phone?.toLowerCase().includes(q) ?? false)
       );
     });
   }, [shelters, search, region, speciesProfile]);
@@ -74,17 +87,23 @@ export function SheltersMapWorkspace({
     [filteredByControls, hiddenLegendSet],
   );
 
-  const hiddenByLegendCount = filteredByControls.length - visibleShelters.length;
+  const hiddenByLegendCount =
+    filteredByControls.length - visibleShelters.length;
 
   const selected = selectedId
-    ? visibleShelters.find((shelter) => shelter.id === selectedId) ?? null
+    ? (visibleShelters.find((shelter) => shelter.id === selectedId) ??
+      shelters.find((shelter) => shelter.id === selectedId) ??
+      null)
     : null;
 
   useEffect(() => {
-    if (selectedId && !visibleShelters.some((shelter) => shelter.id === selectedId)) {
+    if (
+      selectedId &&
+      !shelters.some((shelter) => shelter.id === selectedId)
+    ) {
       setSelectedId(null);
     }
-  }, [visibleShelters, selectedId]);
+  }, [selectedId, shelters]);
 
   const selectShelter = useCallback((id: string) => {
     setSelectedId(id);
@@ -104,7 +123,13 @@ export function SheltersMapWorkspace({
     });
   }, []);
 
-  // Hover popup stays light — full details live in the floating card.
+  useEffect(() => {
+    if (!highlightParam || didApplyHighlight.current) return;
+    if (!shelters.some((s) => s.id === highlightParam)) return;
+    didApplyHighlight.current = true;
+    selectShelter(highlightParam);
+  }, [highlightParam, shelters, selectShelter]);
+
   const markers = filteredByControls.map((shelter) => ({
     id: shelter.id,
     latitude: shelter.latitude,
@@ -122,7 +147,7 @@ export function SheltersMapWorkspace({
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search shelter, city, or region..."
+          placeholder="Search shelter, city, phone, or region..."
           className="h-9 xl:col-span-2"
         />
         <Select
@@ -153,7 +178,9 @@ export function SheltersMapWorkspace({
         <section className="flex min-h-[320px] flex-col overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card lg:col-span-8 lg:min-h-0">
           <div className="flex shrink-0 items-center justify-between border-b border-sage/15 px-4 py-2.5">
             <div>
-              <h2 className="text-sm font-semibold text-graphite">Shelter map</h2>
+              <h2 className="text-sm font-semibold text-graphite">
+                Shelter map
+              </h2>
               <p className="text-xs text-graphite/50">
                 {visibleShelters.length} location
                 {visibleShelters.length === 1 ? "" : "s"} shown
@@ -184,8 +211,8 @@ export function SheltersMapWorkspace({
               selectedMarkerZoom={MAP_SHELTER_FOCUS_ZOOM}
             />
             {selected ? (
-              <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-20 sm:left-auto sm:right-4 sm:w-[min(100%,22rem)]">
-                <div className="rounded-xl border border-sage/30 bg-white/95 p-3.5 shadow-elevated backdrop-blur-md">
+              <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-20 sm:left-auto sm:right-4 sm:w-[min(100%,24rem)]">
+                <div className="max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-sage/30 bg-white/95 p-3.5 shadow-elevated backdrop-blur-md">
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="mb-1 flex flex-wrap items-center gap-1.5">
@@ -198,7 +225,7 @@ export function SheltersMapWorkspace({
                           </span>
                         ) : null}
                       </div>
-                      <h3 className="text-sm font-bold text-graphite line-clamp-2">
+                      <h3 className="line-clamp-2 text-sm font-bold text-graphite">
                         {selected.name}
                       </h3>
                       <p className="mt-0.5 text-[11px] text-graphite/50">
@@ -214,41 +241,34 @@ export function SheltersMapWorkspace({
                       Close
                     </button>
                   </div>
-                  <p className="flex items-start gap-1.5 text-xs text-graphite/65">
-                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                    <span>{selected.address}</span>
-                  </p>
-                  <p className="mt-1.5 text-xs font-semibold text-evergreen">
+
+                  <p className="mb-2 text-xs font-semibold text-evergreen">
                     Accepts: {formatShelterSpeciesLabel(selected)}
                   </p>
                   {selected.totalCapacity && selected.totalCapacity > 0 ? (
-                    <p className="mt-1 text-xs text-graphite/55">
+                    <p className="mb-2 text-xs text-graphite/55">
                       Capacity: {selected.currentOccupancy ?? 0}/
                       {selected.totalCapacity}
                     </p>
                   ) : null}
-                  {selected.notes ? (
-                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-graphite/60">
-                      {selected.notes}
-                    </p>
-                  ) : null}
-                  {selected.phone ? (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-graphite/70">
-                      <Phone className="h-3.5 w-3.5" aria-hidden />
-                      {selected.phone}
-                    </p>
-                  ) : null}
-                  {selected.website ? (
-                    <a
-                      href={selected.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-evergreen hover:underline"
-                    >
-                      Website
-                      <ExternalLink className="h-3 w-3" aria-hidden />
-                    </a>
-                  ) : null}
+
+                  <ShelterContactBlock
+                    compact
+                    hideAppMapLink
+                    shelter={{
+                      name: selected.name,
+                      address: selected.address,
+                      city: selected.city,
+                      region: selected.region,
+                      latitude: selected.latitude,
+                      longitude: selected.longitude,
+                      phone: selected.phone,
+                      email: selected.email,
+                      website: selected.website,
+                      directoryId: selected.id,
+                      notes: selected.notes,
+                    }}
+                  />
                 </div>
               </div>
             ) : null}
@@ -297,12 +317,14 @@ export function SheltersMapWorkspace({
                     <span
                       className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-sm"
                       style={{
-                        backgroundColor: shelterMarkerColor(shelter.speciesProfile),
+                        backgroundColor: shelterMarkerColor(
+                          shelter.speciesProfile,
+                        ),
                       }}
                       aria-hidden
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-graphite line-clamp-1">
+                      <p className="line-clamp-1 text-sm font-semibold text-graphite">
                         {shelter.name}
                       </p>
                       <p className="mt-0.5 text-xs text-graphite/55">
@@ -311,6 +333,11 @@ export function SheltersMapWorkspace({
                       <p className="mt-0.5 text-[11px] font-medium text-evergreen">
                         {formatShelterSpeciesLabel(shelter)}
                       </p>
+                      {shelter.phone ? (
+                        <p className="mt-0.5 truncate text-[11px] text-graphite/50">
+                          {shelter.phone}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </button>

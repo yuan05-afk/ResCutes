@@ -11,6 +11,7 @@ import { clearWorkflowDataForTests, fetchUserByEmail } from "@/lib/data/db/repos
 import { getDb } from "@/db";
 import {
   animals,
+  casePhotos,
   medicalClearances,
   rescuerAssignments,
   rescueCases,
@@ -67,16 +68,22 @@ export async function seedCase004Fixtures() {
   const verifiedAt = hoursAgo(1);
   const db = getDb();
 
+  const [camille] = await Promise.all([
+    fetchUserByEmail("camille.villanueva@rescutes.demo").catch(() => null),
+  ]);
+  const reporterId = camille?.id ?? users.maria;
+
   const [report] = await db
     .insert(rescueReports)
     .values({
       id: stableUuid("test-report-004"),
-      reporterId: users.maria,
-      species: "rabbit",
+      reporterId,
+      species: "cat",
       injurySeverity: "none_visible",
       environmentalDanger: "none",
       vulnerability: "adult_healthy",
-      description: "Rabbit in residential garden, appears lost.",
+      description:
+        "Adult cream-and-white cat found wandering a residential garden near San Rafael Street. No collar, appears lost but uninjured. Caller can keep watch until a rescuer arrives.",
       contactPreference: "email",
       latitude: 14.5794,
       longitude: 121.0359,
@@ -95,12 +102,20 @@ export async function seedCase004Fixtures() {
   await db.insert(rescueCases).values({
     id: TEST_IDS.case004,
     reportId: report.id,
-    caseNumber: "RC-2026-1004",
+    caseNumber: "RC-26-109",
     status: "rescuer_assigned",
     urgencyScore: urgency.score,
     urgencyLevel: urgency.level,
     verifiedAt,
     verifiedById: users.sarah,
+  });
+
+  await db.insert(casePhotos).values({
+    id: stableUuid("test-photo-004"),
+    caseId: TEST_IDS.case004,
+    url: "/rescue-cases/test-case-004-cat.png",
+    uploadedById: reporterId,
+    photoType: "report",
   });
 
   await db.insert(rescuerAssignments).values({

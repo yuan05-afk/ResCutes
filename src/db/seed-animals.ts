@@ -80,6 +80,7 @@ type ActiveCaseSeed = {
   environmentalDanger: SeedAnimal["environmentalDanger"];
   vulnerability: SeedAnimal["vulnerability"];
   description: string;
+  reporterEmail: string;
   status:
     | "report_submitted"
     | "under_verification"
@@ -96,6 +97,29 @@ type ActiveCaseSeed = {
   shelterSlug?: string;
   assignRescuer?: boolean;
 };
+
+const CITIZEN_REPORTER_EMAILS = [
+  "citizen@rescutes.demo",
+  "jose.delacruz@rescutes.demo",
+  "ana.reyes@rescutes.demo",
+  "miguel.torres@rescutes.demo",
+  "camille.villanueva@rescutes.demo",
+  "rafael.mendoza@rescutes.demo",
+  "sofia.garcia@rescutes.demo",
+  "enrico.ramos@rescutes.demo",
+  "patricia.lim@rescutes.demo",
+  "carlo.bautista@rescutes.demo",
+  "jasmine.cruz@rescutes.demo",
+  "mark.villanueva@rescutes.demo",
+] as const;
+
+function productionAnimalId(index: number) {
+  return `A-26-${String(index).padStart(3, "0")}`;
+}
+
+function productionCaseNumber(index: number) {
+  return `RC-26-${String(index).padStart(3, "0")}`;
+}
 
 const SEED_ANIMALS: SeedAnimal[] = [
   {
@@ -372,7 +396,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     environmentalDanger: "traffic",
     vulnerability: "adult_healthy",
     description:
-      "Large aspin limping hard on EDSA service road near Cubao. Caller says it was hit by a motorcycle and cannot stand on the right hind leg.",
+      "Large tan aspin limping hard on the EDSA Cubao service road after a motorcycle hit. Right hind leg will not bear weight. Animal is conscious, panting, and staying near the curb while traffic passes.",
+    reporterEmail: "jose.delacruz@rescutes.demo",
     status: "rescue_in_progress",
     daysAgo: 0,
     lat: 14.622,
@@ -387,7 +412,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     environmentalDanger: "trapped",
     vulnerability: "juvenile",
     description:
-      "Two kittens trapped in a storm drain near a barangay basketball court. One is vocal and reachable; the other is further back.",
+      "Two dirty kittens trapped inside an open storm drain beside a barangay basketball court in Makati. One is vocal and reachable near the grate; the second is farther back and needs a catch pole or flashlight team.",
+    reporterEmail: "ana.reyes@rescutes.demo",
     status: "rescuer_assigned",
     daysAgo: 0,
     lat: 14.568,
@@ -401,7 +427,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     environmentalDanger: "weather",
     vulnerability: "elderly",
     description:
-      "Senior dog stranded on a concrete ledge after overnight flooding in a low-lying alley. Appears weak but responsive.",
+      "Senior brown mixed dog stranded on a raised concrete ledge after overnight flooding in a low-lying Sampaloc alley. Coat is soaked, animal looks weak but still lifts its head when called.",
+    reporterEmail: "miguel.torres@rescutes.demo",
     status: "verified",
     daysAgo: 1,
     lat: 14.595,
@@ -414,7 +441,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     environmentalDanger: "trapped",
     vulnerability: "adult_healthy",
     description:
-      "Cat stuck on a corrugated rooftop for two days. Neighbors can hear it but cannot reach safely without a ladder team.",
+      "Gray street cat stuck on a corrugated rooftop in Quezon City for about two days. Neighbors can hear it calling at night. Needs a ladder team — roof edge is steep and unsafe for untrained climbers.",
+    reporterEmail: "camille.villanueva@rescutes.demo",
     status: "under_verification",
     daysAgo: 0,
     lat: 14.641,
@@ -427,7 +455,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     environmentalDanger: "other_danger",
     vulnerability: "juvenile",
     description:
-      "Three abandoned puppies under a market stall. Vendor says the mother has not returned since yesterday morning.",
+      "Three abandoned mixed puppies huddled under a wet-market stall near Divisoria. Vendor says the mother has not returned since yesterday morning. Puppies are thin, flea-covered, and approachable.",
+    reporterEmail: "rafael.mendoza@rescutes.demo",
     status: "awaiting_shelter",
     daysAgo: 1,
     lat: 14.612,
@@ -442,7 +471,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     environmentalDanger: "traffic",
     vulnerability: "adult_healthy",
     description:
-      "Dog collapsed near C5 exit ramp with visible bleeding. Multiple callers. Needs immediate pickup and trauma intake.",
+      "Medium black-and-tan dog collapsed beside the C5 exit ramp with active bleeding on a front leg. Multiple callers within 10 minutes. Needs immediate roadside pickup and trauma intake.",
+    reporterEmail: "sofia.garcia@rescutes.demo",
     status: "rescue_accepted",
     daysAgo: 0,
     lat: 14.548,
@@ -456,7 +486,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     environmentalDanger: "other_danger",
     vulnerability: "adult_healthy",
     description:
-      "Injured cat found inside an unfinished construction site. Foreman will keep the gate open for rescuers until 6pm.",
+      "Injured orange tabby found among rebar piles inside an unfinished Makati construction site. Visible scrape along the flank. Foreman will keep the gate open for rescuers until 6:00 PM.",
+    reporterEmail: "enrico.ramos@rescutes.demo",
     status: "animal_secured",
     daysAgo: 1,
     lat: 14.557,
@@ -471,7 +502,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     environmentalDanger: "none",
     vulnerability: "adult_healthy",
     description:
-      "Friendly loose dog at a riverside park with no collar. Approachable but darting toward the road when startled.",
+      "Friendly cream aspin with no collar roaming a Marikina riverside park path. Approaches people for food but bolts toward the road when startled. Needs secure catch and ID check.",
+    reporterEmail: "patricia.lim@rescutes.demo",
     status: "report_submitted",
     daysAgo: 0,
     lat: 14.586,
@@ -512,7 +544,17 @@ async function seedDemo() {
     throw new Error("Demo users missing. Run npm run db:seed first.");
   }
 
-  const reporterId = citizen.id;
+  const reporters = new Map<string, string>();
+  for (const email of CITIZEN_REPORTER_EMAILS) {
+    const row = await userByEmail(email);
+    if (row) reporters.set(email, row.id);
+  }
+  if (reporters.size < 8) {
+    throw new Error(
+      `Expected at least 8 citizen reporters after db:seed, found ${reporters.size}.`,
+    );
+  }
+
   const verifierId = staff.id;
 
   // Cleanup previous seed animals/cases (stable ids + patterned ids)
@@ -543,11 +585,13 @@ async function seedDemo() {
       .update(rescueCases)
       .set({ animalId: null })
       .where(eq(rescueCases.id, caseId));
+    await db.delete(notifications).where(eq(notifications.caseId, caseId));
     await db.delete(rescuerAssignments).where(eq(rescuerAssignments.caseId, caseId));
     await db.delete(casePhotos).where(eq(casePhotos.caseId, caseId));
   }
 
   await db.delete(animals).where(like(animals.temporaryId, "A-SEED-%"));
+  await db.delete(animals).where(like(animals.temporaryId, "A-26-%"));
   for (const id of seedAnimalIds) {
     await db.delete(animals).where(eq(animals.id, id));
   }
@@ -557,12 +601,13 @@ async function seedDemo() {
   }
   // Also clear leftover patterned seed cases
   await db.delete(rescueCases).where(like(rescueCases.caseNumber, "RC-SEED-%"));
+  await db.delete(rescueCases).where(like(rescueCases.caseNumber, "RC-26-%"));
 
   for (const id of seedReportIds) {
     await db.delete(rescueReports).where(eq(rescueReports.id, id));
   }
 
-  console.log("Cleared previous seed animals/cases");
+  console.log("Cleared previous demo animals/cases");
 
   const animalIdsBySlug = new Map<string, string>();
 
@@ -571,8 +616,11 @@ async function seedDemo() {
     const animalId = stableUuid(`seed-animal-${animal.slug}`);
     const caseId = stableUuid(`seed-case-${animal.slug}`);
     const reportId = stableUuid(`seed-report-${animal.slug}`);
-    const temporaryId = `A-SEED-${String(i + 1).padStart(3, "0")}`;
-    const caseNumber = `RC-SEED-${String(i + 1).padStart(3, "0")}`;
+    const temporaryId = productionAnimalId(i + 1);
+    const caseNumber = productionCaseNumber(i + 1);
+    const reporterEmail =
+      CITIZEN_REPORTER_EMAILS[i % CITIZEN_REPORTER_EMAILS.length];
+    const reporterId = reporters.get(reporterEmail) ?? citizen.id;
     const intakeDate = new Date(now - animal.intakeDaysAgo * 24 * 60 * 60 * 1000);
     const reportCreated = new Date(intakeDate.getTime() - 6 * 60 * 60 * 1000);
     const verifiedAt = new Date(intakeDate.getTime() - 4 * 60 * 60 * 1000);
@@ -666,7 +714,7 @@ async function seedDemo() {
     });
 
     animalIdsBySlug.set(animal.slug, animalId);
-    console.log(`Linked ${caseNumber} ↔ ${temporaryId} ${animal.name}`);
+    console.log(`Linked ${caseNumber} ↔ ${temporaryId} ${animal.name} (reporter ${reporterEmail})`);
   }
 
   // Active field cases for dashboard / live map
@@ -674,7 +722,9 @@ async function seedDemo() {
     const item = ACTIVE_CASES[i];
     const caseId = stableUuid(`seed-case-${item.slug}`);
     const reportId = stableUuid(`seed-report-${item.slug}`);
-    const caseNumber = `RC-SEED-${String(100 + i + 1).padStart(3, "0")}`;
+    const caseNumber = productionCaseNumber(100 + i + 1);
+    const reporterId =
+      reporters.get(item.reporterEmail) ?? citizen.id;
     const createdAt = new Date(now - item.daysAgo * 24 * 60 * 60 * 1000 - 2 * 60 * 60 * 1000);
     const verifiedAt =
       item.status === "report_submitted" || item.status === "under_verification"
@@ -720,6 +770,15 @@ async function seedDemo() {
       updatedAt: new Date(createdAt.getTime() + 60 * 60 * 1000),
     });
 
+    await db.insert(casePhotos).values({
+      id: stableUuid(`seed-photo-${item.slug}`),
+      caseId,
+      url: `/rescue-cases/${item.slug}.png`,
+      uploadedById: reporterId,
+      photoType: "report",
+      createdAt,
+    });
+
     if (item.assignRescuer && rescuer) {
       await db.insert(rescuerAssignments).values({
         id: stableUuid(`seed-assign-${item.slug}`),
@@ -736,7 +795,9 @@ async function seedDemo() {
       });
     }
 
-    console.log(`Active case ${caseNumber} (${item.status})`);
+    console.log(
+      `Active case ${caseNumber} (${item.status}) photo=/rescue-cases/${item.slug}.png reporter=${item.reporterEmail}`,
+    );
   }
 
   // Notifications
@@ -780,8 +841,8 @@ async function seedDemo() {
       {
         id: stableUuid("seed-adoption-luna"),
         animalId: lunaId,
-        applicantName: "Maria Santos",
-        applicantEmail: "maria.santos@example.com",
+        applicantName: "Helena Cruz",
+        applicantEmail: "helena.cruz@example.com",
         applicantPhone: "+63 917 555 0101",
         homeType: "house",
         hasYard: true,

@@ -327,6 +327,7 @@ export function AnimalDetailView({
                 id: animal.id,
                 name: animal.name,
                 temporaryId: animal.temporaryId,
+                species: animal.species,
                 bio: animal.bio,
                 temperament: animal.temperament,
                 pathwayStage: animal.pathwayStage,

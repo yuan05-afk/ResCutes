@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { PawPrint } from "lucide-react";
 import { getSpeciesImage } from "@/lib/demo-images";
@@ -18,9 +18,13 @@ interface AnimalImageProps {
   containerClassName?: string;
   sizes?: string;
   objectPosition?: string;
+  /**
+   * Click to open full-size lightbox. Default true for all animal photos.
+   * Pass false only for decorative / non-photo UI.
+   */
   expandable?: boolean;
   lightboxCaption?: string;
-  /** Show the zoom/Expand chip on the thumbnail (default true). */
+  /** Show the Expand chip (default true). Small thumbs use a hover zoom icon when false. */
   showExpandHint?: boolean;
 }
 
@@ -32,7 +36,7 @@ export function AnimalImage({
   containerClassName,
   sizes,
   objectPosition = "center top",
-  expandable = false,
+  expandable = true,
   lightboxCaption,
   showExpandHint = true,
 }: AnimalImageProps) {
@@ -41,6 +45,11 @@ export function AnimalImage({
   const [imgSrc, setImgSrc] = useState(initialSrc);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(src?.trim() ? src : speciesFallback);
+    setShowPlaceholder(false);
+  }, [src, speciesFallback]);
 
   if (showPlaceholder) {
     return (
@@ -55,29 +64,36 @@ export function AnimalImage({
     );
   }
 
-  const imageBlock = (
-    <div className={cn("relative overflow-hidden bg-sage/20", containerClassName)}>
-      <Image
-        src={imgSrc}
-        alt={alt}
-        fill
-        className={cn("object-cover", className)}
-        style={{ objectPosition }}
-        unoptimized
-        sizes={sizes}
-        onError={() => {
-          if (imgSrc !== speciesFallback) {
-            setImgSrc(speciesFallback);
-          } else {
-            setShowPlaceholder(true);
-          }
-        }}
-      />
-    </div>
+  const imageEl = (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill
+      className={cn("object-cover", className)}
+      style={{ objectPosition }}
+      unoptimized
+      sizes={sizes}
+      onError={() => {
+        if (imgSrc !== speciesFallback) {
+          setImgSrc(speciesFallback);
+        } else {
+          setShowPlaceholder(true);
+        }
+      }}
+    />
   );
 
   if (!expandable) {
-    return imageBlock;
+    return (
+      <div
+        className={cn(
+          "relative overflow-hidden bg-sage/20",
+          containerClassName,
+        )}
+      >
+        {imageEl}
+      </div>
+    );
   }
 
   return (
@@ -86,8 +102,12 @@ export function AnimalImage({
         onClick={() => setLightboxOpen(true)}
         label={`View full photo of ${alt}`}
         showHint={showExpandHint}
+        className={cn(
+          "relative overflow-hidden bg-sage/20",
+          containerClassName,
+        )}
       >
-        {imageBlock}
+        {imageEl}
       </ExpandablePhotoTrigger>
       <AnimalPhotoLightbox
         open={lightboxOpen}

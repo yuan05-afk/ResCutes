@@ -10,6 +10,7 @@ interface CaseMediaStripProps {
   photoSrc: string;
   species: string;
   photoAlt?: string;
+  photoCaption?: string;
   latitude: number;
   longitude: number;
   caseId: string;
@@ -33,6 +34,7 @@ export function CaseMediaStrip({
   photoSrc,
   species,
   photoAlt = "Animal",
+  photoCaption,
   latitude,
   longitude,
   caseId,
@@ -63,8 +65,12 @@ export function CaseMediaStrip({
           alt={photoAlt}
           containerClassName="absolute inset-0"
           sizes="(max-width: 640px) 100vw, 320px"
+          objectPosition="center top"
+          expandable
+          showExpandHint
+          lightboxCaption={photoCaption ?? caseNumber}
         />
-        <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-md bg-graphite/65 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+        <span className="pointer-events-none absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-md bg-graphite/65 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
           <Camera className="h-3 w-3" aria-hidden />
           Photo
         </span>

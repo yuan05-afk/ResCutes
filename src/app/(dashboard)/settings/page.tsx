@@ -1,15 +1,17 @@
 import { getSheltersCached } from "@/lib/data/cached-loaders";
+import { enrichSheltersWithDirectoryContacts } from "@/lib/data/enrich-shelter-contacts";
 import { requireAuth } from "@/lib/auth/session";
 import { canManageSettings } from "@/lib/auth/permissions";
 import { DashboardHeader, PageShell } from "@/components/layout/dashboard-header";
 import { ShelterSettingsWorkspace } from "@/components/settings/shelter-settings-workspace";
 
 export default async function SettingsPage() {
-  const [shelters, session] = await Promise.all([
+  const [sheltersRaw, session] = await Promise.all([
     getSheltersCached(),
     requireAuth(),
   ]);
 
+  const shelters = enrichSheltersWithDirectoryContacts(sheltersRaw);
   const canEdit = canManageSettings(session.user.roles);
 
   return (
@@ -22,10 +24,7 @@ export default async function SettingsPage() {
       }
       fitViewport
     >
-      <ShelterSettingsWorkspace
-        shelters={shelters}
-        canEdit={canEdit}
-      />
+      <ShelterSettingsWorkspace shelters={shelters} canEdit={canEdit} />
     </PageShell>
   );
 }

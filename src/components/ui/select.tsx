@@ -161,9 +161,11 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                 minWidth: "var(--radix-select-trigger-width)",
                 maxWidth: "min(24rem, calc(100vw - 1rem))",
                 width: "max-content",
+                maxHeight:
+                  "min(14rem, var(--radix-select-content-available-height))",
               }}
             >
-              <SelectPrimitive.Viewport className="rc-scroll max-h-60 p-1">
+              <SelectPrimitive.Viewport className="rc-scroll-dropdown min-h-0 flex-1 p-1 pr-0.5">
                 {options.map((option) => (
                   <SelectPrimitive.Item
                     key={option.value || EMPTY_VALUE}

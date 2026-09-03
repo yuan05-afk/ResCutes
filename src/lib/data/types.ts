@@ -15,6 +15,10 @@ export interface ShelterRecord {
   latitude: number;
   longitude: number;
   phone: string;
+  email?: string;
+  website?: string;
+  /** Directory id used by the Philippines shelter map (`verified-*` / `osm-*`). */
+  directoryId?: string;
   speciesAccepted: string[];
   capabilities: string[];
   totalCapacity: number;

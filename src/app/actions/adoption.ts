@@ -9,6 +9,14 @@ import {
   deleteAnimal,
 } from "@/lib/data/service";
 import { canManageCases, canManageSettings } from "@/lib/auth/permissions";
+import {
+  HOME_TYPE_OPTIONS,
+  isAllowedCatalogOrOther,
+  validateAnimalProfilePayload,
+  validateEmail,
+  validateOptionalText,
+  validatePhoneOptional,
+} from "@/lib/forms/animal-field-options";
 
 function canManageAdoption(roles: Parameters<typeof canManageCases>[0]) {
   return canManageCases(roles) || canManageSettings(roles);
@@ -40,14 +48,55 @@ export async function submitAdoptionApplicationAction(input: {
     return { error: "Forbidden" };
   }
 
-  if (!input.applicantName.trim()) return { error: "Applicant name is required" };
-  if (!input.applicantEmail.trim()) return { error: "Applicant email is required" };
-  if (!input.homeType.trim()) return { error: "Home type is required" };
-  if (!input.motivation.trim()) return { error: "Motivation is required" };
+  const name = input.applicantName.trim();
+  if (!name) return { error: "Applicant name is required" };
+  const nameErr = validateOptionalText("Applicant name", name, {
+    minLen: 2,
+    maxLen: 100,
+  });
+  if (nameErr) return { error: nameErr };
+
+  const emailErr = validateEmail(input.applicantEmail);
+  if (emailErr) return { error: emailErr };
+
+  const phoneErr = validatePhoneOptional(input.applicantPhone ?? "");
+  if (phoneErr) return { error: phoneErr };
+
+  if (
+    !isAllowedCatalogOrOther(input.homeType, HOME_TYPE_OPTIONS, {
+      allowEmpty: false,
+    })
+  ) {
+    return { error: "Select a valid home type" };
+  }
+
+  if (
+    input.householdSize !== undefined &&
+    (!Number.isFinite(input.householdSize) ||
+      input.householdSize < 1 ||
+      input.householdSize > 30)
+  ) {
+    return { error: "Household size must be between 1 and 30" };
+  }
+
+  const expErr = validateOptionalText(
+    "Experience notes",
+    input.experienceNotes ?? "",
+    { maxLen: 1000 },
+  );
+  if (expErr) return { error: expErr };
+
+  const motivation = input.motivation.trim();
+  if (!motivation) return { error: "Motivation is required" };
+  const motErr = validateOptionalText("Motivation", motivation, {
+    minLen: 10,
+    maxLen: 2000,
+  });
+  if (motErr) return { error: motErr };
 
   const result = await createAdoptionApplication({
     animalId: input.animalId,
-    applicantName: input.applicantName.trim(),
+    applicantName: name,
     applicantEmail: input.applicantEmail.trim().toLowerCase(),
     applicantPhone: input.applicantPhone?.trim() || undefined,
     homeType: input.homeType.trim(),
@@ -55,7 +104,7 @@ export async function submitAdoptionApplicationAction(input: {
     hasOtherPets: input.hasOtherPets,
     householdSize: input.householdSize,
     experienceNotes: input.experienceNotes?.trim() || undefined,
-    motivation: input.motivation.trim(),
+    motivation,
   });
 
   if (!result.ok) return { error: result.error };
@@ -108,6 +157,9 @@ export async function updateAnimalAction(
   if (!canManageAdoption(session.user.roles)) {
     return { error: "Forbidden" };
   }
+
+  const validationError = validateAnimalProfilePayload(fields);
+  if (validationError) return { error: validationError };
 
   const result = await updateAnimalProfile(id, fields);
   if (!result.ok) return { error: result.error };

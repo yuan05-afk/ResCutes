@@ -64,6 +64,7 @@ function mapShelterRow(
     latitude: shelter.latitude,
     longitude: shelter.longitude,
     phone: shelter.phone ?? "",
+    email: shelter.email ?? undefined,
     speciesAccepted: shelter.speciesAccepted ?? [],
     capabilities: capabilities.map((c) => c.capability),
     totalCapacity: capacity?.totalCapacity ?? 0,
@@ -1147,7 +1148,7 @@ export async function deleteAnimalById(id: string): Promise<boolean> {
 }
 
 export async function deleteSeedAnimalsByTemporaryIdPrefix(
-  prefix = "A-SEED-",
+  prefix = "A-26-",
 ): Promise<number> {
   const db = getDb();
   const deleted = await db

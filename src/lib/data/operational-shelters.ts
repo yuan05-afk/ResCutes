@@ -20,6 +20,9 @@ export function buildOperationalDemoShelters(): ShelterRecord[] {
       latitude: shelter.latitude,
       longitude: shelter.longitude,
       phone: shelter.phone ?? "",
+      email: shelter.email,
+      website: shelter.website,
+      directoryId: shelter.id,
       speciesAccepted: [...shelter.speciesAccepted],
       capabilities: profile?.capabilities ?? [
         "basic veterinary care",

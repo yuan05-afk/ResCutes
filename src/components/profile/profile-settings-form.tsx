@@ -1,16 +1,24 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toggle } from "@/components/ui/toggle";
+import { SelectWithOtherSplit } from "@/components/ui/select-with-other";
+import { Select } from "@/components/ui/select";
 import { useActionPending } from "@/components/shared/useActionPending";
 import { updateProfileAction } from "@/app/actions/profile";
 import { signOutAction } from "@/app/actions/auth";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
 import type { Role } from "@/lib/auth/permissions";
 import type { UserProfilePrefs } from "@/lib/data/user-profile";
+import {
+  DEPARTMENT_OPTIONS,
+  resolveSelectOther,
+  splitSelectOther,
+  validatePhoneOptional,
+  validateSelectOther,
+} from "@/lib/forms/animal-field-options";
 import {
   Bell,
   LogOut,
@@ -20,6 +28,7 @@ import {
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface ProfileSettingsFormProps {
   user: {
@@ -43,7 +52,9 @@ function initials(name: string) {
 export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
   const { pending, run } = useActionPending();
   const [phone, setPhone] = useState(prefs.phone);
-  const [department, setDepartment] = useState(prefs.department);
+  const deptInit = splitSelectOther(prefs.department, DEPARTMENT_OPTIONS);
+  const [deptChoice, setDeptChoice] = useState(deptInit.choice || "");
+  const [deptOther, setDeptOther] = useState(deptInit.other);
   const [timezone, setTimezone] = useState(prefs.timezone);
   const [notifyEmail, setNotifyEmail] = useState(prefs.notifyEmail);
   const [notifyUrgentCases, setNotifyUrgentCases] = useState(
@@ -56,6 +67,10 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
     prefs.notifyWeeklyDigest,
   );
   const [saved, setSaved] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const department =
+    resolveSelectOther(deptChoice, deptOther) ?? prefs.department;
 
   const isDirty =
     phone !== prefs.phone ||
@@ -68,11 +83,22 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    setFormError(null);
+    const phoneErr = validatePhoneOptional(phone);
+    if (phoneErr) {
+      setFormError(phoneErr);
+      return;
+    }
+    const deptErr = validateSelectOther("Department", deptChoice, deptOther);
+    if (deptErr) {
+      setFormError(deptErr);
+      return;
+    }
     await run(
       () =>
         updateProfileAction({
           phone,
-          department,
+          department: resolveSelectOther(deptChoice, deptOther) ?? "",
           timezone,
           notifyEmail,
           notifyUrgentCases,
@@ -157,7 +183,7 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
             <div className="space-y-1.5">
               <Label htmlFor="profile-phone">Phone number</Label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite/40" />
+                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite/40" />
                 <Input
                   id="profile-phone"
                   type="tel"
@@ -168,39 +194,47 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
                     setSaved(false);
                   }}
                   className="h-10 rounded-xl pl-10"
+                  maxLength={20}
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="profile-department">Department / team</Label>
-              <Input
-                id="profile-department"
-                placeholder="e.g. Intake, Medical, Operations"
-                value={department}
-                onChange={(e) => {
-                  setDepartment(e.target.value);
-                  setSaved(false);
-                }}
-                className="h-10 rounded-xl"
-              />
-            </div>
+            <SelectWithOtherSplit
+              id="profile-department"
+              label="Department / team"
+              options={DEPARTMENT_OPTIONS}
+              choice={deptChoice}
+              other={deptOther}
+              onChoiceChange={(v) => {
+                setDeptChoice(v);
+                setSaved(false);
+              }}
+              onOtherChange={(v) => {
+                setDeptOther(v);
+                setSaved(false);
+              }}
+              placeholder="Select department"
+              selectClassName="h-10 rounded-xl"
+            />
 
+            {formError ? (
+              <p className="text-xs text-rescue sm:col-span-2">{formError}</p>
+            ) : null}
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="profile-timezone">Timezone</Label>
-              <select
+              <Select
                 id="profile-timezone"
                 value={timezone}
                 onChange={(e) => {
                   setTimezone(e.target.value);
                   setSaved(false);
                 }}
-                className="flex h-10 w-full rounded-xl border border-sage/30 bg-white px-3 text-sm text-graphite focus:border-evergreen focus:outline-none focus:ring-2 focus:ring-evergreen/20"
+                className="h-10 rounded-xl"
               >
                 <option value="Asia/Manila">Asia/Manila (GMT+8)</option>
                 <option value="Asia/Singapore">Asia/Singapore (GMT+8)</option>
                 <option value="UTC">UTC</option>
-              </select>
+              </Select>
             </div>
           </div>
         </section>

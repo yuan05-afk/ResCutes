@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { TableToolbar } from "@/components/admin/ClickableTable";
+import { Search } from "lucide-react";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { AppUser, RescueCaseRecord } from "@/lib/data/types";
 import { resolveCurrentUrgency } from "@/lib/data/urgency";
@@ -133,19 +135,22 @@ export function RescueCasesFiltersBar({
   onClear: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-end gap-2 sm:gap-3">
-      <div className="w-full min-w-0 flex-1 sm:min-w-[12rem]">
+    <TableToolbar>
+      <div className="relative w-full min-w-0 flex-1 sm:min-w-[14rem]">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite/40" />
         <Input
           placeholder="Search cases..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-9"
+          className="h-10 rounded-lg pl-9"
+          aria-label="Search cases"
         />
       </div>
       <Select
         value={status}
         onChange={(e) => setStatus(e.target.value)}
-        className="h-9 w-full min-w-0 sm:w-auto sm:min-w-[9rem]"
+        className="h-10 w-full min-w-0 rounded-lg sm:w-auto sm:min-w-[9rem]"
+        aria-label="Filter by status"
       >
         <option value="">All statuses</option>
         {STATUSES.map((s) => (
@@ -157,7 +162,8 @@ export function RescueCasesFiltersBar({
       <Select
         value={urgency}
         onChange={(e) => setUrgency(e.target.value)}
-        className="h-9 w-full min-w-0 sm:w-auto sm:min-w-[8rem]"
+        className="h-10 w-full min-w-0 rounded-lg sm:w-auto sm:min-w-[8rem]"
+        aria-label="Filter by urgency"
       >
         <option value="">All urgency</option>
         {URGENCY_LEVELS.map((u) => (
@@ -169,7 +175,8 @@ export function RescueCasesFiltersBar({
       <Select
         value={rescuer}
         onChange={(e) => setRescuer(e.target.value)}
-        className="h-9 w-full min-w-0 sm:w-auto sm:min-w-[9rem]"
+        className="h-10 w-full min-w-0 rounded-lg sm:w-auto sm:min-w-[9rem]"
+        aria-label="Filter by rescuer"
       >
         <option value="">All rescuers</option>
         {rescuers.map((r) => (
@@ -181,15 +188,22 @@ export function RescueCasesFiltersBar({
       <Select
         value={sort}
         onChange={(e) => setSort(e.target.value)}
-        className="h-9 w-full min-w-0 sm:w-auto sm:min-w-[8rem]"
+        className="h-10 w-full min-w-0 rounded-lg sm:w-auto sm:min-w-[8rem]"
+        aria-label="Sort cases"
       >
         <option value="date">Newest</option>
         <option value="urgency">Urgency</option>
         <option value="waiting">Waiting</option>
       </Select>
-      <Button type="button" variant="outline" size="sm" onClick={onClear}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-10 rounded-lg px-4"
+        onClick={onClear}
+      >
         Clear
       </Button>
-    </div>
+    </TableToolbar>
   );
 }

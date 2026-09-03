@@ -126,6 +126,36 @@
   .rc-scroll::-webkit-scrollbar-thumb:hover {
     background-color: rgba(24, 60, 53, 0.42);
   }
+
+  /* Dropdown lists: visible scrollbar (Radix hides it by default) */
+  [data-radix-select-viewport].rc-scroll-dropdown {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin !important;
+    -ms-overflow-style: auto !important;
+    scrollbar-color: rgba(24, 60, 53, 0.42) rgba(24, 60, 53, 0.1);
+  }
+  [data-radix-select-viewport].rc-scroll-dropdown::-webkit-scrollbar {
+    display: block !important;
+    width: 6px !important;
+    height: 6px !important;
+  }
+  [data-radix-select-viewport].rc-scroll-dropdown::-webkit-scrollbar-track {
+    margin: 4px 0;
+    border-radius: 9999px;
+    background: rgba(24, 60, 53, 0.08);
+  }
+  [data-radix-select-viewport].rc-scroll-dropdown::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: rgba(24, 60, 53, 0.38);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    background-clip: padding-box;
+  }
+  [data-radix-select-viewport].rc-scroll-dropdown::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(24, 60, 53, 0.55);
+  }
 }
 
 @keyframes rc-nav-progress {

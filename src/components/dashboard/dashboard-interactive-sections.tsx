@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { UrgencyBadge } from "@/components/status/urgency-badge";
-import { StatusBadge } from "@/components/status/status-badge";
 import { AttentionQueueItem } from "@/components/dashboard/attention-queue-item";
 import { CaseDetailModal } from "@/components/admin/CaseDetailModal";
-import { ClickableRow } from "@/components/admin/ClickableTable";
 import { DashboardMapClient } from "@/app/(dashboard)/dashboard/dashboard-map";
 import { resolveCurrentUrgency } from "@/lib/data/urgency";
 import type { RescueCaseRecord } from "@/lib/data/types";
@@ -138,43 +135,23 @@ export function DashboardInteractiveSections({
                 No cases waiting for rescuer.
               </p>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 z-10 bg-white">
-                  <tr className="text-left text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
-                    <th className="px-2 py-1.5">Case</th>
-                    <th className="px-2 py-1.5">Status</th>
-                    <th className="px-2 py-1.5">Urgency</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {waitingForRescuer.slice(0, 8).map((c) => {
-                    const urgency = resolveCurrentUrgency(c);
-                    return (
-                      <ClickableRow
-                        key={c.id}
-                        onOpen={() => setOpenId(c.id)}
-                      >
-                        <td className="px-2 py-2 text-xs font-semibold text-evergreen">
-                          {c.caseNumber}
-                        </td>
-                        <td className="px-2 py-2">
-                          <StatusBadge status={c.status} />
-                        </td>
-                        <td className="px-2 py-2">
-                          {urgency.score > 0 ? (
-                            <UrgencyBadge
-                              level={urgency.level}
-                              score={urgency.score}
-                            />
-                          ) : (
-                            <span className="text-graphite/40">-</span>
-                          )}
-                        </td>
-                      </ClickableRow>
-                    );
-                  })}
-                </tbody>
-              </table>
+              waitingForRescuer.slice(0, 8).map((c) => {
+                const urgency = resolveCurrentUrgency(c);
+                return (
+                  <AttentionQueueItem
+                    key={c.id}
+                    id={c.id}
+                    caseNumber={c.caseNumber}
+                    species={c.species}
+                    urgencyLevel={urgency.level}
+                    urgencyScore={urgency.score}
+                    description={c.description}
+                    photoUrl={c.photoUrl}
+                    onOpen={() => setOpenId(c.id)}
+                    compact
+                  />
+                );
+              })
             )}
           </div>
         </section>

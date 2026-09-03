@@ -8,13 +8,20 @@ import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
+import { SelectWithOtherSplit } from "@/components/ui/select-with-other";
 import { useActionPending } from "@/components/shared/useActionPending";
 import { updateMedicalClearanceAction } from "@/app/actions/case";
 import type { ClearanceStatus } from "@/lib/data/types";
-import { formatStatus } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { formatStatus, cn } from "@/lib/utils";
+import {
+  GENERAL_CONDITION_OPTIONS,
+  MEDICAL_PRIORITY_VALUES,
+  resolveSelectOther,
+  splitSelectOther,
+  validateSelectOther,
+} from "@/lib/forms/animal-field-options";
 
-const PRIORITIES = ["routine", "urgent", "emergency"];
+const PRIORITIES = MEDICAL_PRIORITY_VALUES;
 
 interface MedicalClearanceFormProps {
   animalId: string;
@@ -54,6 +61,14 @@ export function MedicalClearanceForm({
     veterinarianNotes: clearance?.veterinarianNotes ?? "",
     followUpDate: clearance?.followUpDate?.split("T")[0] ?? "",
   });
+  const conditionInit = splitSelectOther(
+    clearance?.generalCondition,
+    GENERAL_CONDITION_OPTIONS,
+  );
+  const [conditionChoice, setConditionChoice] = useState(
+    conditionInit.choice || "",
+  );
+  const [conditionOther, setConditionOther] = useState(conditionInit.other);
 
   const isPanel = variant === "panel";
   const isExamPhase =
@@ -78,19 +93,31 @@ export function MedicalClearanceForm({
     }
 
     setError(null);
+    const conditionErr = validateSelectOther(
+      "General condition",
+      conditionChoice,
+      conditionOther,
+    );
+    if (conditionErr) {
+      setError(conditionErr);
+      return;
+    }
+    const generalCondition =
+      resolveSelectOther(conditionChoice, conditionOther) ?? "";
+    const payload = { ...form, generalCondition };
 
     await run(
       () =>
         updateMedicalClearanceAction(animalId, {
-          generalCondition: form.generalCondition,
-          medicalPriority: form.medicalPriority,
-          treatmentSummary: form.treatmentSummary,
-          restrictions: form.restrictions,
-          followUpDate: form.followUpDate
-            ? new Date(form.followUpDate).toISOString()
+          generalCondition: payload.generalCondition,
+          medicalPriority: payload.medicalPriority,
+          treatmentSummary: payload.treatmentSummary,
+          restrictions: payload.restrictions,
+          followUpDate: payload.followUpDate
+            ? new Date(payload.followUpDate).toISOString()
             : undefined,
           clearanceStatus: targetStatus,
-          veterinarianNotes: form.veterinarianNotes,
+          veterinarianNotes: payload.veterinarianNotes,
         }),
       { rewarm: [`/animals/${animalId}`, "/animals", "/dashboard"] },
     );
@@ -223,16 +250,17 @@ export function MedicalClearanceForm({
 
   const formFields = (
     <>
-      <div className="space-y-1">
-        <Label className={isPanel ? "text-xs" : undefined}>General condition</Label>
-        <Textarea
-          value={form.generalCondition}
-          onChange={(e) => setForm({ ...form, generalCondition: e.target.value })}
-          placeholder="Examination findings"
-          rows={isPanel ? 2 : 3}
-          className={cn(isPanel && "min-h-0 resize-none text-sm")}
-        />
-      </div>
+      <SelectWithOtherSplit
+        id="medical-general-condition"
+        label="General condition"
+        options={GENERAL_CONDITION_OPTIONS}
+        choice={conditionChoice}
+        other={conditionOther}
+        onChoiceChange={setConditionChoice}
+        onOtherChange={setConditionOther}
+        placeholder="Select condition"
+        selectClassName={isPanel ? "h-9 text-sm" : undefined}
+      />
       <div className="space-y-1">
         <Label className={isPanel ? "text-xs" : undefined}>Medical priority</Label>
         <Select

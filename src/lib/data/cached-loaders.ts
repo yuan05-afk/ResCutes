@@ -30,7 +30,7 @@ export const getDashboardMapCasesCached = cache(function getDashboardMapCasesCac
         )
         .slice(0, 10);
     },
-    ["dashboard-map-cases-v2"],
+    ["dashboard-map-cases-v3"],
     { revalidate: 120, tags: ["dashboard-metrics", "rescue-cases"] },
   )();
 });
@@ -50,7 +50,7 @@ export const getRescueCasesListCached = cache(function getRescueCasesListCached(
       };
       return getCases(filters);
     },
-    ["rescue-cases-list-v2", filtersKey],
+    ["rescue-cases-list-v4", filtersKey],
     { revalidate: 60, tags: ["dashboard-metrics", "rescue-cases"] },
   )();
 });
@@ -58,7 +58,7 @@ export const getRescueCasesListCached = cache(function getRescueCasesListCached(
 export const getAnimalsListCached = cache(function getAnimalsListCached() {
   return unstable_cache(
     async () => getAnimals(),
-    ["animals-list-v2"],
+    ["animals-list-v3"],
     { revalidate: 120, tags: ["animals"] },
   )();
 });

@@ -113,7 +113,8 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
               mapInteractive
               photoSrc={photoSrc}
               species={caseItem.species}
-              photoAlt={`${formatStatus(caseItem.species)} rescue`}
+              photoAlt={`${formatStatus(caseItem.species)} · ${caseItem.caseNumber}`}
+              photoCaption={caseItem.caseNumber}
               latitude={caseItem.latitude}
               longitude={caseItem.longitude}
               caseId={caseItem.id}

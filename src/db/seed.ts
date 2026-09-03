@@ -106,11 +106,26 @@ async function seedShelters() {
         address: shelter.address,
         latitude: shelter.latitude,
         longitude: shelter.longitude,
-        phone: shelter.phone,
+        phone: shelter.phone || null,
+        email: shelter.email || null,
         speciesAccepted: shelter.speciesAccepted,
         isActive: true,
       });
       console.log(`Inserted shelter: ${shelter.name}`);
+    } else {
+      await db
+        .update(shelters)
+        .set({
+          name: shelter.name,
+          address: shelter.address,
+          latitude: shelter.latitude,
+          longitude: shelter.longitude,
+          phone: shelter.phone || null,
+          email: shelter.email || null,
+          speciesAccepted: shelter.speciesAccepted,
+          updatedAt: new Date(),
+        })
+        .where(eq(shelters.id, id));
     }
 
     const capacity = await db.query.shelterCapacity.findFirst({

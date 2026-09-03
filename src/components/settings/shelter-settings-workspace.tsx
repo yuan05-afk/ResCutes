@@ -5,13 +5,22 @@ import { cn } from "@/lib/utils";
 import { CapacityRing } from "@/components/ui/capacity-ring";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { ShelterSettingsForm } from "@/app/(dashboard)/settings/shelter-form";
-import { Building2, MapPin, Phone } from "lucide-react";
+import { ShelterContactBlock } from "@/components/shelters/shelter-contact-block";
+import { Building2 } from "lucide-react";
 
 export interface ShelterSettingsItem {
   id: string;
   name: string;
   address: string;
   phone: string;
+  email?: string;
+  website?: string;
+  latitude: number;
+  longitude: number;
+  directoryId?: string;
+  city?: string;
+  region?: string;
+  notes?: string;
   totalCapacity: number;
   currentOccupancy: number;
   capabilities: string[];
@@ -52,7 +61,6 @@ export function ShelterSettingsWorkspace({
 
   return (
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-hidden">
-      {/* Shelter picker */}
       <aside className="flex shrink-0 flex-col gap-2 lg:w-64">
         <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
           Select shelter
@@ -82,14 +90,19 @@ export function ShelterSettingsWorkspace({
                   <div
                     className={cn(
                       "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-                      isActive ? "bg-evergreen text-white" : "bg-sage/20 text-evergreen",
+                      isActive
+                        ? "bg-evergreen text-white"
+                        : "bg-sage/20 text-evergreen",
                     )}
                   >
                     <Building2 className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-graphite">
-                      {shelter.name.replace(/ Animal Shelter| Rescue Centre| Animal Rescue/g, "")}
+                      {shelter.name.replace(
+                        / Animal Shelter| Rescue Centre| Animal Rescue/g,
+                        "",
+                      )}
                     </p>
                     <p className="mt-0.5 text-[11px] text-graphite/50">
                       {available} free · {pct}% full
@@ -108,22 +121,28 @@ export function ShelterSettingsWorkspace({
         </div>
       </aside>
 
-      {/* Editor panel */}
       <div className="flex flex-col rounded-xl border border-sage/25 bg-white shadow-card lg:min-h-0 lg:min-w-0 lg:flex-1 lg:overflow-hidden">
         <div className="shrink-0 border-b border-sage/15 px-5 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold text-graphite">{selected.name}</h2>
-              <div className="mt-1.5 space-y-1">
-                <p className="flex items-center gap-1.5 text-xs text-graphite/55">
-                  <MapPin className="h-3.5 w-3.5 shrink-0" />
-                  <span className="line-clamp-2">{selected.address}</span>
-                </p>
-                <p className="flex items-center gap-1.5 text-xs text-graphite/55">
-                  <Phone className="h-3.5 w-3.5 shrink-0" />
-                  {selected.phone}
-                </p>
-              </div>
+              <ShelterContactBlock
+                className="mt-2.5"
+                compact
+                shelter={{
+                  name: selected.name,
+                  address: selected.address,
+                  city: selected.city,
+                  region: selected.region,
+                  latitude: selected.latitude,
+                  longitude: selected.longitude,
+                  phone: selected.phone,
+                  email: selected.email,
+                  website: selected.website,
+                  directoryId: selected.directoryId,
+                  notes: selected.notes,
+                }}
+              />
             </div>
             <div className="flex items-center gap-3 rounded-xl bg-bone/80 px-4 py-2">
               <div className="relative flex items-center justify-center">
