@@ -21,13 +21,15 @@ export const getDashboardMetricsCached = cache(function getDashboardMetricsCache
 
 export const getDashboardMapCasesCached = cache(function getDashboardMapCasesCached() {
   return unstable_cache(
-    async () =>
-      getCases({ sortBy: "urgency" })
+    async () => {
+      const cases = await getCases({ sortBy: "urgency" });
+      return cases
         .filter(
           (c) =>
             !["completed", "rejected", "duplicate", "cancelled"].includes(c.status),
         )
-        .slice(0, 10),
+        .slice(0, 10);
+    },
     ["dashboard-map-cases"],
     { revalidate: 120, tags: ["dashboard-metrics"] },
   )();
@@ -83,12 +85,14 @@ export function getMobileHomeDataCached(
 ) {
   return unstable_cache(
     async () => {
-      const notifications = getNotificationsForUser(userId);
-      const myCases = options.isAdministrator
-        ? getAdministratorMobileCases()
-        : options.isRescuer
-          ? getCases({ rescuerId: userId })
-          : getCases({ reporterId: userId });
+      const [notifications, myCases] = await Promise.all([
+        getNotificationsForUser(userId),
+        options.isAdministrator
+          ? getAdministratorMobileCases()
+          : options.isRescuer
+            ? getCases({ rescuerId: userId })
+            : getCases({ reporterId: userId }),
+      ]);
       return { notifications, myCases };
     },
     ["mobile-home", userId, String(options.isRescuer), String(options.isAdministrator)],

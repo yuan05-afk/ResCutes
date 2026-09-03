@@ -5,7 +5,7 @@ import { ProfileSettingsForm } from "@/components/profile/profile-settings-form"
 
 export default async function ProfilePage() {
   const session = await requireAuth();
-  const prefs = getUserProfilePrefs(session.user.id);
+  const prefs = await getUserProfilePrefs(session.user.id);
 
   return (
     <PageShell

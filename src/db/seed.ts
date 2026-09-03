@@ -1,11 +1,15 @@
-/**
- * Seeds Neon Auth demo users + app role rows in Postgres.
- * Run: npm run db:seed
- */
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { users, userRoles } from "@/db/schema";
+import {
+  shelterCapabilities,
+  shelterCapacity,
+  shelters,
+  userRoles,
+  users,
+} from "@/db/schema";
+import { shelterIdForSlug, userIdForEmail } from "@/db/stable-ids";
 import { AUTH_DEMO_USERS } from "@/lib/auth/demo-users";
+import { buildOperationalDemoShelters } from "@/lib/data/operational-shelters";
 
 const AUTH_ORIGIN = process.env.SEED_AUTH_ORIGIN ?? "http://localhost:3000";
 
@@ -44,10 +48,11 @@ async function signUpNeonAuthUser(account: {
   return { created: false as const, error: body || response.statusText };
 }
 
-async function seed() {
+async function seedUsers() {
   const db = getDb();
 
   for (const account of AUTH_DEMO_USERS) {
+    const userId = userIdForEmail(account.email);
     const result = await signUpNeonAuthUser(account);
 
     if (result.created) {
@@ -63,29 +68,92 @@ async function seed() {
       columns: { id: true },
     });
 
-    let userId = existing?.id;
-
-    if (!userId) {
-      const [inserted] = await db
-        .insert(users)
-        .values({
-          email: account.email,
-          name: account.name,
-          passwordHash: null,
-        })
-        .returning({ id: users.id });
-      userId = inserted.id;
+    if (!existing) {
+      await db.insert(users).values({
+        id: userId,
+        email: account.email,
+        name: account.name,
+        passwordHash: null,
+      });
       console.log(`Inserted app user: ${account.email}`);
     }
 
     for (const role of account.roles) {
       await db
         .insert(userRoles)
-        .values({ userId, role })
+        .values({ userId: existing?.id ?? userId, role })
         .onConflictDoNothing();
     }
   }
+}
 
+async function seedShelters() {
+  const db = getDb();
+  const operational = buildOperationalDemoShelters();
+
+  for (const shelter of operational) {
+    const id = shelterIdForSlug(shelter.id);
+
+    const existing = await db.query.shelters.findFirst({
+      where: eq(shelters.id, id),
+      columns: { id: true },
+    });
+
+    if (!existing) {
+      await db.insert(shelters).values({
+        id,
+        name: shelter.name,
+        address: shelter.address,
+        latitude: shelter.latitude,
+        longitude: shelter.longitude,
+        phone: shelter.phone,
+        speciesAccepted: shelter.speciesAccepted,
+        isActive: true,
+      });
+      console.log(`Inserted shelter: ${shelter.name}`);
+    }
+
+    const capacity = await db.query.shelterCapacity.findFirst({
+      where: eq(shelterCapacity.shelterId, id),
+    });
+
+    if (!capacity) {
+      await db.insert(shelterCapacity).values({
+        shelterId: id,
+        totalCapacity: shelter.totalCapacity,
+        currentOccupancy: shelter.currentOccupancy,
+        operationalWorkload: shelter.operationalWorkload,
+      });
+    } else {
+      await db
+        .update(shelterCapacity)
+        .set({
+          totalCapacity: shelter.totalCapacity,
+          currentOccupancy: shelter.currentOccupancy,
+          operationalWorkload: shelter.operationalWorkload,
+          updatedAt: new Date(),
+        })
+        .where(eq(shelterCapacity.shelterId, id));
+    }
+
+    await db
+      .delete(shelterCapabilities)
+      .where(eq(shelterCapabilities.shelterId, id));
+
+    if (shelter.capabilities.length > 0) {
+      await db.insert(shelterCapabilities).values(
+        shelter.capabilities.map((capability) => ({
+          shelterId: id,
+          capability,
+        })),
+      );
+    }
+  }
+}
+
+async function seed() {
+  await seedUsers();
+  await seedShelters();
   console.log("ResCutes seed complete.");
 }
 

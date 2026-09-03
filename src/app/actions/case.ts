@@ -59,9 +59,9 @@ export async function acceptAssignmentAction(assignmentId: string) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
   const adminOverride = isAdministrator(session.user.roles);
-  const accepted = acceptAssignment(assignmentId, session.user.id, { adminOverride });
+  const accepted = await acceptAssignment(assignmentId, session.user.id, { adminOverride });
   if (!accepted) return { error: "Assignment not found or already responded" };
-  const assignment = getAssignmentById(assignmentId);
+  const assignment = await getAssignmentById(assignmentId);
   if (assignment) {
     revalidateCaseViews(
       assignment.caseId,
@@ -81,11 +81,11 @@ export async function declineAssignmentAction(
   if (!session?.user) return { error: "Unauthorized" };
   if (!reason.trim()) return { error: "Reason required" };
   const adminOverride = isAdministrator(session.user.roles);
-  const declined = declineAssignment(assignmentId, session.user.id, reason, {
+  const declined = await declineAssignment(assignmentId, session.user.id, reason, {
     adminOverride,
   });
   if (!declined) return { error: "Assignment not found or already responded" };
-  const assignment = getAssignmentById(assignmentId);
+  const assignment = await getAssignmentById(assignmentId);
   if (assignment) {
     revalidateCaseViews(
       assignment.caseId,
@@ -104,23 +104,24 @@ export async function updateCaseStatusAction(caseId: string, status: string) {
   const adminOverride = isAdministrator(session.user.roles);
 
   if (adminOverride) {
-    const rescuerResult = updateCaseStatusAsRescuer(
+    const rescuerResult = await updateCaseStatusAsRescuer(
       caseId,
       session.user.id,
       status,
       { adminOverride: true },
     );
     if (!rescuerResult.ok) {
-      updateCaseStatus(caseId, status, session.user.id);
+      await updateCaseStatus(caseId, status, session.user.id);
     }
   } else if (canManageCases(session.user.roles)) {
-    updateCaseStatus(caseId, status, session.user.id);
+    await updateCaseStatus(caseId, status, session.user.id);
   } else {
-    const result = updateCaseStatusAsRescuer(caseId, session.user.id, status);
+    const result = await updateCaseStatusAsRescuer(caseId, session.user.id, status);
     if (!result.ok) return { error: result.error };
   }
 
-  const assignment = getAssignmentsForCase(caseId).find(
+  const assignments = await getAssignmentsForCase(caseId);
+  const assignment = assignments.find(
     (a) => a.rescuerId === session.user!.id || adminOverride,
   );
   revalidateCaseViews(
@@ -137,9 +138,9 @@ export async function verifyCaseAction(caseId: string) {
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  const updated = verifyCase(caseId, session.user.id);
+  const updated = await verifyCase(caseId, session.user.id);
   if (!updated) return { error: "Case not found" };
-  generateRecommendationsForCase(caseId);
+  await generateRecommendationsForCase(caseId);
   revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
@@ -149,7 +150,7 @@ export async function rejectCaseAction(caseId: string, reason: string) {
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  rejectCase(caseId, session.user.id, reason);
+  await rejectCase(caseId, session.user.id, reason);
   revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
@@ -159,7 +160,7 @@ export async function assignRescuerAction(caseId: string, rescuerId: string) {
   if (!session?.user) return { error: "Unauthorized" };
   if (!canAssignRescuer(session.user.roles))
     return { error: "Unauthorized" };
-  assignRescuer(caseId, rescuerId, session.user.id);
+  await assignRescuer(caseId, rescuerId, session.user.id);
   revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
@@ -173,7 +174,7 @@ export async function selectShelterAction(
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  selectShelter(caseId, shelterId, session.user.id, rejectionReason);
+  await selectShelter(caseId, shelterId, session.user.id, rejectionReason);
   revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
@@ -187,14 +188,15 @@ export async function confirmHandoffAction(
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  const result = confirmShelterHandoff(
+  const result = await confirmShelterHandoff(
     caseId,
     shelterId,
     session.user.id,
     notes,
   );
   if (!result.ok) return { error: result.error };
-  const assignment = getAssignmentsForCase(caseId).find(
+  const assignments = await getAssignmentsForCase(caseId);
+  const assignment = assignments.find(
     (a) => a.status === "completed" || a.status === "accepted",
   );
   revalidateCaseViews(
@@ -221,7 +223,7 @@ export async function completeShelterIntakeAction(
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  const result = completeShelterIntake(caseId, session.user.id, input);
+  const result = await completeShelterIntake(caseId, session.user.id, input);
   if (!result.ok) return { error: result.error };
   revalidateCaseViews(
     caseId,
@@ -243,7 +245,7 @@ export async function overrideUrgencyAction(
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
   if (!reason.trim()) return { error: "Override reason required" };
-  overrideUrgency(caseId, score, reason, session.user.id);
+  await overrideUrgency(caseId, score, reason, session.user.id);
   revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
@@ -266,7 +268,7 @@ export async function updateMedicalClearanceAction(
   if (!canEditMedical(session.user.roles))
     return { error: "Unauthorized" };
 
-  const result = updateMedicalClearance(animalId, session.user.id, {
+  const result = await updateMedicalClearance(animalId, session.user.id, {
     ...data,
     clearanceStatus: data.clearanceStatus as ClearanceStatus,
   });
@@ -292,10 +294,10 @@ export async function updateShelterSettingsAction(
   if (!canManageSettings(session.user.roles))
     return { error: "Unauthorized" };
   if (data.totalCapacity !== undefined && data.currentOccupancy !== undefined) {
-    updateShelterCapacity(shelterId, data.totalCapacity, data.currentOccupancy);
+    await updateShelterCapacity(shelterId, data.totalCapacity, data.currentOccupancy);
   }
   if (data.capabilities) {
-    updateShelterCapabilities(shelterId, data.capabilities);
+    await updateShelterCapabilities(shelterId, data.capabilities);
   }
   revalidateRescueData(session.user.id, ["/dashboard", "/settings"], session.user.email);
   revalidateTag("dashboard-metrics");

@@ -10,8 +10,6 @@ import {
   getAnimalById,
   getShelterById,
   getRescuers,
-  getMedicalClearanceForAnimal,
-  getNotesForAnimal,
   resolveCurrentUrgency,
 } from "@/lib/data/service";
 import { canManageCases, canViewReporterInfo, canViewMedicalNotes, canEditMedical } from "@/lib/auth/permissions";
@@ -20,18 +18,28 @@ export async function fetchCaseModalData(caseId: string) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" as const };
 
-  const caseItem = getCaseById(caseId);
+  const caseItem = await getCaseById(caseId);
   if (!caseItem) return { error: "Not found" as const };
 
-  const history = getStatusHistoryForCase(caseId);
-  const assignments = getAssignmentsForCase(caseId);
-  const recommendations = getRecommendationsForCase(caseId);
-  const handoff = getHandoffForCase(caseId);
-  const animal = caseItem.animalId ? getAnimalById(caseItem.animalId) : null;
-  const shelter = caseItem.assignedShelterId
-    ? getShelterById(caseItem.assignedShelterId)
-    : null;
-  const rescuers = getRescuers();
+  const [
+    history,
+    assignments,
+    recommendations,
+    handoff,
+    animal,
+    shelter,
+    rescuers,
+  ] = await Promise.all([
+    getStatusHistoryForCase(caseId),
+    getAssignmentsForCase(caseId),
+    getRecommendationsForCase(caseId),
+    getHandoffForCase(caseId),
+    caseItem.animalId ? getAnimalById(caseItem.animalId) : Promise.resolve(null),
+    caseItem.assignedShelterId
+      ? getShelterById(caseItem.assignedShelterId)
+      : Promise.resolve(null),
+    getRescuers(),
+  ]);
   const currentUrgency = resolveCurrentUrgency(caseItem);
 
   return {
@@ -55,13 +63,15 @@ export async function fetchAnimalModalData(animalId: string) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" as const };
 
-  const animal = getAnimalById(animalId);
+  const animal = await getAnimalById(animalId);
   if (!animal) return { error: "Not found" as const };
 
-  const clearance = getMedicalClearanceForAnimal(animalId);
-  const notes = getNotesForAnimal(animalId);
-  const rescueCase = animal.rescueCaseId ? getCaseById(animal.rescueCaseId) : null;
-  const shelter = animal.shelterId ? getShelterById(animal.shelterId) : null;
+  const [clearance, notes, rescueCase, shelter] = await Promise.all([
+    getMedicalClearanceForAnimal(animalId),
+    getNotesForAnimal(animalId),
+    animal.rescueCaseId ? getCaseById(animal.rescueCaseId) : Promise.resolve(null),
+    animal.shelterId ? getShelterById(animal.shelterId) : Promise.resolve(null),
+  ]);
 
   return {
     data: {

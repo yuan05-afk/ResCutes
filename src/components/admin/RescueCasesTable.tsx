@@ -13,14 +13,14 @@ import {
   RescueCasesFiltersBar,
   useRescueCasesFilters,
 } from "@/components/admin/rescue-cases-filters";
-import type { DemoCase, DemoUser } from "@/lib/data/demo-store";
+import type { AppUser, RescueCaseRecord } from "@/lib/data/types";
 import { resolveCurrentUrgency } from "@/lib/data/service";
 
 const ROWS_PER_PAGE = 7;
 
 interface RescueCasesTableProps {
-  cases: DemoCase[];
-  rescuers: Pick<DemoUser, "id" | "name">[];
+  cases: RescueCaseRecord[];
+  rescuers: Pick<AppUser, "id" | "name">[];
 }
 
 export function RescueCasesTable({ cases, rescuers }: RescueCasesTableProps) {

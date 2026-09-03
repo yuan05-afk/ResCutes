@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import type { DemoUser } from "@/lib/data/demo-store";
+import type { AppUser } from "@/lib/data/types";
 
 const STATUSES = [
   "report_submitted",
@@ -28,7 +28,7 @@ const URGENCY_LEVELS = ["critical", "high", "medium", "low"];
 export function RescueCasesFilters({
   rescuers,
 }: {
-  rescuers: Pick<DemoUser, "id" | "name">[];
+  rescuers: Pick<AppUser, "id" | "name">[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();

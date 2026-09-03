@@ -15,14 +15,14 @@ import {
 } from "@/components/admin/ClickableTable";
 import { useClientPagination } from "@/components/admin/use-client-pagination";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import type { DemoAnimal } from "@/lib/data/demo-store";
+import type { AnimalRecord } from "@/lib/data/types";
 import { formatDate, formatStatus } from "@/lib/utils";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 
 const ROWS_PER_PAGE = 7;
 
 interface AnimalsTableProps {
-  animals: DemoAnimal[];
+  animals: AnimalRecord[];
 }
 
 export function AnimalsTable({ animals }: AnimalsTableProps) {

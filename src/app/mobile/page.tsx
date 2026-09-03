@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
 import {
   getAssignmentsForCase,
+  getAssignmentsForCases,
   getCaseById,
   getFirstPendingAssignment,
   getShelterById,
@@ -43,21 +44,34 @@ export default async function MobileHomePage() {
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   )[0];
 
-  const pendingAssignment = isRescuer
-    ? (() => {
-        if (isAdmin) {
-          const assignment = getFirstPendingAssignment();
-          if (!assignment) return null;
-          const caseItem = getCaseById(assignment.caseId);
-          return caseItem ? { ...assignment, case: caseItem } : null;
+  let pendingAssignment: {
+    id: string;
+    caseId: string;
+    case: NonNullable<Awaited<ReturnType<typeof getCaseById>>>;
+  } | null = null;
+
+  if (isRescuer) {
+    if (isAdmin) {
+      const assignment = await getFirstPendingAssignment();
+      if (assignment) {
+        const caseItem = await getCaseById(assignment.caseId);
+        if (caseItem) {
+          pendingAssignment = { ...assignment, case: caseItem };
         }
-        return myCases
-          .flatMap((c) =>
-            getAssignmentsForCase(c.id).map((a) => ({ ...a, case: c })),
-          )
-          .find((a) => a.rescuerId === userId && a.status === "pending");
-      })()
-    : null;
+      }
+    } else {
+      const assignmentMap = await getAssignmentsForCases(myCases.map((c) => c.id));
+      for (const c of myCases) {
+        const pending = assignmentMap
+          .get(c.id)
+          ?.find((a) => a.rescuerId === userId && a.status === "pending");
+        if (pending) {
+          pendingAssignment = { ...pending, case: c };
+          break;
+        }
+      }
+    }
+  }
 
   let rescuerName: string | undefined;
   let shelterLat: number | undefined;
@@ -65,11 +79,13 @@ export default async function MobileHomePage() {
   let shelterName: string | undefined;
 
   if (activeCase) {
-    const assignments = getAssignmentsForCase(activeCase.id);
-    const accepted = assignments.find((a) => a.status === "accepted" || a.status === "completed");
+    const assignments = await getAssignmentsForCase(activeCase.id);
+    const accepted = assignments.find(
+      (a) => a.status === "accepted" || a.status === "completed",
+    );
     rescuerName = accepted?.rescuerName;
     if (activeCase.assignedShelterId) {
-      const shelter = getShelterById(activeCase.assignedShelterId);
+      const shelter = await getShelterById(activeCase.assignedShelterId);
       if (shelter) {
         shelterLat = shelter.latitude;
         shelterLon = shelter.longitude;
@@ -149,7 +165,7 @@ export default async function MobileHomePage() {
             shelterLat={shelterLat}
             shelterLon={shelterLon}
             detailHref={
-              pendingAssignment?.caseId === activeCase.id
+              pendingAssignment && pendingAssignment.caseId === activeCase.id
                 ? `/mobile/assignments/${pendingAssignment.id}`
                 : undefined
             }

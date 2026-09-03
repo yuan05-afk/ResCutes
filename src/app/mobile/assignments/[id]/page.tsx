@@ -21,23 +21,23 @@ export default async function AssignmentDetailPage({
 }) {
   const { id } = await params;
   const session = await requireAuth();
-  const assignment = getAssignmentById(id);
+  const assignment = await getAssignmentById(id);
   if (!assignment) notFound();
 
-  const caseItem = getCaseById(assignment.caseId);
+  const caseItem = await getCaseById(assignment.caseId);
   if (!caseItem) notFound();
 
   if (
-    !canAccessAssignment(id, session.user.id, {
+    !(await canAccessAssignment(id, session.user.id, {
       adminOverride: isAdministrator(session.user.roles),
-    })
+    }))
   ) {
     notFound();
   }
 
   const currentUrgency = resolveCurrentUrgency(caseItem);
   const shelter = caseItem.assignedShelterId
-    ? getShelterById(caseItem.assignedShelterId)
+    ? await getShelterById(caseItem.assignedShelterId)
     : null;
 
   return (

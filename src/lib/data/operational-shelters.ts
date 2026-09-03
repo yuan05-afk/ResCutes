@@ -1,4 +1,4 @@
-import type { DemoShelter } from "@/lib/data/demo-store";
+import type { ShelterRecord } from "@/lib/data/types";
 import { getCuratedShelterRecords } from "@/lib/data/philippines-shelters-directory";
 import { OPERATIONAL_SHELTER_PROFILES } from "@/lib/data/operational-shelter-profiles";
 
@@ -10,7 +10,7 @@ function formatShelterAddress(
   return `${address}, ${city}, ${region}`;
 }
 
-export function buildOperationalDemoShelters(): DemoShelter[] {
+export function buildOperationalDemoShelters(): ShelterRecord[] {
   return getCuratedShelterRecords().map((shelter) => {
     const profile = OPERATIONAL_SHELTER_PROFILES[shelter.id];
     return {

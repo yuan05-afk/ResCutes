@@ -8,7 +8,7 @@ import { CaseDetailModal } from "@/components/admin/CaseDetailModal";
 import { ClickableRow } from "@/components/admin/ClickableTable";
 import { DashboardMapClient } from "@/app/(dashboard)/dashboard/dashboard-map";
 import { resolveCurrentUrgency } from "@/lib/data/service";
-import type { DemoCase } from "@/lib/data/demo-store";
+import type { RescueCaseRecord } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
 interface QueueItem {
@@ -35,7 +35,7 @@ interface MapCaseItem {
 interface DashboardInteractiveSectionsProps {
   mapCases: MapCaseItem[];
   criticalCases: QueueItem[];
-  waitingForRescuer: DemoCase[];
+  waitingForRescuer: RescueCaseRecord[];
   className?: string;
 }
 

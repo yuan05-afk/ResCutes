@@ -358,6 +358,7 @@ export const shelterHandoffs = pgTable(
     confirmedByStaffId: uuid("confirmed_by_staff_id").references(() => users.id),
     handoffNotes: text("handoff_notes"),
     confirmedAt: timestamp("confirmed_at"),
+    intakeCompletedAt: timestamp("intake_completed_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [index("shelter_handoffs_case_id_idx").on(table.caseId)],
@@ -467,11 +468,34 @@ export const auditLogs = pgTable(
 );
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const userPreferences = pgTable("user_preferences", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  department: text("department").notNull().default(""),
+  notifyEmail: boolean("notify_email").notNull().default(true),
+  notifyUrgentCases: boolean("notify_urgent_cases").notNull().default(true),
+  notifyAssignments: boolean("notify_assignments").notNull().default(true),
+  notifyWeeklyDigest: boolean("notify_weekly_digest").notNull().default(false),
+  timezone: text("timezone").notNull().default("Asia/Manila"),
+});
+
+export const usersRelations = relations(users, ({ one, many }) => ({
   roles: many(userRoles),
   reports: many(rescueReports),
   assignments: many(rescuerAssignments),
   notifications: many(notifications),
+  preferences: one(userPreferences, {
+    fields: [users.id],
+    references: [userPreferences.userId],
+  }),
+}));
+
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userPreferences.userId],
+    references: [users.id],
+  }),
 }));
 
 export const userRolesRelations = relations(userRoles, ({ one }) => ({

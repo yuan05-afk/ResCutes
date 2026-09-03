@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import type { DemoUser, DemoCase } from "@/lib/data/demo-store";
-import { DEMO_ASSIGNMENTS } from "@/lib/data/demo-store";
+import type { AppUser, RescueCaseRecord } from "@/lib/data/types";
 import { resolveCurrentUrgency } from "@/lib/data/service";
 
 const STATUSES = [
@@ -27,7 +26,7 @@ const STATUSES = [
 
 const URGENCY_LEVELS = ["critical", "high", "medium", "low"];
 
-export function useRescueCasesFilters(cases: DemoCase[]) {
+export function useRescueCasesFilters(cases: RescueCaseRecord[]) {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [status, setStatus] = useState(searchParams.get("status") ?? "");
@@ -49,10 +48,7 @@ export function useRescueCasesFilters(cases: DemoCase[]) {
       });
     }
     if (rescuer) {
-      const assignedCaseIds = DEMO_ASSIGNMENTS.filter(
-        (a) => a.rescuerId === rescuer && a.status !== "declined",
-      ).map((a) => a.caseId);
-      result = result.filter((c) => assignedCaseIds.includes(c.id));
+      result = result.filter((c) => c.activeRescuerId === rescuer);
     }
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
@@ -123,7 +119,7 @@ export function RescueCasesFiltersBar({
   setSort,
   onClear,
 }: {
-  rescuers: Pick<DemoUser, "id" | "name">[];
+  rescuers: Pick<AppUser, "id" | "name">[];
   search: string;
   setSearch: (v: string) => void;
   status: string;

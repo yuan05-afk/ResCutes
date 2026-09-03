@@ -25,14 +25,16 @@ export default async function MobileCaseDetailPage({
 }) {
   const { id } = await params;
   const session = await requireAuth();
-  const caseItem = getCaseById(id);
+  const caseItem = await getCaseById(id);
   if (!caseItem) notFound();
 
   const canExact = canViewExactLocation(session.user.roles);
   const canReporter = canViewReporterInfo(session.user.roles);
   const location = getCaseLocation(caseItem, session.user.roles, canExact);
-  const history = getStatusHistoryForCase(id);
-  const assignments = getAssignmentsForCase(id);
+  const [history, assignments] = await Promise.all([
+    getStatusHistoryForCase(id),
+    getAssignmentsForCase(id),
+  ]);
   const myAssignment = assignments.find((a) => a.rescuerId === session.user.id);
   const currentUrgency = resolveCurrentUrgency(caseItem);
 

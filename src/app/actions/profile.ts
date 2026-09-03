@@ -11,7 +11,7 @@ export async function updateProfileAction(
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
 
-  updateUserProfilePrefs(session.user.id, data);
+  await updateUserProfilePrefs(session.user.id, data);
   revalidatePath("/profile");
   return { success: true };
 }

@@ -21,15 +21,15 @@ export default async function AnimalDetailPage({
 }) {
   const { id } = await params;
   const session = await requireAuth();
-  const animal = getAnimalById(id);
+  const animal = await getAnimalById(id);
   if (!animal) notFound();
 
-  const clearance = getMedicalClearanceForAnimal(id);
-  const notes = getNotesForAnimal(id);
-  const rescueCase = animal.rescueCaseId
-    ? getCaseById(animal.rescueCaseId)
-    : null;
-  const shelter = animal.shelterId ? getShelterById(animal.shelterId) : null;
+  const [clearance, notes, rescueCase, shelter] = await Promise.all([
+    getMedicalClearanceForAnimal(id),
+    getNotesForAnimal(id),
+    animal.rescueCaseId ? getCaseById(animal.rescueCaseId) : Promise.resolve(null),
+    animal.shelterId ? getShelterById(animal.shelterId) : Promise.resolve(null),
+  ]);
   const canMedical = canViewMedicalNotes(session.user.roles);
   const canEdit = canEditMedical(session.user.roles);
 

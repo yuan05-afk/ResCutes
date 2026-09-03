@@ -7,15 +7,9 @@ export default async function NearbyPage() {
   const session = await requireAuth();
   const canExact = canViewExactLocation(session.user.roles);
 
-  const verifiedCases = getCases({
-    status: undefined,
-  }).filter(
-    (c) =>
-      !["report_submitted", "under_verification", "rejected", "duplicate", "cancelled", "completed"].includes(c.status) ||
-      c.status === "verified",
-  ).filter(
-    (c) =>
-      ["verified", "rescuer_assigned", "rescue_accepted", "rescue_in_progress", "animal_secured", "awaiting_shelter"].includes(c.status),
+  const allCases = await getCases();
+  const verifiedCases = allCases.filter((c) =>
+    ["verified", "rescuer_assigned", "rescue_accepted", "rescue_in_progress", "animal_secured", "awaiting_shelter"].includes(c.status),
   );
 
   const casesWithLocation = verifiedCases.map((c) => {

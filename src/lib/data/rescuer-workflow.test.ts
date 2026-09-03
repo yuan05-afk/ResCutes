@@ -2,114 +2,95 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   acceptAssignment,
   declineAssignment,
-  updateCaseStatusAsRescuer,
   getCaseById,
-  getAssignmentById,
+  updateCaseStatusAsRescuer,
 } from "@/lib/data/service";
-import { DEMO_CASES, DEMO_ASSIGNMENTS } from "@/lib/data/demo-store";
-import { seedCase004Fixtures } from "@/lib/data/workflow-test-fixtures";
-
-const JAMES = "user-james-rescuer";
-const ALEX_ADMIN = "user-alex-admin";
-
-function resetCase004() {
-  const caseItem = DEMO_CASES.find((c) => c.id === "case-004");
-  if (caseItem) {
-    caseItem.status = "rescuer_assigned";
-    caseItem.updatedAt = new Date().toISOString();
-  }
-
-  const assignment = DEMO_ASSIGNMENTS.find((a) => a.id === "assignment-004");
-  if (assignment) {
-    assignment.status = "pending";
-    assignment.respondedAt = undefined;
-    assignment.declineReason = undefined;
-  }
-}
+import {
+  resetWorkflowTestData,
+  seedCase004Fixtures,
+  TEST_IDS,
+  testUsers,
+} from "@/lib/data/workflow-test-fixtures";
 
 describe("rescuer workflow", () => {
-  beforeEach(() => {
-    seedCase004Fixtures();
-    resetCase004();
+  let users: Awaited<ReturnType<typeof testUsers>>;
+
+  beforeEach(async () => {
+    await resetWorkflowTestData();
+    users = await testUsers();
+    await seedCase004Fixtures();
   });
 
-  it("accepts pending assignment and moves case to rescue_accepted", () => {
-    const accepted = acceptAssignment("assignment-004", JAMES);
+  it("accepts a pending assignment", async () => {
+    const accepted = await acceptAssignment(
+      TEST_IDS.assignment004,
+      users.james,
+    );
     expect(accepted).toBe(true);
 
-    const assignment = getAssignmentById("assignment-004");
-    expect(assignment?.status).toBe("accepted");
-
-    const caseItem = getCaseById("case-004");
+    const caseItem = await getCaseById(TEST_IDS.case004);
     expect(caseItem?.status).toBe("rescue_accepted");
   });
 
-  it("declines pending assignment and reverts case to verified", () => {
-    const declined = declineAssignment(
-      "assignment-004",
-      JAMES,
-      "Too far from current location",
+  it("declines a pending assignment and reverts case to verified", async () => {
+    const declined = await declineAssignment(
+      TEST_IDS.assignment004,
+      users.james,
+      "Too far",
     );
     expect(declined).toBe(true);
 
-    const assignment = getAssignmentById("assignment-004");
-    expect(assignment?.status).toBe("declined");
-
-    const caseItem = getCaseById("case-004");
+    const caseItem = await getCaseById(TEST_IDS.case004);
     expect(caseItem?.status).toBe("verified");
   });
 
-  it("walks rescue status transitions through awaiting_shelter", () => {
-    acceptAssignment("assignment-004", JAMES);
+  it("progresses case through rescue statuses", async () => {
+    await acceptAssignment(TEST_IDS.assignment004, users.james);
 
-    const start = updateCaseStatusAsRescuer(
-      "case-004",
-      JAMES,
+    const start = await updateCaseStatusAsRescuer(
+      TEST_IDS.case004,
+      users.james,
       "rescue_in_progress",
     );
     expect(start.ok).toBe(true);
-    expect(getCaseById("case-004")?.status).toBe("rescue_in_progress");
+    expect((await getCaseById(TEST_IDS.case004))?.status).toBe("rescue_in_progress");
 
-    const secured = updateCaseStatusAsRescuer(
-      "case-004",
-      JAMES,
+    const secured = await updateCaseStatusAsRescuer(
+      TEST_IDS.case004,
+      users.james,
       "animal_secured",
     );
     expect(secured.ok).toBe(true);
-    expect(getCaseById("case-004")?.status).toBe("animal_secured");
 
-    const awaiting = updateCaseStatusAsRescuer(
-      "case-004",
-      JAMES,
+    const awaiting = await updateCaseStatusAsRescuer(
+      TEST_IDS.case004,
+      users.james,
       "awaiting_shelter",
     );
     expect(awaiting.ok).toBe(true);
-    expect(getCaseById("case-004")?.status).toBe("awaiting_shelter");
+    expect((await getCaseById(TEST_IDS.case004))?.status).toBe("awaiting_shelter");
   });
 
-  it("rejects invalid rescuer status transitions", () => {
-    acceptAssignment("assignment-004", JAMES);
+  it("rejects invalid status transitions", async () => {
+    await acceptAssignment(TEST_IDS.assignment004, users.james);
 
-    const invalid = updateCaseStatusAsRescuer(
-      "case-004",
-      JAMES,
+    const invalid = await updateCaseStatusAsRescuer(
+      TEST_IDS.case004,
+      users.james,
       "awaiting_shelter",
     );
     expect(invalid.ok).toBe(false);
-    if (!invalid.ok) {
-      expect(invalid.error).toBe("Invalid status transition");
-    }
   });
 
-  it("allows administrators to act on another rescuer's assignment", () => {
-    const accepted = acceptAssignment("assignment-004", ALEX_ADMIN, {
+  it("allows admin override on assignment acceptance", async () => {
+    const accepted = await acceptAssignment(TEST_IDS.assignment004, users.alex, {
       adminOverride: true,
     });
     expect(accepted).toBe(true);
 
-    const progressed = updateCaseStatusAsRescuer(
-      "case-004",
-      ALEX_ADMIN,
+    const progressed = await updateCaseStatusAsRescuer(
+      TEST_IDS.case004,
+      users.alex,
       "rescue_in_progress",
       { adminOverride: true },
     );

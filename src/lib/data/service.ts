@@ -1,19 +1,4 @@
 import {
-  DEMO_CASES,
-  DEMO_ASSIGNMENTS,
-  DEMO_ANIMALS,
-  DEMO_SHELTERS,
-  DEMO_RECOMMENDATIONS,
-  DEMO_STATUS_HISTORY,
-  DEMO_HANDOFFS,
-  DEMO_MEDICAL_CLEARANCES,
-  DEMO_ANIMAL_NOTES,
-  DEMO_NOTIFICATIONS,
-  DEMO_USERS,
-  type DemoCase,
-  type DemoAnimal,
-} from "@/lib/data/demo-store";
-import {
   calculateUrgencyScore,
   classifyUrgencyLevel,
   type UrgencyResult,
@@ -21,6 +6,33 @@ import {
 import { calculateShelterRecommendations } from "@/lib/routing/shelter-routing";
 import { approximateLocation, type Role } from "@/lib/auth/permissions";
 import { generateCaseNumber } from "@/lib/utils";
+import type {
+  AnimalRecord,
+  AssignmentRecord,
+  RescueCaseRecord,
+  ShelterRecord,
+} from "@/lib/data/types";
+
+async function dataRepo() {
+  return import("@/lib/data/db/repository");
+}
+
+export type {
+  AnimalRecord,
+  AssignmentRecord,
+  RescueCaseRecord,
+  ShelterRecord,
+  AppUser,
+  RecommendationRecord,
+  MedicalClearanceRecord,
+  StatusHistoryRecord,
+  NotificationRecord,
+  HandoffRecord,
+  AnimalNoteRecord,
+} from "@/lib/data/types";
+
+export type DemoCase = RescueCaseRecord;
+export type DemoAnimal = AnimalRecord;
 
 const STATUSES_WITH_SHELTER_RECOMMENDATIONS = new Set([
   "verified",
@@ -32,7 +44,7 @@ const STATUSES_WITH_SHELTER_RECOMMENDATIONS = new Set([
 ]);
 
 function urgencyInputFromCase(
-  caseItem: DemoCase,
+  caseItem: RescueCaseRecord,
   verifiedAt?: Date | null,
 ) {
   return {
@@ -50,8 +62,7 @@ function urgencyInputFromCase(
   };
 }
 
-/** Authoritative live urgency for display: factors, waiting time, and optional staff override. */
-export function resolveCurrentUrgency(caseItem: DemoCase): UrgencyResult {
+export function resolveCurrentUrgency(caseItem: RescueCaseRecord): UrgencyResult {
   if (caseItem.urgencyOverrideScore != null) {
     const score = caseItem.urgencyOverrideScore;
     const level = classifyUrgencyLevel(score);
@@ -81,7 +92,7 @@ export function resolveCurrentUrgency(caseItem: DemoCase): UrgencyResult {
   return calculateUrgencyScore(urgencyInputFromCase(caseItem));
 }
 
-export function getCases(filters?: {
+export async function getCases(filters?: {
   status?: string;
   urgencyLevel?: string;
   rescuerId?: string;
@@ -89,64 +100,16 @@ export function getCases(filters?: {
   reporterId?: string;
   search?: string;
   sortBy?: "urgency" | "waiting" | "date";
-}): DemoCase[] {
-  let cases = [...DEMO_CASES];
-
-  if (filters?.status) {
-    cases = cases.filter((c) => c.status === filters.status);
-  }
-  if (filters?.urgencyLevel) {
-    cases = cases.filter((c) => c.urgencyLevel === filters.urgencyLevel);
-  }
-  if (filters?.rescuerId) {
-    const assignedCaseIds = DEMO_ASSIGNMENTS
-      .filter((a) => a.rescuerId === filters.rescuerId && a.status !== "declined")
-      .map((a) => a.caseId);
-    cases = cases.filter((c) => assignedCaseIds.includes(c.id));
-  }
-  if (filters?.reporterId) {
-    cases = cases.filter((c) => c.reporterId === filters.reporterId);
-  }
-  if (filters?.shelterId) {
-    cases = cases.filter((c) => c.assignedShelterId === filters.shelterId);
-  }
-  if (filters?.search) {
-    const q = filters.search.toLowerCase();
-    cases = cases.filter(
-      (c) =>
-        c.caseNumber.toLowerCase().includes(q) ||
-        c.description.toLowerCase().includes(q) ||
-        c.species.toLowerCase().includes(q),
-    );
-  }
-
-  if (filters?.sortBy === "urgency") {
-    cases.sort(
-      (a, b) =>
-        resolveCurrentUrgency(b).score - resolveCurrentUrgency(a).score,
-    );
-  } else if (filters?.sortBy === "waiting") {
-    cases.sort((a, b) => {
-      const aTime = a.verifiedAt ? new Date(a.verifiedAt).getTime() : 0;
-      const bTime = b.verifiedAt ? new Date(b.verifiedAt).getTime() : 0;
-      return aTime - bTime;
-    });
-  } else {
-    cases.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-  }
-
-  return cases;
+}): Promise<RescueCaseRecord[]> {
+  return (await dataRepo()).fetchCases(filters);
 }
 
-export function getCaseById(id: string) {
-  return DEMO_CASES.find((c) => c.id === id);
+export async function getCaseById(id: string) {
+  return (await dataRepo()).fetchCaseById(id);
 }
 
 export function getCaseLocation(
-  caseItem: DemoCase,
+  caseItem: RescueCaseRecord,
   roles: Role[],
   canExact: boolean,
 ) {
@@ -159,135 +122,111 @@ export function getCaseLocation(
   };
 }
 
-export function getAssignmentsForCase(caseId: string) {
-  return DEMO_ASSIGNMENTS.filter((a) => a.caseId === caseId);
+export async function getAssignmentsForCases(caseIds: string[]) {
+  return (await dataRepo()).fetchAssignmentsForCases(caseIds);
 }
 
-export function getAssignmentById(id: string) {
-  return DEMO_ASSIGNMENTS.find((a) => a.id === id);
+export async function getAssignmentsForCase(caseId: string) {
+  return (await dataRepo()).fetchAssignmentsForCase(caseId);
 }
 
-/** Cases visible to administrators on mobile (all assigned rescue workflows). */
-export function getAdministratorMobileCases(): DemoCase[] {
-  const caseIds = new Set(
-    DEMO_ASSIGNMENTS.filter((a) => a.status !== "declined").map((a) => a.caseId),
-  );
-  return DEMO_CASES.filter((c) => caseIds.has(c.id));
+export async function getAssignmentById(id: string) {
+  return (await dataRepo()).fetchAssignmentById(id);
 }
 
-export function getFirstPendingAssignment() {
-  return DEMO_ASSIGNMENTS.find((a) => a.status === "pending");
+export async function getAdministratorMobileCases(): Promise<RescueCaseRecord[]> {
+  const caseIds = new Set(await (await dataRepo()).fetchAdministratorMobileCaseIds());
+  const cases = await getCases();
+  return cases.filter((c) => caseIds.has(c.id));
 }
 
-export function canAccessAssignment(
+export async function getFirstPendingAssignment() {
+  const id = await (await dataRepo()).fetchFirstPendingAssignmentId();
+  if (!id) return null;
+  return (await dataRepo()).fetchAssignmentById(id);
+}
+
+export async function canAccessAssignment(
   assignmentId: string,
   userId: string,
   options?: { adminOverride?: boolean },
-): boolean {
-  const assignment = getAssignmentById(assignmentId);
+): Promise<boolean> {
+  const assignment = await getAssignmentById(assignmentId);
   if (!assignment) return false;
   if (options?.adminOverride) return true;
   return assignment.rescuerId === userId;
 }
 
-export function getRecommendationsForCase(caseId: string) {
-  const existing = DEMO_RECOMMENDATIONS.filter((r) => r.caseId === caseId);
-  if (existing.length > 0) {
-    return existing.sort((a, b) => a.rank - b.rank);
-  }
+export async function getRecommendationsForCase(caseId: string) {
+  const existing = await (await dataRepo()).fetchRecommendationsForCase(caseId);
+  if (existing.length > 0) return existing;
 
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
+  const caseItem = await getCaseById(caseId);
   if (
     caseItem &&
     caseItem.verifiedAt &&
     STATUSES_WITH_SHELTER_RECOMMENDATIONS.has(caseItem.status)
   ) {
-    generateRecommendationsForCase(caseId);
-    return DEMO_RECOMMENDATIONS
-      .filter((r) => r.caseId === caseId)
-      .sort((a, b) => a.rank - b.rank);
+    await generateRecommendationsForCase(caseId);
+    return (await dataRepo()).fetchRecommendationsForCase(caseId);
   }
 
   return [];
 }
 
-export function getStatusHistoryForCase(caseId: string) {
-  return DEMO_STATUS_HISTORY
-    .filter((h) => h.caseId === caseId)
-    .sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
+export async function getStatusHistoryForCase(caseId: string) {
+  return (await dataRepo()).fetchStatusHistoryForCase(caseId);
 }
 
-export function getHandoffForCase(caseId: string) {
-  return DEMO_HANDOFFS.find((h) => h.caseId === caseId);
+export async function getHandoffForCase(caseId: string) {
+  return (await dataRepo()).fetchHandoffForCase(caseId);
 }
 
-export function getAnimals(filters?: {
+export async function getAnimals(filters?: {
   search?: string;
   shelterId?: string;
   clearanceStatus?: string;
 }) {
-  let animals = [...DEMO_ANIMALS];
-  if (filters?.search) {
-    const q = filters.search.toLowerCase();
-    animals = animals.filter(
-      (a) =>
-        a.name?.toLowerCase().includes(q) ||
-        a.temporaryId.toLowerCase().includes(q) ||
-        a.species.toLowerCase().includes(q),
-    );
-  }
-  if (filters?.shelterId) {
-    animals = animals.filter((a) => a.shelterId === filters.shelterId);
-  }
-  if (filters?.clearanceStatus) {
-    animals = animals.filter((a) => a.clearanceStatus === filters.clearanceStatus);
-  }
-  return animals;
+  return (await dataRepo()).fetchAnimals(filters);
 }
 
-export function getAnimalById(id: string) {
-  return DEMO_ANIMALS.find((a) => a.id === id);
+export async function getAnimalById(id: string) {
+  return (await dataRepo()).fetchAnimalById(id);
 }
 
-export function getMedicalClearanceForAnimal(animalId: string) {
-  return DEMO_MEDICAL_CLEARANCES.find((m) => m.animalId === animalId);
+export async function getMedicalClearanceForAnimal(animalId: string) {
+  return (await dataRepo()).fetchMedicalClearanceForAnimal(animalId);
 }
 
-export function getNotesForAnimal(animalId: string) {
-  return DEMO_ANIMAL_NOTES
-    .filter((n) => n.animalId === animalId)
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+export async function getNotesForAnimal(animalId: string) {
+  return (await dataRepo()).fetchNotesForAnimal(animalId);
 }
 
-export function getShelters() {
-  return [...DEMO_SHELTERS].sort((a, b) => a.name.localeCompare(b.name));
+export async function getShelters() {
+  return (await dataRepo()).fetchShelters();
 }
 
-export function getShelterById(id: string) {
-  return DEMO_SHELTERS.find((s) => s.id === id);
+export async function getShelterById(id: string) {
+  return (await dataRepo()).fetchShelterById(id);
 }
 
-export function getNotificationsForUser(userId: string) {
-  return DEMO_NOTIFICATIONS
-    .filter((n) => n.userId === userId)
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+export async function getNotificationsForUser(userId: string) {
+  return (await dataRepo()).fetchNotificationsForUser(userId);
 }
 
-export function getRescuers() {
-  return DEMO_USERS.filter((u) => u.roles.includes("rescuer"));
+export async function getRescuers() {
+  return (await dataRepo()).fetchRescuers();
 }
 
-export function getDashboardMetrics() {
-  const activeCases = DEMO_CASES.filter(
+export async function getDashboardMetrics() {
+  const [cases, animals, shelters, handoffs] = await Promise.all([
+    getCases(),
+    getAnimals(),
+    getShelters(),
+    (await dataRepo()).fetchCases(),
+  ]);
+
+  const activeCases = cases.filter(
     (c) =>
       !["completed", "rejected", "duplicate", "cancelled"].includes(c.status),
   );
@@ -295,26 +234,41 @@ export function getDashboardMetrics() {
     const level = resolveCurrentUrgency(c).level;
     return level === "critical" || level === "high";
   });
+
+  const assignmentsByCase = new Map<string, AssignmentRecord[]>();
+  for (const c of activeCases) {
+    if (c.activeRescuerId) {
+      assignmentsByCase.set(c.id, [
+        {
+          id: "",
+          caseId: c.id,
+          rescuerId: c.activeRescuerId,
+          rescuerName: "",
+          status: "accepted",
+          assignedAt: c.createdAt,
+        },
+      ]);
+    }
+  }
+
   const unassigned = activeCases.filter(
     (c) =>
       c.status === "verified" ||
-      (c.status === "rescuer_assigned" &&
-        DEMO_ASSIGNMENTS.some(
-          (a) => a.caseId === c.id && a.status === "pending",
-        )),
+      (c.status === "rescuer_assigned" && !c.activeRescuerId),
   );
-  const awaitingMedical = DEMO_ANIMALS.filter(
+
+  const awaitingMedical = animals.filter(
     (a) =>
       a.clearanceStatus === "awaiting_examination" ||
       a.clearanceStatus === "under_examination" ||
       a.clearanceStatus === "follow_up_required",
   );
-  const underTreatment = DEMO_ANIMALS.filter(
+  const underTreatment = animals.filter(
     (a) => a.clearanceStatus === "under_treatment",
   );
-  const completed = DEMO_CASES.filter((c) => c.status === "completed");
-  const totalCapacity = DEMO_SHELTERS.reduce((s, sh) => s + sh.totalCapacity, 0);
-  const totalOccupancy = DEMO_SHELTERS.reduce(
+  const completed = cases.filter((c) => c.status === "completed");
+  const totalCapacity = shelters.reduce((s, sh) => s + sh.totalCapacity, 0);
+  const totalOccupancy = shelters.reduce(
     (s, sh) => s + sh.currentOccupancy,
     0,
   );
@@ -326,15 +280,6 @@ export function getDashboardMetrics() {
     (c) => resolveCurrentUrgency(c).level === "high",
   ).length;
   const assignedCases = activeCases.length - unassigned.length;
-  const awaitingExam = awaitingMedical.filter(
-    (a) => a.clearanceStatus === "awaiting_examination",
-  ).length;
-  const underExam = awaitingMedical.filter(
-    (a) => a.clearanceStatus === "under_examination",
-  ).length;
-  const followUpRequired = awaitingMedical.filter(
-    (a) => a.clearanceStatus === "follow_up_required",
-  ).length;
 
   return {
     activeCases: activeCases.length,
@@ -344,14 +289,20 @@ export function getDashboardMetrics() {
     unassigned: unassigned.length,
     assignedCases,
     awaitingMedical: awaitingMedical.length,
-    awaitingExam,
-    underExam,
-    followUpRequired,
+    awaitingExam: awaitingMedical.filter(
+      (a) => a.clearanceStatus === "awaiting_examination",
+    ).length,
+    underExam: awaitingMedical.filter(
+      (a) => a.clearanceStatus === "under_examination",
+    ).length,
+    followUpRequired: awaitingMedical.filter(
+      (a) => a.clearanceStatus === "follow_up_required",
+    ).length,
     underTreatment: underTreatment.length,
     completed: completed.length,
     capacityUsed: totalOccupancy,
     capacityTotal: totalCapacity,
-    recentHandoffs: DEMO_HANDOFFS.slice(0, 5),
+    recentHandoffs: [],
     waitingForRescuer: unassigned,
     criticalCases: criticalHigh
       .sort(
@@ -375,20 +326,10 @@ export interface ReportInput {
   photoUrl?: string;
 }
 
-export function submitReport(input: ReportInput): DemoCase {
+export async function submitReport(input: ReportInput): Promise<RescueCaseRecord> {
   const approx = approximateLocation(input.latitude, input.longitude);
-  const id = `case-${Date.now()}`;
-  const reportId = `report-${Date.now()}`;
-  const caseNumber = generateCaseNumber();
-
-  const newCase: DemoCase = {
-    id,
-    caseNumber,
-    reportId,
+  return (await dataRepo()).insertReportBundle({
     reporterId: input.reporterId,
-    reporterName:
-      DEMO_USERS.find((u) => u.id === input.reporterId)?.name ?? "Unknown",
-    status: "report_submitted",
     species: input.species,
     injurySeverity: input.injurySeverity,
     environmentalDanger: input.environmentalDanger,
@@ -399,22 +340,16 @@ export function submitReport(input: ReportInput): DemoCase {
     longitude: input.longitude,
     approximateLatitude: approx.latitude,
     approximateLongitude: approx.longitude,
-    urgencyScore: 0,
-    urgencyLevel: "low",
+    caseNumber: generateCaseNumber(),
     photoUrl: input.photoUrl,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  DEMO_CASES.unshift(newCase);
-  return newCase;
+  });
 }
 
-export function verifyCase(
+export async function verifyCase(
   caseId: string,
   staffId: string,
-): DemoCase | undefined {
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
+): Promise<RescueCaseRecord | undefined> {
+  const caseItem = await getCaseById(caseId);
   if (!caseItem) return undefined;
 
   const verifiedAt = new Date();
@@ -422,136 +357,123 @@ export function verifyCase(
     ...urgencyInputFromCase(caseItem, verifiedAt),
   });
 
-  const fromStatus = caseItem.status;
-
-  caseItem.status = "verified";
-  caseItem.verifiedAt = verifiedAt.toISOString();
-  caseItem.verifiedById = staffId;
-  caseItem.urgencyScore = urgency.score;
-  caseItem.urgencyLevel = urgency.level;
-  caseItem.updatedAt = new Date().toISOString();
-
-  DEMO_STATUS_HISTORY.push({
-    id: `hist-${Date.now()}`,
-    caseId,
-    fromStatus,
-    toStatus: "verified",
-    changedById: staffId,
-    createdAt: new Date().toISOString(),
+  await (await dataRepo()).updateRescueCase(caseId, {
+    status: "verified",
+    verifiedAt,
+    verifiedById: staffId,
+    urgencyScore: urgency.score,
+    urgencyLevel: urgency.level,
   });
 
-  return caseItem;
+  await (await dataRepo()).insertStatusHistory({
+    caseId,
+    fromStatus: caseItem.status,
+    toStatus: "verified",
+    changedById: staffId,
+  });
+
+  return getCaseById(caseId) as Promise<RescueCaseRecord>;
 }
 
-export function rejectCase(
+export async function rejectCase(
   caseId: string,
   staffId: string,
   reason: string,
-): DemoCase | undefined {
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
+): Promise<RescueCaseRecord | undefined> {
+  const caseItem = await getCaseById(caseId);
   if (!caseItem) return undefined;
-  caseItem.status = "rejected";
-  caseItem.rejectionReason = reason;
-  caseItem.updatedAt = new Date().toISOString();
-  return caseItem;
+
+  await (await dataRepo()).updateRescueCase(caseId, {
+    status: "rejected",
+    rejectionReason: reason,
+  });
+
+  return getCaseById(caseId) as Promise<RescueCaseRecord>;
 }
 
-export function assignRescuer(
+export async function assignRescuer(
   caseId: string,
   rescuerId: string,
   staffId: string,
-): void {
-  const rescuer = DEMO_USERS.find((u) => u.id === rescuerId);
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
+): Promise<void> {
+  const [rescuer, caseItem] = await Promise.all([
+    (await dataRepo()).fetchUserById(rescuerId),
+    getCaseById(caseId),
+  ]);
   if (!caseItem || !rescuer) return;
 
-  const fromStatus = caseItem.status;
-
-  DEMO_ASSIGNMENTS.push({
-    id: `assignment-${Date.now()}`,
+  await (await dataRepo()).insertAssignment({
     caseId,
     rescuerId,
-    rescuerName: rescuer.name,
-    status: "pending",
     assignedById: staffId,
-    assignedAt: new Date().toISOString(),
   });
 
-  caseItem.status = "rescuer_assigned";
-  caseItem.updatedAt = new Date().toISOString();
+  await (await dataRepo()).updateRescueCase(caseId, { status: "rescuer_assigned" });
 
-  DEMO_STATUS_HISTORY.push({
-    id: `hist-${Date.now()}`,
+  await (await dataRepo()).insertStatusHistory({
     caseId,
-    fromStatus,
+    fromStatus: caseItem.status,
     toStatus: "rescuer_assigned",
     changedById: staffId,
     note: `Assigned ${rescuer.name}`,
-    createdAt: new Date().toISOString(),
   });
 }
 
-export function acceptAssignment(
+export async function acceptAssignment(
   assignmentId: string,
   rescuerId: string,
   options?: { adminOverride?: boolean },
-): boolean {
-  const assignment = DEMO_ASSIGNMENTS.find((a) => a.id === assignmentId);
+): Promise<boolean> {
+  const assignment = await getAssignmentById(assignmentId);
   if (!assignment) return false;
   if (!options?.adminOverride && assignment.rescuerId !== rescuerId) return false;
   if (assignment.status !== "pending") return false;
 
-  assignment.status = "accepted";
-  assignment.respondedAt = new Date().toISOString();
+  await (await dataRepo()).updateAssignment(assignmentId, {
+    status: "accepted",
+    respondedAt: new Date(),
+  });
 
-  const caseItem = DEMO_CASES.find((c) => c.id === assignment.caseId);
+  const caseItem = await getCaseById(assignment.caseId);
   if (!caseItem) return false;
 
-  const fromStatus = caseItem.status;
-  caseItem.status = "rescue_accepted";
-  caseItem.updatedAt = new Date().toISOString();
-
-  DEMO_STATUS_HISTORY.push({
-    id: `hist-${Date.now()}`,
+  await (await dataRepo()).updateRescueCase(assignment.caseId, { status: "rescue_accepted" });
+  await (await dataRepo()).insertStatusHistory({
     caseId: assignment.caseId,
-    fromStatus,
+    fromStatus: caseItem.status,
     toStatus: "rescue_accepted",
     changedById: rescuerId,
-    createdAt: new Date().toISOString(),
   });
 
   return true;
 }
 
-export function declineAssignment(
+export async function declineAssignment(
   assignmentId: string,
   rescuerId: string,
   reason: string,
   options?: { adminOverride?: boolean },
-): boolean {
-  const assignment = DEMO_ASSIGNMENTS.find((a) => a.id === assignmentId);
+): Promise<boolean> {
+  const assignment = await getAssignmentById(assignmentId);
   if (!assignment) return false;
   if (!options?.adminOverride && assignment.rescuerId !== rescuerId) return false;
   if (assignment.status !== "pending") return false;
 
-  assignment.status = "declined";
-  assignment.declineReason = reason;
-  assignment.respondedAt = new Date().toISOString();
+  await (await dataRepo()).updateAssignment(assignmentId, {
+    status: "declined",
+    declineReason: reason,
+    respondedAt: new Date(),
+  });
 
-  const caseItem = DEMO_CASES.find((c) => c.id === assignment.caseId);
+  const caseItem = await getCaseById(assignment.caseId);
   if (caseItem && caseItem.status === "rescuer_assigned") {
-    const fromStatus = caseItem.status;
-    caseItem.status = "verified";
-    caseItem.updatedAt = new Date().toISOString();
-
-    DEMO_STATUS_HISTORY.push({
-      id: `hist-${Date.now()}-decline`,
+    await (await dataRepo()).updateRescueCase(assignment.caseId, { status: "verified" });
+    await (await dataRepo()).insertStatusHistory({
       caseId: assignment.caseId,
-      fromStatus,
+      fromStatus: caseItem.status,
       toStatus: "verified",
       changedById: rescuerId,
       note: `Assignment declined: ${reason}`,
-      createdAt: new Date().toISOString(),
     });
   }
 
@@ -564,15 +486,15 @@ const RESCUER_CASE_TRANSITIONS: Record<string, string[]> = {
   animal_secured: ["awaiting_shelter"],
 };
 
-export function updateCaseStatusAsRescuer(
+export async function updateCaseStatusAsRescuer(
   caseId: string,
   rescuerId: string,
   newStatus: string,
   options?: { adminOverride?: boolean },
-): { ok: true } | { ok: false; error: string } {
-  const assignment = DEMO_ASSIGNMENTS.find(
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const assignments = await getAssignmentsForCase(caseId);
+  const assignment = assignments.find(
     (a) =>
-      a.caseId === caseId &&
       a.status === "accepted" &&
       (options?.adminOverride || a.rescuerId === rescuerId),
   );
@@ -580,7 +502,7 @@ export function updateCaseStatusAsRescuer(
     return { ok: false, error: "No active assignment for this case" };
   }
 
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
+  const caseItem = await getCaseById(caseId);
   if (!caseItem) {
     return { ok: false, error: "Case not found" };
   }
@@ -590,38 +512,37 @@ export function updateCaseStatusAsRescuer(
     return { ok: false, error: "Invalid status transition" };
   }
 
-  updateCaseStatus(caseId, newStatus, rescuerId);
+  await updateCaseStatus(caseId, newStatus, rescuerId);
   return { ok: true };
 }
 
-export function updateCaseStatus(
+export async function updateCaseStatus(
   caseId: string,
   newStatus: string,
   userId: string,
   note?: string,
-): void {
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
+): Promise<void> {
+  const caseItem = await getCaseById(caseId);
   if (!caseItem) return;
 
-  const fromStatus = caseItem.status;
-  caseItem.status = newStatus;
-  caseItem.updatedAt = new Date().toISOString();
+  await (await dataRepo()).updateRescueCase(caseId, {
+    status: newStatus as typeof import("@/db/schema").rescueCases.$inferInsert.status,
+  });
 
-  DEMO_STATUS_HISTORY.push({
-    id: `hist-${Date.now()}`,
+  await (await dataRepo()).insertStatusHistory({
     caseId,
-    fromStatus,
+    fromStatus: caseItem.status,
     toStatus: newStatus,
     changedById: userId,
     note,
-    createdAt: new Date().toISOString(),
   });
 }
 
-export function generateRecommendationsForCase(caseId: string): void {
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
+export async function generateRecommendationsForCase(caseId: string): Promise<void> {
+  const caseItem = await getCaseById(caseId);
   if (!caseItem) return;
 
+  const shelterList = await getShelters();
   const requiredCaps =
     caseItem.injurySeverity === "severe" || caseItem.injurySeverity === "critical"
       ? ["emergency surgery", "wound care"]
@@ -630,7 +551,7 @@ export function generateRecommendationsForCase(caseId: string): void {
         : [];
 
   const recs = calculateShelterRecommendations(
-    DEMO_SHELTERS.map((s) => ({
+    shelterList.map((s) => ({
       id: s.id,
       name: s.name,
       latitude: s.latitude,
@@ -649,15 +570,9 @@ export function generateRecommendationsForCase(caseId: string): void {
     },
   );
 
-  DEMO_RECOMMENDATIONS.filter((r) => r.caseId === caseId).forEach((r) => {
-    const idx = DEMO_RECOMMENDATIONS.indexOf(r);
-    if (idx >= 0) DEMO_RECOMMENDATIONS.splice(idx, 1);
-  });
-
-  recs.forEach((r, i) => {
-    DEMO_RECOMMENDATIONS.push({
-      id: `rec-${caseId}-${i}`,
-      caseId,
+  await (await dataRepo()).replaceRecommendationsForCase(
+    caseId,
+    recs.map((r, i) => ({
       shelterId: r.shelterId,
       shelterName: r.shelterName,
       matchScore: r.matchScore,
@@ -667,47 +582,29 @@ export function generateRecommendationsForCase(caseId: string): void {
       missingCapabilities: r.missingCapabilities,
       rank: r.rank,
       status: "recommended",
-    });
-  });
+    })),
+  );
 }
 
-export function selectShelter(
+export async function selectShelter(
   caseId: string,
   shelterId: string,
   staffId: string,
   rejectionReason?: string,
-): void {
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
+): Promise<void> {
+  const caseItem = await getCaseById(caseId);
   if (!caseItem) return;
 
-  const recs = DEMO_RECOMMENDATIONS.filter((r) => r.caseId === caseId);
-  const topRec = recs.find((r) => r.rank === 1);
+  await (await dataRepo()).updateRecommendationStatuses(caseId, shelterId, rejectionReason);
+  await (await dataRepo()).updateRescueCase(caseId, { assignedShelterId: shelterId });
 
-  recs.forEach((r) => {
-    if (r.shelterId === shelterId) {
-      r.status = "selected";
-    } else if (r.status === "selected") {
-      r.status = "rejected";
-    }
-  });
-
-  if (topRec && topRec.shelterId !== shelterId && rejectionReason) {
-    topRec.status = "overridden";
-    topRec.rejectionReason = rejectionReason;
-  }
-
-  caseItem.assignedShelterId = shelterId;
-  caseItem.updatedAt = new Date().toISOString();
-
-  const shelter = DEMO_SHELTERS.find((s) => s.id === shelterId);
-  DEMO_STATUS_HISTORY.push({
-    id: `hist-${Date.now()}-dest`,
+  const shelter = await getShelterById(shelterId);
+  await (await dataRepo()).insertStatusHistory({
     caseId,
     fromStatus: caseItem.status,
     toStatus: caseItem.status,
     changedById: staffId,
     note: `Destination confirmed: ${shelter?.name ?? "Shelter"}`,
-    createdAt: new Date().toISOString(),
   });
 }
 
@@ -716,42 +613,38 @@ const HANDOFF_ELIGIBLE_STATUSES = new Set([
   "animal_secured",
 ]);
 
-export function confirmShelterHandoff(
+export async function confirmShelterHandoff(
   caseId: string,
   shelterId: string,
   staffId: string,
   notes?: string,
-): { ok: true } | { ok: false; error: string } {
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
-  if (!caseItem) {
-    return { ok: false, error: "Case not found" };
-  }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const caseItem = await getCaseById(caseId);
+  if (!caseItem) return { ok: false, error: "Case not found" };
 
   if (["rejected", "duplicate", "cancelled", "completed"].includes(caseItem.status)) {
     return { ok: false, error: "Cannot hand off a closed case" };
   }
-
   if (caseItem.status === "shelter_handoff") {
     return { ok: false, error: "Handoff already completed" };
   }
-
-  if (getHandoffForCase(caseId)) {
+  if (await getHandoffForCase(caseId)) {
     return { ok: false, error: "Handoff already completed" };
   }
-
   if (!HANDOFF_ELIGIBLE_STATUSES.has(caseItem.status)) {
     return { ok: false, error: "Case is not ready for shelter handoff" };
   }
-
   if (!caseItem.assignedShelterId) {
     return { ok: false, error: "No destination shelter confirmed" };
   }
-
   if (caseItem.assignedShelterId !== shelterId) {
-    return { ok: false, error: "Destination shelter does not match confirmed assignment" };
+    return {
+      ok: false,
+      error: "Destination shelter does not match confirmed assignment",
+    };
   }
 
-  const history = getStatusHistoryForCase(caseId);
+  const history = await getStatusHistoryForCase(caseId);
   const animalWasSecured =
     caseItem.status === "awaiting_shelter" ||
     history.some((h) => h.toStatus === "animal_secured");
@@ -759,21 +652,18 @@ export function confirmShelterHandoff(
     return { ok: false, error: "Animal must be secured before shelter handoff" };
   }
 
-  const assignment = DEMO_ASSIGNMENTS.find(
-    (a) => a.caseId === caseId && a.status === "accepted",
-  );
+  const assignments = await getAssignmentsForCase(caseId);
+  const assignment = assignments.find((a) => a.status === "accepted");
 
-  DEMO_HANDOFFS.push({
-    id: `handoff-${caseId}`,
+  await (await dataRepo()).insertHandoff({
     caseId,
     shelterId,
     confirmedByRescuerId: assignment?.rescuerId,
     confirmedByStaffId: staffId,
     handoffNotes: notes?.trim() || undefined,
-    confirmedAt: new Date().toISOString(),
   });
 
-  updateCaseStatus(
+  await updateCaseStatus(
     caseId,
     "shelter_handoff",
     staffId,
@@ -781,21 +671,18 @@ export function confirmShelterHandoff(
   );
 
   if (assignment) {
-    assignment.status = "completed";
+    await (await dataRepo()).updateAssignment(assignment.id, { status: "completed" });
   }
 
-  const reporter = DEMO_USERS.find((u) => u.id === caseItem.reporterId);
+  const reporter = await (await dataRepo()).fetchUserById(caseItem.reporterId);
   if (reporter) {
-    DEMO_NOTIFICATIONS.push({
-      id: `notif-handoff-${caseId}-${Date.now()}`,
+    await (await dataRepo()).insertNotification({
       userId: reporter.id,
       type: "status_update",
       title: "Animal is safe at shelter",
       message:
         "Your reported animal has been safely transferred to a shelter and is receiving care.",
       caseId,
-      read: false,
-      createdAt: new Date().toISOString(),
     });
   }
 
@@ -811,120 +698,96 @@ export interface ShelterIntakeInput {
   initialCondition?: string;
 }
 
-export function completeShelterIntake(
+export async function completeShelterIntake(
   caseId: string,
   staffId: string,
   input?: ShelterIntakeInput,
-): { ok: true; animalId: string } | { ok: false; error: string } {
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
-  if (!caseItem) {
-    return { ok: false, error: "Case not found" };
-  }
-
+): Promise<{ ok: true; animalId: string } | { ok: false; error: string }> {
+  const caseItem = await getCaseById(caseId);
+  if (!caseItem) return { ok: false, error: "Case not found" };
   if (caseItem.status !== "shelter_handoff") {
     return { ok: false, error: "Shelter handoff must be completed before intake" };
   }
 
-  const handoff = getHandoffForCase(caseId);
-  if (!handoff) {
-    return { ok: false, error: "No handoff record found" };
-  }
+  const handoff = await getHandoffForCase(caseId);
+  if (!handoff) return { ok: false, error: "No handoff record found" };
 
   if (caseItem.animalId) {
     return { ok: true, animalId: caseItem.animalId };
   }
 
-  const existingAnimal = DEMO_ANIMALS.find((a) => a.rescueCaseId === caseId);
+  const existingAnimal = await (await dataRepo()).fetchAnimalByRescueCaseId(caseId);
   if (existingAnimal) {
-    caseItem.animalId = existingAnimal.id;
+    await (await dataRepo()).updateRescueCase(caseId, { animalId: existingAnimal.id });
     return { ok: true, animalId: existingAnimal.id };
   }
 
-  const staff = DEMO_USERS.find((u) => u.id === staffId);
-  const animalId = `animal-${caseId.replace("case-", "")}`;
+  const staff = await (await dataRepo()).fetchUserById(staffId);
   const temporaryId = `A-${caseItem.caseNumber.replace("RC-", "")}`;
 
-  const animal: DemoAnimal = {
-    id: animalId,
-    temporaryId,
-    name: input?.name?.trim() || undefined,
-    species: caseItem.species,
-    estimatedAge: input?.estimatedAge?.trim() || undefined,
-    sex: input?.sex?.trim() || undefined,
-    breed: input?.breed?.trim() || undefined,
-    color: input?.color?.trim() || undefined,
-    rescueCaseId: caseId,
-    shelterId: handoff.shelterId,
-    intakeDate: new Date().toISOString(),
-    pathwayStage: "medical_clearance",
-    recommendedNextAction: "Schedule veterinary examination",
-    photoUrl: caseItem.photoUrl,
-    clearanceStatus: "awaiting_examination",
-    createdAt: new Date().toISOString(),
-  };
+  const animal = await (await dataRepo()).insertAnimal(
+    {
+      temporaryId,
+      name: input?.name?.trim() || undefined,
+      species: caseItem.species as typeof import("@/db/schema").animals.$inferInsert.species,
+      estimatedAge: input?.estimatedAge?.trim() || undefined,
+      sex: input?.sex?.trim() || undefined,
+      breed: input?.breed?.trim() || undefined,
+      color: input?.color?.trim() || undefined,
+      rescueCaseId: caseId,
+      shelterId: handoff.shelterId,
+      intakeDate: new Date(),
+      pathwayStage: "medical_clearance",
+      recommendedNextAction: "Schedule veterinary examination",
+      photoUrl: caseItem.photoUrl,
+    },
+    "awaiting_examination",
+  );
 
-  DEMO_ANIMALS.unshift(animal);
-  caseItem.animalId = animalId;
-  caseItem.updatedAt = new Date().toISOString();
+  await (await dataRepo()).updateRescueCase(caseId, { animalId: animal.id });
 
   if (input?.initialCondition?.trim()) {
-    DEMO_ANIMAL_NOTES.push({
-      id: `note-${animalId}-intake`,
-      animalId,
+    await (await dataRepo()).insertAnimalNote({
+      animalId: animal.id,
       authorId: staffId,
-      authorName: staff?.name,
       noteType: "staff",
       content: `Initial condition at intake: ${input.initialCondition.trim()}`,
-      createdAt: new Date().toISOString(),
     });
   }
 
   if (!handoff.intakeCompletedAt) {
-    const shelter = DEMO_SHELTERS.find((s) => s.id === handoff.shelterId);
+    const shelter = await getShelterById(handoff.shelterId);
     if (shelter && shelter.currentOccupancy < shelter.totalCapacity) {
-      shelter.currentOccupancy += 1;
+      await updateShelterCapacity(
+        handoff.shelterId,
+        shelter.totalCapacity,
+        shelter.currentOccupancy + 1,
+      );
     }
-    handoff.intakeCompletedAt = new Date().toISOString();
+    await (await dataRepo()).markHandoffIntakeComplete(handoff.id);
   }
 
-  DEMO_STATUS_HISTORY.push({
-    id: `hist-${Date.now()}-intake`,
+  await (await dataRepo()).insertStatusHistory({
     caseId,
     fromStatus: "shelter_handoff",
     toStatus: "shelter_handoff",
     changedById: staffId,
     note: "Shelter intake completed",
-    createdAt: new Date().toISOString(),
   });
 
-  const vet = DEMO_USERS.find((u) => u.roles.includes("veterinarian"));
+  const vets = await (await dataRepo()).fetchStaffUsersByRole("veterinarian");
+  const vet = vets[0];
   if (vet) {
-    DEMO_NOTIFICATIONS.push({
-      id: `notif-vet-${animalId}`,
+    await (await dataRepo()).insertNotification({
       userId: vet.id,
       type: "system",
       title: "New animal awaiting examination",
       message: `${temporaryId} (${caseItem.species}) requires veterinary examination.`,
       caseId,
-      read: false,
-      createdAt: new Date().toISOString(),
     });
   }
 
-  return { ok: true, animalId };
-}
-
-/** @deprecated Use confirmShelterHandoff. Kept for internal migration */
-export function confirmHandoff(
-  caseId: string,
-  shelterId: string,
-  rescuerId: string,
-  staffId: string,
-  notes?: string,
-): void {
-  void rescuerId;
-  const result = confirmShelterHandoff(caseId, shelterId, staffId, notes);
-  if (!result.ok) return;
+  return { ok: true, animalId: animal.id };
 }
 
 export const CLEARANCE_STATUSES = [
@@ -970,20 +833,6 @@ function recommendedActionForClearance(status: ClearanceStatus): string {
   }
 }
 
-function applyClearanceStatusToAnimal(
-  animal: DemoAnimal,
-  status: ClearanceStatus,
-): void {
-  animal.clearanceStatus = status;
-  animal.recommendedNextAction = recommendedActionForClearance(status);
-
-  if (status === "medically_cleared") {
-    animal.pathwayStage = "behavior_assessment";
-  } else {
-    animal.pathwayStage = "medical_clearance";
-  }
-}
-
 export interface MedicalClearanceInput {
   examinationDate?: string;
   generalCondition?: string;
@@ -995,15 +844,13 @@ export interface MedicalClearanceInput {
   veterinarianNotes?: string;
 }
 
-export function updateMedicalClearance(
+export async function updateMedicalClearance(
   animalId: string,
   vetId: string,
   data: MedicalClearanceInput,
-): { ok: true } | { ok: false; error: string } {
-  const animal = DEMO_ANIMALS.find((a) => a.id === animalId);
-  if (!animal) {
-    return { ok: false, error: "Animal not found" };
-  }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const animal = await getAnimalById(animalId);
+  if (!animal) return { ok: false, error: "Animal not found" };
 
   const currentStatus = animal.clearanceStatus as ClearanceStatus;
   const targetStatus = data.clearanceStatus;
@@ -1011,14 +858,12 @@ export function updateMedicalClearance(
   if (!CLEARANCE_STATUSES.includes(targetStatus)) {
     return { ok: false, error: "Invalid clearance status" };
   }
-
   if (currentStatus === "medically_cleared") {
     return {
       ok: false,
       error: "Medical clearance is complete and cannot be modified",
     };
   }
-
   if (targetStatus !== currentStatus) {
     const allowed = CLEARANCE_TRANSITIONS[currentStatus];
     if (!allowed.includes(targetStatus)) {
@@ -1041,7 +886,6 @@ export function updateMedicalClearance(
   if (completingExam && !data.generalCondition?.trim()) {
     return { ok: false, error: "General condition is required to record examination" };
   }
-
   if (
     targetStatus === "under_treatment" &&
     targetStatus !== currentStatus &&
@@ -1049,7 +893,6 @@ export function updateMedicalClearance(
   ) {
     return { ok: false, error: "Treatment summary is required for under treatment" };
   }
-
   if (
     targetStatus === "follow_up_required" &&
     targetStatus !== currentStatus &&
@@ -1058,56 +901,45 @@ export function updateMedicalClearance(
     return { ok: false, error: "Follow-up date is required" };
   }
 
-  let clearance = DEMO_MEDICAL_CLEARANCES.find((m) => m.animalId === animalId);
-  const vet = DEMO_USERS.find((u) => u.id === vetId);
-
-  if (!clearance) {
-    clearance = {
-      id: `clearance-${Date.now()}`,
-      animalId,
-      veterinarianId: vetId,
-      veterinarianName: vet?.name,
-      clearanceStatus: targetStatus,
-    };
-    DEMO_MEDICAL_CLEARANCES.push(clearance);
-  }
-
+  const existing = await getMedicalClearanceForAnimal(animalId);
   const examinationDate =
     data.examinationDate ??
-    clearance.examinationDate ??
+    existing?.examinationDate ??
     (completingExam || targetStatus === "under_examination"
       ? new Date().toISOString()
       : undefined);
 
-  Object.assign(clearance, {
-    generalCondition: data.generalCondition ?? clearance.generalCondition,
-    medicalPriority: data.medicalPriority ?? clearance.medicalPriority,
-    treatmentSummary: data.treatmentSummary ?? clearance.treatmentSummary,
-    restrictions: data.restrictions ?? clearance.restrictions,
-    followUpDate: data.followUpDate ?? clearance.followUpDate,
-    veterinarianNotes: data.veterinarianNotes ?? clearance.veterinarianNotes,
-    examinationDate,
+  await (await dataRepo()).upsertMedicalClearance(animalId, {
+    generalCondition: data.generalCondition ?? existing?.generalCondition,
+    medicalPriority:
+      (data.medicalPriority as typeof import("@/db/schema").medicalClearances.$inferInsert.medicalPriority) ??
+      (existing?.medicalPriority as typeof import("@/db/schema").medicalClearances.$inferInsert.medicalPriority),
+    treatmentSummary: data.treatmentSummary ?? existing?.treatmentSummary,
+    restrictions: data.restrictions ?? existing?.restrictions,
+    followUpDate: data.followUpDate ? new Date(data.followUpDate) : undefined,
+    veterinarianNotes: data.veterinarianNotes ?? existing?.veterinarianNotes,
+    examinationDate: examinationDate ? new Date(examinationDate) : undefined,
     clearanceStatus: targetStatus,
     veterinarianId: vetId,
-    veterinarianName: vet?.name,
   });
 
-  applyClearanceStatusToAnimal(animal, targetStatus);
+  const pathwayStage =
+    targetStatus === "medically_cleared" ? "behavior_assessment" : "medical_clearance";
+
+  await (await dataRepo()).updateAnimalFields(animalId, {
+    pathwayStage,
+    recommendedNextAction: recommendedActionForClearance(targetStatus),
+  });
 
   if (targetStatus === "medically_cleared") {
-    const staffUsers = DEMO_USERS.filter((u) =>
-      u.roles.includes("shelter_staff"),
-    );
+    const staffUsers = await (await dataRepo()).fetchStaffUsersByRole("shelter_staff");
     for (const staff of staffUsers) {
-      DEMO_NOTIFICATIONS.push({
-        id: `notif-cleared-${animalId}-${staff.id}-${Date.now()}`,
+      await (await dataRepo()).insertNotification({
         userId: staff.id,
         type: "system",
         title: "Animal medically cleared",
         message: `${animal.temporaryId}${animal.name ? ` (${animal.name})` : ""} is medically cleared and ready for behavioral assessment.`,
         caseId: animal.rescueCaseId,
-        read: false,
-        createdAt: new Date().toISOString(),
       });
     }
   }
@@ -1115,46 +947,43 @@ export function updateMedicalClearance(
   return { ok: true };
 }
 
-export function overrideUrgency(
+export async function overrideUrgency(
   caseId: string,
   score: number,
   reason: string,
   staffId: string,
-): void {
-  const caseItem = DEMO_CASES.find((c) => c.id === caseId);
-  if (!caseItem) return;
-
-  caseItem.urgencyOverrideScore = score;
-  caseItem.urgencyOverrideReason = reason;
-  caseItem.urgencyScore = score;
-  caseItem.urgencyLevel =
-    score >= 80
-      ? "critical"
-      : score >= 60
-        ? "high"
-        : score >= 30
-          ? "medium"
-          : "low";
-  caseItem.updatedAt = new Date().toISOString();
+): Promise<void> {
   void staffId;
+  await (await dataRepo()).updateRescueCase(caseId, {
+    urgencyOverrideScore: score,
+    urgencyOverrideReason: reason,
+    urgencyScore: score,
+    urgencyLevel:
+      score >= 80
+        ? "critical"
+        : score >= 60
+          ? "high"
+          : score >= 30
+            ? "medium"
+            : "low",
+  });
 }
 
-export function updateShelterCapacity(
+export async function updateShelterCapacity(
   shelterId: string,
   totalCapacity: number,
   currentOccupancy: number,
-): void {
-  const shelter = DEMO_SHELTERS.find((s) => s.id === shelterId);
-  if (!shelter) return;
-  shelter.totalCapacity = totalCapacity;
-  shelter.currentOccupancy = currentOccupancy;
+): Promise<void> {
+  await (await dataRepo()).updateShelterCapacityRow(
+    shelterId,
+    totalCapacity,
+    currentOccupancy,
+  );
 }
 
-export function updateShelterCapabilities(
+export async function updateShelterCapabilities(
   shelterId: string,
   capabilities: string[],
-): void {
-  const shelter = DEMO_SHELTERS.find((s) => s.id === shelterId);
-  if (!shelter) return;
-  shelter.capabilities = capabilities;
+): Promise<void> {
+  await (await dataRepo()).replaceShelterCapabilities(shelterId, capabilities);
 }

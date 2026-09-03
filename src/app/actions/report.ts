@@ -24,7 +24,7 @@ export async function submitReportAction(data: z.infer<typeof reportSchema>) {
   const parsed = reportSchema.safeParse(data);
   if (!parsed.success) return { error: "Invalid report data" };
 
-  const newCase = submitReport({
+  const newCase = await submitReport({
     reporterId: session.user.id,
     ...parsed.data,
   });

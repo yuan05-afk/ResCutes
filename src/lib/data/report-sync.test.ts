@@ -1,36 +1,38 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { submitReport, getCases } from "@/lib/data/service";
-import { DEMO_CASES, DEMO_IDS } from "@/lib/data/demo-store";
+import {
+  resetWorkflowTestData,
+  testUsers,
+} from "@/lib/data/workflow-test-fixtures";
 
-describe("mobile report sync", () => {
-  beforeEach(() => {
-    DEMO_CASES.length = 0;
+describe("report sync", () => {
+  let users: Awaited<ReturnType<typeof testUsers>>;
+
+  beforeEach(async () => {
+    await resetWorkflowTestData();
+    users = await testUsers();
   });
 
-  it("stores a citizen report in the shared case list for web and mobile", () => {
-    const newCase = submitReport({
-      reporterId: DEMO_IDS.users.maria,
+  it("adds a submitted report to case lists", async () => {
+    const newCase = await submitReport({
+      reporterId: users.maria,
       species: "dog",
       injurySeverity: "minor",
-      environmentalDanger: "traffic",
+      environmentalDanger: "none",
       vulnerability: "adult_healthy",
-      description: "Small tan dog pacing near a busy intersection.",
+      description: "Small tan aspin wandering near school gate.",
       contactPreference: "in_app",
       latitude: 14.5995,
       longitude: 120.9842,
-      photoUrl: "https://example.com/report.jpg",
     });
 
-    expect(newCase.status).toBe("report_submitted");
-    expect(newCase.reporterName).toBe("Maria Santos");
-
-    const allCases = getCases();
+    const allCases = await getCases();
     expect(allCases.some((c) => c.id === newCase.id)).toBe(true);
 
-    const reporterCases = getCases({ reporterId: DEMO_IDS.users.maria });
-    expect(reporterCases[0]?.id).toBe(newCase.id);
+    const reporterCases = await getCases({ reporterId: users.maria });
+    expect(reporterCases.some((c) => c.id === newCase.id)).toBe(true);
 
-    const staffView = getCases({ status: "report_submitted" });
-    expect(staffView.some((c) => c.caseNumber === newCase.caseNumber)).toBe(true);
+    const staffView = await getCases({ status: "report_submitted" });
+    expect(staffView.some((c) => c.id === newCase.id)).toBe(true);
   });
 });

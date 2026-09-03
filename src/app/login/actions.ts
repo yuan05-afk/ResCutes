@@ -2,20 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { neonAuth } from "@/lib/auth/server";
-import { DEMO_ACCOUNTS, ROLES, canAccessDashboard } from "@/lib/auth/permissions";
+import { getRolesByEmail } from "@/lib/auth/user-roles";
+import { ROLES, canAccessDashboard } from "@/lib/auth/permissions";
 import type { Role } from "@/lib/auth/permissions";
 
 function defaultPathForRoles(roles: Role[]): string {
   if (canAccessDashboard(roles)) return "/dashboard";
   if (roles.includes(ROLES.RESCUER) || roles.includes(ROLES.CITIZEN)) return "/mobile";
   return "/";
-}
-
-function rolesForEmail(email: string): Role[] {
-  const account = DEMO_ACCOUNTS.find(
-    (a) => a.email === email.trim().toLowerCase(),
-  );
-  return account ? [account.role] : [];
 }
 
 export async function signInAction(
@@ -38,10 +32,11 @@ export async function signInAction(
     };
   }
 
+  const roles = await getRolesByEmail(email);
   const destination =
     callbackUrl && callbackUrl !== "/login"
       ? callbackUrl
-      : defaultPathForRoles(rolesForEmail(email));
+      : defaultPathForRoles(roles);
 
   redirect(destination);
 }

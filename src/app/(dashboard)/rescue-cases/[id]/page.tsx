@@ -25,20 +25,30 @@ export default async function RescueCaseDetailPage({
 }) {
   const { id } = await params;
   const session = await requireAuth();
-  const caseItem = getCaseById(id);
+  const caseItem = await getCaseById(id);
   if (!caseItem) notFound();
 
   const canManage = canManageCases(session.user.roles);
   const canReporter = canViewReporterInfo(session.user.roles);
-  const history = getStatusHistoryForCase(id);
-  const assignments = getAssignmentsForCase(id);
-  const recommendations = getRecommendationsForCase(id);
-  const handoff = getHandoffForCase(id);
-  const animal = caseItem.animalId ? getAnimalById(caseItem.animalId) : null;
-  const shelter = caseItem.assignedShelterId
-    ? getShelterById(caseItem.assignedShelterId)
-    : null;
-  const rescuers = getRescuers();
+  const [
+    history,
+    assignments,
+    recommendations,
+    handoff,
+    animal,
+    shelter,
+    rescuers,
+  ] = await Promise.all([
+    getStatusHistoryForCase(id),
+    getAssignmentsForCase(id),
+    getRecommendationsForCase(id),
+    getHandoffForCase(id),
+    caseItem.animalId ? getAnimalById(caseItem.animalId) : Promise.resolve(null),
+    caseItem.assignedShelterId
+      ? getShelterById(caseItem.assignedShelterId)
+      : Promise.resolve(null),
+    getRescuers(),
+  ]);
   const currentUrgency = resolveCurrentUrgency(caseItem);
 
   return (

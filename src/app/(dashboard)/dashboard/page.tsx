@@ -36,20 +36,22 @@ export default async function DashboardPage() {
     day: "numeric",
   });
 
-  const criticalCases = metrics.criticalCases.map((c) => {
-    const animal = c.animalId ? getAnimalById(c.animalId) : null;
-    const urgency = resolveCurrentUrgency(c);
-    return {
-      id: c.id,
-      caseNumber: c.caseNumber,
-      species: c.species,
-      urgencyLevel: urgency.level,
-      urgencyScore: urgency.score,
-      description: c.description,
-      photoUrl: c.photoUrl,
-      animalName: animal?.name,
-    };
-  });
+  const criticalCases = await Promise.all(
+    metrics.criticalCases.map(async (c) => {
+      const animal = c.animalId ? await getAnimalById(c.animalId) : null;
+      const urgency = resolveCurrentUrgency(c);
+      return {
+        id: c.id,
+        caseNumber: c.caseNumber,
+        species: c.species,
+        urgencyLevel: urgency.level,
+        urgencyScore: urgency.score,
+        description: c.description,
+        photoUrl: c.photoUrl,
+        animalName: animal?.name,
+      };
+    }),
+  );
 
   return (
     <PageShell

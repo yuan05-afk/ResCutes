@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth/session";
-import { getAssignmentsForCase, resolveCurrentUrgency } from "@/lib/data/service";
+import { getAssignmentsForCases, resolveCurrentUrgency } from "@/lib/data/service";
 import { getMobileCasesListCached } from "@/lib/data/cached-loaders";
 import {
   isAdministrator,
@@ -17,6 +17,8 @@ export default async function MobileCasesPage() {
     isRescuer,
     isAdministrator: isAdmin,
   });
+
+  const assignmentMap = await getAssignmentsForCases(cases.map((c) => c.id));
 
   return (
     <div>
@@ -44,10 +46,11 @@ export default async function MobileCasesPage() {
           />
         ) : (
           cases.map((c) => {
+            const assignments = assignmentMap.get(c.id) ?? [];
             const pendingAssignment = isRescuer
               ? isAdmin
-                ? getAssignmentsForCase(c.id).find((a) => a.status === "pending")
-                : getAssignmentsForCase(c.id).find(
+                ? assignments.find((a) => a.status === "pending")
+                : assignments.find(
                     (a) =>
                       a.rescuerId === session.user.id && a.status === "pending",
                   )
