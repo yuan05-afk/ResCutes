@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   ClipboardList,
   PawPrint,
-  Settings,
+  HeartHandshake,
   User,
 } from "lucide-react";
 import { prefetchRouteNow } from "@/components/layout/AppRoutePrefetcher";
@@ -17,7 +17,7 @@ const navItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard, match: "/dashboard" },
   { href: "/rescue-cases", label: "Cases", icon: ClipboardList, match: "/rescue-cases" },
   { href: "/animals", label: "Animals", icon: PawPrint, match: "/animals" },
-  { href: "/settings", label: "Settings", icon: Settings, match: "/settings" },
+  { href: "/adoption", label: "Adopt", icon: HeartHandshake, match: "/adoption" },
   { href: "/profile", label: "Profile", icon: User, match: "/profile" },
 ];
 

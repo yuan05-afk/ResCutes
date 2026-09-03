@@ -7,7 +7,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { AppUser, RescueCaseRecord } from "@/lib/data/types";
-import { resolveCurrentUrgency } from "@/lib/data/service";
+import { resolveCurrentUrgency } from "@/lib/data/urgency";
 
 const STATUSES = [
   "report_submitted",

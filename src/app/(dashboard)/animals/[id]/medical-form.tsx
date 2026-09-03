@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { useActionPending } from "@/components/shared/useActionPending";
 import { updateMedicalClearanceAction } from "@/app/actions/case";
-import type { ClearanceStatus } from "@/lib/data/service";
+import type { ClearanceStatus } from "@/lib/data/types";
 import { formatStatus } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 

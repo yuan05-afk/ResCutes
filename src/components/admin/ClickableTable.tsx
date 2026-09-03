@@ -29,7 +29,7 @@ export function ClickableRow({ onOpen, children, className }: ClickableRowProps)
       onClick={onOpen}
       onKeyDown={handleKeyDown}
       tabIndex={0}
-      role="button"
+      aria-label="Open details"
     >
       {children}
     </tr>

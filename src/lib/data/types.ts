@@ -91,7 +91,10 @@ export interface AnimalRecord {
   breed?: string;
   color?: string;
   sex?: string;
+  bio?: string;
+  temperament?: string;
   rescueCaseId?: string;
+  caseNumber?: string;
   shelterId?: string;
   intakeDate?: string;
   pathwayStage: string;
@@ -100,6 +103,41 @@ export interface AnimalRecord {
   clearanceStatus: string;
   createdAt: string;
 }
+
+export interface AdoptionApplicationRecord {
+  id: string;
+  animalId: string;
+  animalName?: string;
+  animalTemporaryId?: string;
+  animalSpecies?: string;
+  animalPhotoUrl?: string;
+  applicantName: string;
+  applicantEmail: string;
+  applicantPhone?: string;
+  homeType: string;
+  hasYard: boolean;
+  hasOtherPets: boolean;
+  householdSize: number;
+  experienceNotes?: string;
+  motivation: string;
+  status: string;
+  reviewedById?: string;
+  reviewerName?: string;
+  reviewNotes?: string;
+  submittedAt: string;
+  decidedAt?: string;
+  createdAt: string;
+}
+
+export const CLEARANCE_STATUSES = [
+  "awaiting_examination",
+  "under_examination",
+  "under_treatment",
+  "follow_up_required",
+  "medically_cleared",
+] as const;
+
+export type ClearanceStatus = (typeof CLEARANCE_STATUSES)[number];
 
 export interface MedicalClearanceRecord {
   id: string;

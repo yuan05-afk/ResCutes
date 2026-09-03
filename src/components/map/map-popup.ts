@@ -6,6 +6,12 @@ export interface MapPopupFields {
   species?: string;
   status?: string;
   urgencyLevel?: string;
+  address?: string;
+  phone?: string;
+  region?: string;
+  notes?: string;
+  capacityLabel?: string;
+  sourceLabel?: string;
 }
 
 function escapeHtml(text: string): string {
@@ -22,12 +28,14 @@ export function hasMapPopupContent(marker: MapPopupFields): boolean {
       marker.label ||
       marker.species ||
       marker.status ||
-      marker.urgencyLevel,
+      marker.urgencyLevel ||
+      marker.address ||
+      marker.phone,
   );
 }
 
 export function buildMapPopupHtml(marker: MapPopupFields): string {
-  const title = marker.caseNumber ?? marker.label ?? "Case";
+  const title = marker.caseNumber ?? marker.label ?? "Location";
   const metaParts: string[] = [];
 
   if (marker.urgencyLevel) {
@@ -36,15 +44,24 @@ export function buildMapPopupHtml(marker: MapPopupFields): string {
   if (marker.species) {
     metaParts.push(formatStatus(marker.species));
   }
+  if (marker.region) {
+    metaParts.push(marker.region);
+  }
+  if (marker.status && marker.caseNumber) {
+    metaParts.push(formatStatus(marker.status));
+  }
 
   const meta = metaParts.map(escapeHtml).join(" · ");
-  const status = marker.status ? escapeHtml(formatStatus(marker.status)) : "";
+  // Keep shelter hover light — address/phone/notes belong in the detail card.
+  const address = marker.caseNumber && marker.address
+    ? escapeHtml(marker.address)
+    : "";
 
   return `
     <div class="rescutes-map-popup__body">
       <p class="rescutes-map-popup__title">${escapeHtml(title)}</p>
       ${meta ? `<p class="rescutes-map-popup__meta">${meta}</p>` : ""}
-      ${status ? `<p class="rescutes-map-popup__status">${status}</p>` : ""}
+      ${address ? `<p class="rescutes-map-popup__address">${address}</p>` : ""}
     </div>
   `.trim();
 }

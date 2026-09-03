@@ -5,6 +5,13 @@ export function dashboardTag(userId: string) {
   return `dashboard:${userId}`;
 }
 
+/** Invalidate the per-user notification inbox cache (bell + panel).
+ *  Also invoked from `insertNotification` in the DB repository after writes.
+ */
+export function revalidateNotifications(userId: string) {
+  revalidateTag(`notifications:${userId}`);
+}
+
 export function revalidateApp(paths: string[]) {
   for (const p of paths) {
     revalidatePath(p, "page");

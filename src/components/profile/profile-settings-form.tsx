@@ -205,7 +205,10 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
           </div>
         </section>
 
-        <section className="rounded-xl border border-sage/25 bg-white p-5 shadow-card">
+        <section
+          id="notifications"
+          className="scroll-mt-24 rounded-xl border border-sage/25 bg-white p-5 shadow-card"
+        >
           <div className="mb-4 flex items-center gap-2">
             <Bell className="h-4 w-4 text-evergreen" />
             <div>

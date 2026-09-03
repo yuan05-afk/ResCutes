@@ -137,6 +137,32 @@
   animation: rc-nav-progress 0.9s ease-in-out infinite;
 }
 
+@keyframes rc-bell-nudge {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-6deg);
+  }
+}
+
+.rc-bell-nudge {
+  animation: rc-bell-nudge 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-bell-nudge {
+    animation: none !important;
+  }
+}
+
 /* Mapbox embeds: required © Mapbox + © OpenStreetMap stay; optional links hidden */
 .rescutes-map .mapbox-improve-map,
 .rescutes-map a[href*="openstreetmap.org/fixthemap"] {
@@ -371,6 +397,52 @@
   font-weight: 500;
   line-height: 1.3;
   color: #6b7872;
+}
+
+.rescutes-map-popup__address,
+.rescutes-map-popup__phone,
+.rescutes-map-popup__capacity,
+.rescutes-map-popup__source,
+.rescutes-map-popup__notes {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #4a5751;
+}
+
+.rescutes-map-popup__notes {
+  max-width: 220px;
+  color: #6b7872;
+}
+
+.rescutes-map .mapboxgl-popup.rescutes-map-popup .mapboxgl-popup-content {
+  max-width: 260px;
+}
+
+@keyframes rc-bell-nudge {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-6deg);
+  }
+}
+
+.rc-bell-nudge {
+  animation: rc-bell-nudge 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-bell-nudge {
+    animation: none;
+  }
 }
 
 /* Desktop phone mockup: compact dynamic island overlay (sibling of screen, not app content) */

@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   calculateUrgencyScore,
   classifyUrgencyLevel,
@@ -9,12 +11,30 @@ import { generateCaseNumber } from "@/lib/utils";
 import type {
   AnimalRecord,
   AssignmentRecord,
+  ClearanceStatus,
   RescueCaseRecord,
   ShelterRecord,
 } from "@/lib/data/types";
+import { CLEARANCE_STATUSES } from "@/lib/data/types";
+import { resolveCurrentUrgency } from "@/lib/data/urgency";
+import { revalidateNotifications } from "@/lib/cache-revalidate";
+
+export { resolveCurrentUrgency } from "@/lib/data/urgency";
+export { CLEARANCE_STATUSES, type ClearanceStatus } from "@/lib/data/types";
 
 async function dataRepo() {
   return import("@/lib/data/db/repository");
+}
+
+async function pushNotification(input: {
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  caseId?: string;
+}) {
+  await (await dataRepo()).insertNotification(input);
+  revalidateNotifications(input.userId);
 }
 
 export type {
@@ -29,6 +49,7 @@ export type {
   NotificationRecord,
   HandoffRecord,
   AnimalNoteRecord,
+  AdoptionApplicationRecord,
 } from "@/lib/data/types";
 
 export type DemoCase = RescueCaseRecord;
@@ -60,36 +81,6 @@ function urgencyInputFromCase(
     vulnerability: "adult_healthy";
     verifiedAt?: Date | null;
   };
-}
-
-export function resolveCurrentUrgency(caseItem: RescueCaseRecord): UrgencyResult {
-  if (caseItem.urgencyOverrideScore != null) {
-    const score = caseItem.urgencyOverrideScore;
-    const level = classifyUrgencyLevel(score);
-    const base = calculateUrgencyScore(urgencyInputFromCase(caseItem));
-    return {
-      score,
-      level,
-      factors: base.factors,
-      explanation: caseItem.urgencyOverrideReason
-        ? `Staff override applied (${score}/100). ${base.explanation}`
-        : base.explanation,
-    };
-  }
-
-  if (!caseItem.verifiedAt) {
-    return {
-      score: caseItem.urgencyScore,
-      level: classifyUrgencyLevel(caseItem.urgencyScore),
-      factors: [],
-      explanation:
-        caseItem.urgencyScore > 0
-          ? `Urgency score ${caseItem.urgencyScore}/100 (${classifyUrgencyLevel(caseItem.urgencyScore)}).`
-          : "Case not yet verified. Urgency not calculated.",
-    };
-  }
-
-  return calculateUrgencyScore(urgencyInputFromCase(caseItem));
 }
 
 export async function getCases(filters?: {
@@ -676,7 +667,7 @@ export async function confirmShelterHandoff(
 
   const reporter = await (await dataRepo()).fetchUserById(caseItem.reporterId);
   if (reporter) {
-    await (await dataRepo()).insertNotification({
+    await pushNotification({
       userId: reporter.id,
       type: "status_update",
       title: "Animal is safe at shelter",
@@ -778,7 +769,7 @@ export async function completeShelterIntake(
   const vets = await (await dataRepo()).fetchStaffUsersByRole("veterinarian");
   const vet = vets[0];
   if (vet) {
-    await (await dataRepo()).insertNotification({
+    await pushNotification({
       userId: vet.id,
       type: "system",
       title: "New animal awaiting examination",
@@ -789,16 +780,6 @@ export async function completeShelterIntake(
 
   return { ok: true, animalId: animal.id };
 }
-
-export const CLEARANCE_STATUSES = [
-  "awaiting_examination",
-  "under_examination",
-  "under_treatment",
-  "follow_up_required",
-  "medically_cleared",
-] as const;
-
-export type ClearanceStatus = (typeof CLEARANCE_STATUSES)[number];
 
 const CLEARANCE_TRANSITIONS: Record<ClearanceStatus, ClearanceStatus[]> = {
   awaiting_examination: [
@@ -934,7 +915,7 @@ export async function updateMedicalClearance(
   if (targetStatus === "medically_cleared") {
     const staffUsers = await (await dataRepo()).fetchStaffUsersByRole("shelter_staff");
     for (const staff of staffUsers) {
-      await (await dataRepo()).insertNotification({
+      await pushNotification({
         userId: staff.id,
         type: "system",
         title: "Animal medically cleared",
@@ -986,4 +967,160 @@ export async function updateShelterCapabilities(
   capabilities: string[],
 ): Promise<void> {
   await (await dataRepo()).replaceShelterCapabilities(shelterId, capabilities);
+}
+
+export async function getAdoptionReadyAnimals() {
+  return (await dataRepo()).fetchAdoptionReadyAnimals();
+}
+
+export async function getAdoptionApplications(filters?: {
+  status?: string;
+  animalId?: string;
+}) {
+  return (await dataRepo()).fetchAdoptionApplications(filters);
+}
+
+export async function createAdoptionApplication(input: {
+  animalId: string;
+  applicantName: string;
+  applicantEmail: string;
+  applicantPhone?: string;
+  homeType: string;
+  hasYard?: boolean;
+  hasOtherPets?: boolean;
+  householdSize?: number;
+  experienceNotes?: string;
+  motivation: string;
+}) {
+  const animal = await getAnimalById(input.animalId);
+  if (!animal) {
+    return { ok: false as const, error: "Animal not found" };
+  }
+
+  const application = await (await dataRepo()).insertAdoptionApplication(input);
+
+  const staffUsers = await (await dataRepo()).fetchStaffUsersByRole(
+    "shelter_staff",
+  );
+  for (const staff of staffUsers) {
+    await pushNotification({
+      userId: staff.id,
+      type: "adoption",
+      title: "New adoption application",
+      message: `${input.applicantName} applied for ${animal.name ?? animal.temporaryId}.`,
+      caseId: animal.rescueCaseId,
+    });
+  }
+
+  return { ok: true as const, application };
+}
+
+export async function reviewAdoptionApplication(
+  id: string,
+  status: "approved" | "rejected" | "under_review" | "withdrawn" | "completed",
+  reviewerId: string,
+  notes?: string,
+) {
+  const existing = await (await dataRepo()).fetchAdoptionApplicationById(id);
+  if (!existing) {
+    return { ok: false as const, error: "Application not found" };
+  }
+
+  const decided =
+    status === "approved" ||
+    status === "rejected" ||
+    status === "completed" ||
+    status === "withdrawn";
+
+  await (await dataRepo()).updateAdoptionApplication(id, {
+    status,
+    reviewedById: reviewerId,
+    reviewNotes: notes,
+    decidedAt: decided ? new Date() : null,
+  });
+
+  if (status === "approved") {
+    const animal = await getAnimalById(existing.animalId);
+    await (await dataRepo()).updateAnimalFields(existing.animalId, {
+      pathwayStage: "transferred",
+      recommendedNextAction: "Adoption completed",
+    });
+
+    const staffUsers = await (await dataRepo()).fetchStaffUsersByRole(
+      "shelter_staff",
+    );
+    const label = animal?.name ?? animal?.temporaryId ?? existing.animalId;
+    for (const staff of staffUsers) {
+      await pushNotification({
+        userId: staff.id,
+        type: "adoption",
+        title: "Adoption approved",
+        message: `Application for ${label} by ${existing.applicantName} was approved. Animal marked as transferred.`,
+        caseId: animal?.rescueCaseId,
+      });
+    }
+  }
+
+  return { ok: true as const };
+}
+
+export async function updateAnimalProfile(
+  id: string,
+  fields: {
+    name?: string | null;
+    bio?: string | null;
+    temperament?: string | null;
+    pathwayStage?: string;
+    sex?: string | null;
+    estimatedAge?: string | null;
+    breed?: string | null;
+    color?: string | null;
+    recommendedNextAction?: string | null;
+    photoUrl?: string | null;
+  },
+) {
+  const animal = await getAnimalById(id);
+  if (!animal) {
+    return { ok: false as const, error: "Animal not found" };
+  }
+
+  await (await dataRepo()).updateAnimalFields(id, {
+    ...(fields.name !== undefined ? { name: fields.name } : {}),
+    ...(fields.bio !== undefined ? { bio: fields.bio } : {}),
+    ...(fields.temperament !== undefined
+      ? { temperament: fields.temperament }
+      : {}),
+    ...(fields.pathwayStage !== undefined
+      ? {
+          pathwayStage:
+            fields.pathwayStage as typeof import("@/db/schema").animals.$inferInsert.pathwayStage,
+        }
+      : {}),
+    ...(fields.sex !== undefined ? { sex: fields.sex } : {}),
+    ...(fields.estimatedAge !== undefined
+      ? { estimatedAge: fields.estimatedAge }
+      : {}),
+    ...(fields.breed !== undefined ? { breed: fields.breed } : {}),
+    ...(fields.color !== undefined ? { color: fields.color } : {}),
+    ...(fields.recommendedNextAction !== undefined
+      ? { recommendedNextAction: fields.recommendedNextAction }
+      : {}),
+    ...(fields.photoUrl !== undefined ? { photoUrl: fields.photoUrl } : {}),
+  });
+
+  return { ok: true as const };
+}
+
+export async function deleteAnimal(id: string) {
+  const animal = await getAnimalById(id);
+  if (!animal) {
+    return { ok: false as const, error: "Animal not found" };
+  }
+
+  const deleted = await (await dataRepo()).deleteAnimalById(id);
+  if (!deleted) {
+    return { ok: false as const, error: "Failed to delete animal" };
+  }
+
+  return { ok: true as const };
 }

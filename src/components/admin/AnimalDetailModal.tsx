@@ -118,6 +118,9 @@ export function AnimalDetailModal({ animalId, onClose }: AnimalDetailModalProps)
                   alt={animal.name ?? animal.temporaryId}
                   containerClassName="relative h-[130px] w-full sm:h-[140px]"
                   sizes="(max-width: 640px) 100vw, 280px"
+                  objectPosition="center top"
+                  expandable
+                  lightboxCaption={`${animal.temporaryId} · ${formatStatus(animal.species)}`}
                 />
                 <div className="flex flex-col justify-center border-t border-sage/15 px-3 py-2 sm:border-l sm:border-t-0">
                   <p className="text-base font-bold text-graphite">

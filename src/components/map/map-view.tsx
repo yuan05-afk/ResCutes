@@ -35,6 +35,12 @@ export interface MapMarker {
   color?: string;
   urgencyLevel?: string;
   legendLayerId?: string;
+  address?: string;
+  phone?: string;
+  region?: string;
+  notes?: string;
+  capacityLabel?: string;
+  sourceLabel?: string;
 }
 
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";

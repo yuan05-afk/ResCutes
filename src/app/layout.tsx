@@ -13,6 +13,13 @@ export const metadata: Metadata = {
   description:
     "ResCutes connects citizens, rescuers, shelters, and veterinarians through one coordinated workflow.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/favicon.png", sizes: "180x180" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

@@ -1,14 +1,18 @@
+import "server-only";
+
 import {
   and,
   asc,
   desc,
   eq,
   inArray,
+  like,
   ne,
   sql,
 } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
+  adoptionApplications,
   animalNotes,
   animals,
   casePhotos,
@@ -28,6 +32,7 @@ import {
   users,
 } from "@/db/schema";
 import type {
+  AdoptionApplicationRecord,
   AnimalNoteRecord,
   AnimalRecord,
   AppUser,
@@ -455,6 +460,7 @@ export async function fetchHandoffForCase(
 async function mapAnimalRow(
   animal: typeof animals.$inferSelect,
   clearanceStatus: string,
+  caseNumber?: string | null,
 ): Promise<AnimalRecord> {
   return {
     id: animal.id,
@@ -465,7 +471,10 @@ async function mapAnimalRow(
     breed: animal.breed ?? undefined,
     color: animal.color ?? undefined,
     sex: animal.sex ?? undefined,
+    bio: animal.bio ?? undefined,
+    temperament: animal.temperament ?? undefined,
     rescueCaseId: animal.rescueCaseId ?? undefined,
+    caseNumber: caseNumber ?? undefined,
     shelterId: animal.shelterId ?? undefined,
     intakeDate: toIso(animal.intakeDate),
     pathwayStage: animal.pathwayStage ?? "intake",
@@ -473,6 +482,37 @@ async function mapAnimalRow(
     photoUrl: animal.photoUrl ?? undefined,
     clearanceStatus,
     createdAt: toIso(animal.createdAt)!,
+  };
+}
+
+function mapAdoptionApplicationRow(
+  row: typeof adoptionApplications.$inferSelect,
+  animal?: typeof animals.$inferSelect | null,
+  reviewerName?: string,
+): AdoptionApplicationRecord {
+  return {
+    id: row.id,
+    animalId: row.animalId,
+    animalName: animal?.name ?? undefined,
+    animalTemporaryId: animal?.temporaryId,
+    animalSpecies: animal?.species,
+    animalPhotoUrl: animal?.photoUrl ?? undefined,
+    applicantName: row.applicantName,
+    applicantEmail: row.applicantEmail,
+    applicantPhone: row.applicantPhone ?? undefined,
+    homeType: row.homeType,
+    hasYard: row.hasYard,
+    hasOtherPets: row.hasOtherPets,
+    householdSize: row.householdSize,
+    experienceNotes: row.experienceNotes ?? undefined,
+    motivation: row.motivation,
+    status: row.status,
+    reviewedById: row.reviewedById ?? undefined,
+    reviewerName,
+    reviewNotes: row.reviewNotes ?? undefined,
+    submittedAt: toIso(row.submittedAt)!,
+    decidedAt: toIso(row.decidedAt),
+    createdAt: toIso(row.createdAt)!,
   };
 }
 
@@ -484,15 +524,22 @@ export async function fetchAnimals(filters?: {
   const db = getDb();
   const animalRows = await db.select().from(animals);
   const clearances = await db.select().from(medicalClearances);
+  const caseRows = await db
+    .select({ id: rescueCases.id, caseNumber: rescueCases.caseNumber })
+    .from(rescueCases);
   const clearanceByAnimal = new Map(
     clearances.map((c) => [c.animalId, c.clearanceStatus]),
   );
+  const caseNumberById = new Map(caseRows.map((c) => [c.id, c.caseNumber]));
 
   let result = await Promise.all(
     animalRows.map((animal) =>
       mapAnimalRow(
         animal,
         clearanceByAnimal.get(animal.id) ?? "awaiting_examination",
+        animal.rescueCaseId
+          ? caseNumberById.get(animal.rescueCaseId)
+          : undefined,
       ),
     ),
   );
@@ -503,7 +550,10 @@ export async function fetchAnimals(filters?: {
       (a) =>
         a.name?.toLowerCase().includes(q) ||
         a.temporaryId.toLowerCase().includes(q) ||
-        a.species.toLowerCase().includes(q),
+        a.species.toLowerCase().includes(q) ||
+        a.caseNumber?.toLowerCase().includes(q) ||
+        a.temperament?.toLowerCase().includes(q) ||
+        a.bio?.toLowerCase().includes(q),
     );
   }
   if (filters?.shelterId) {
@@ -527,9 +577,18 @@ export async function fetchAnimalById(id: string): Promise<AnimalRecord | null> 
   const clearance = await db.query.medicalClearances.findFirst({
     where: eq(medicalClearances.animalId, id),
   });
+  let caseNumber: string | undefined;
+  if (animal.rescueCaseId) {
+    const linked = await db.query.rescueCases.findFirst({
+      where: eq(rescueCases.id, animal.rescueCaseId),
+      columns: { caseNumber: true },
+    });
+    caseNumber = linked?.caseNumber;
+  }
   return mapAnimalRow(
     animal,
     clearance?.clearanceStatus ?? "awaiting_examination",
+    caseNumber,
   );
 }
 
@@ -960,6 +1019,144 @@ export async function updateAnimalFields(
     .where(eq(animals.id, animalId));
 }
 
+export async function fetchAdoptionReadyAnimals(): Promise<AnimalRecord[]> {
+  const all = await fetchAnimals();
+  const ready = all.filter(
+    (a) =>
+      a.pathwayStage === "ready_for_adoption" ||
+      a.pathwayStage === "ready_for_foster",
+  );
+  ready.sort((a, b) => {
+    const aCleared = a.clearanceStatus === "medically_cleared" ? 0 : 1;
+    const bCleared = b.clearanceStatus === "medically_cleared" ? 0 : 1;
+    if (aCleared !== bCleared) return aCleared - bCleared;
+    return (a.name ?? a.temporaryId).localeCompare(b.name ?? b.temporaryId);
+  });
+  return ready;
+}
+
+export async function fetchAdoptionApplications(filters?: {
+  status?: string;
+  animalId?: string;
+}): Promise<AdoptionApplicationRecord[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      application: adoptionApplications,
+      animal: animals,
+      reviewerName: users.name,
+    })
+    .from(adoptionApplications)
+    .leftJoin(animals, eq(adoptionApplications.animalId, animals.id))
+    .leftJoin(users, eq(adoptionApplications.reviewedById, users.id))
+    .orderBy(desc(adoptionApplications.submittedAt));
+
+  let result = rows.map(({ application, animal, reviewerName }) =>
+    mapAdoptionApplicationRow(application, animal, reviewerName ?? undefined),
+  );
+
+  if (filters?.status) {
+    result = result.filter((a) => a.status === filters.status);
+  }
+  if (filters?.animalId) {
+    result = result.filter((a) => a.animalId === filters.animalId);
+  }
+
+  return result;
+}
+
+export async function fetchAdoptionApplicationById(
+  id: string,
+): Promise<AdoptionApplicationRecord | null> {
+  const db = getDb();
+  const row = await db
+    .select({
+      application: adoptionApplications,
+      animal: animals,
+      reviewerName: users.name,
+    })
+    .from(adoptionApplications)
+    .leftJoin(animals, eq(adoptionApplications.animalId, animals.id))
+    .leftJoin(users, eq(adoptionApplications.reviewedById, users.id))
+    .where(eq(adoptionApplications.id, id))
+    .limit(1);
+
+  const first = row[0];
+  if (!first) return null;
+  return mapAdoptionApplicationRow(
+    first.application,
+    first.animal,
+    first.reviewerName ?? undefined,
+  );
+}
+
+export async function insertAdoptionApplication(input: {
+  animalId: string;
+  applicantName: string;
+  applicantEmail: string;
+  applicantPhone?: string;
+  homeType: string;
+  hasYard?: boolean;
+  hasOtherPets?: boolean;
+  householdSize?: number;
+  experienceNotes?: string;
+  motivation: string;
+}): Promise<AdoptionApplicationRecord> {
+  const db = getDb();
+  const [row] = await db
+    .insert(adoptionApplications)
+    .values({
+      animalId: input.animalId,
+      applicantName: input.applicantName,
+      applicantEmail: input.applicantEmail,
+      applicantPhone: input.applicantPhone,
+      homeType: input.homeType,
+      hasYard: input.hasYard ?? false,
+      hasOtherPets: input.hasOtherPets ?? false,
+      householdSize: input.householdSize ?? 1,
+      experienceNotes: input.experienceNotes,
+      motivation: input.motivation,
+      status: "pending",
+    })
+    .returning();
+
+  const animal = await db.query.animals.findFirst({
+    where: eq(animals.id, row.animalId),
+  });
+  return mapAdoptionApplicationRow(row, animal);
+}
+
+export async function updateAdoptionApplication(
+  id: string,
+  patch: Partial<typeof adoptionApplications.$inferInsert>,
+): Promise<void> {
+  const db = getDb();
+  await db
+    .update(adoptionApplications)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(eq(adoptionApplications.id, id));
+}
+
+export async function deleteAnimalById(id: string): Promise<boolean> {
+  const db = getDb();
+  const deleted = await db
+    .delete(animals)
+    .where(eq(animals.id, id))
+    .returning({ id: animals.id });
+  return deleted.length > 0;
+}
+
+export async function deleteSeedAnimalsByTemporaryIdPrefix(
+  prefix = "A-SEED-",
+): Promise<number> {
+  const db = getDb();
+  const deleted = await db
+    .delete(animals)
+    .where(like(animals.temporaryId, `${prefix}%`))
+    .returning({ id: animals.id });
+  return deleted.length;
+}
+
 export async function upsertMedicalClearance(
   animalId: string,
   data: Partial<typeof medicalClearances.$inferInsert> & {
@@ -1025,6 +1222,27 @@ export async function insertNotification(input: {
   });
 }
 
+export async function markNotificationRead(
+  id: string,
+  userId: string,
+): Promise<void> {
+  const db = getDb();
+  await db
+    .update(notifications)
+    .set({ read: true })
+    .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(notifications)
+    .set({ read: true })
+    .where(
+      and(eq(notifications.userId, userId), eq(notifications.read, false)),
+    );
+}
+
 export async function updateShelterCapacityRow(
   shelterId: string,
   totalCapacity: number,
@@ -1074,6 +1292,7 @@ export async function fetchAnimalByRescueCaseId(
   return mapAnimalRow(
     animal,
     clearance?.clearanceStatus ?? "awaiting_examination",
+    undefined,
   );
 }
 

@@ -25,6 +25,15 @@ const statusStyles: Record<string, string> = {
   under_treatment: "bg-ochre/12 text-ochre",
   follow_up_required: "bg-ochre/12 text-ochre",
   medically_cleared: "bg-evergreen/15 text-evergreen",
+  pending: "bg-ochre/12 text-ochre",
+  under_review: "bg-sage/25 text-evergreen",
+  approved: "bg-evergreen/15 text-evergreen",
+  withdrawn: "bg-graphite/10 text-graphite/70",
+  ready_for_adoption: "bg-evergreen/15 text-evergreen",
+  ready_for_foster: "bg-sage/25 text-evergreen",
+  behavior_assessment: "bg-ochre/12 text-ochre",
+  medical_clearance: "bg-ochre/12 text-ochre",
+  transferred: "bg-evergreen/20 text-evergreen",
 };
 
 export function StatusBadge({ status, className, size = "sm" }: StatusBadgeProps) {

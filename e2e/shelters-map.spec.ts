@@ -32,8 +32,10 @@ test.describe("Shelter map page", () => {
     await expect(caraDirectoryItem).toBeVisible();
 
     await caraDirectoryItem.click();
-    await expect(page.getByText("Accepts: Dog, Cat")).toBeVisible();
-    await expect(page.getByRole("link", { name: /Source/i })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Close shelter details" }),
+    ).toBeVisible();
+    await expect(page.getByText("Accepts: Dog, Cat").first()).toBeVisible();
 
     await page.screenshot({
       path: path.join("e2e", "screenshots", "shelters-map-desktop.png"),

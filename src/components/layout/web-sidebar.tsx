@@ -11,6 +11,7 @@ import {
   LogOut,
   ChevronRight,
   MapPinned,
+  HeartHandshake,
 } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
 import { Logo } from "@/components/ui/logo";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/rescue-cases", label: "Rescue Cases", icon: ClipboardList },
   { href: "/animals", label: "Animals", icon: PawPrint },
+  { href: "/adoption", label: "Adoption", icon: HeartHandshake },
   { href: "/shelters", label: "Shelter Map", icon: MapPinned },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

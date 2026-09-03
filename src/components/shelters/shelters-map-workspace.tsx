@@ -19,7 +19,7 @@ import {
   type PhilippinesShelterRecord,
   type ShelterSpeciesProfile,
 } from "@/lib/data/philippines-shelters-directory";
-import { cn, formatStatus } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const SPECIES_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "All animal types" },
@@ -104,12 +104,14 @@ export function SheltersMapWorkspace({
     });
   }, []);
 
+  // Hover popup stays light — full details live in the floating card.
   const markers = filteredByControls.map((shelter) => ({
     id: shelter.id,
     latitude: shelter.latitude,
     longitude: shelter.longitude,
     label: shelter.name,
     species: formatShelterSpeciesLabel(shelter),
+    region: shelter.region,
     color: shelterMarkerColor(shelter.speciesProfile),
     legendLayerId: shelter.speciesProfile,
   }));
@@ -161,7 +163,7 @@ export function SheltersMapWorkspace({
               </p>
             </div>
             <p className="hidden text-[10px] text-graphite/45 sm:block">
-              Data: verified org listings + OpenStreetMap (ODbL)
+              Click a pin for details
             </p>
           </div>
           <div className="relative min-h-0 flex-1 p-2">
@@ -178,9 +180,78 @@ export function SheltersMapWorkspace({
               onMarkerClick={selectShelter}
               selectedMarkerId={selectedId ?? undefined}
               flyToSelectedMarker
-              pinSelectedPopup
+              pinSelectedPopup={false}
               selectedMarkerZoom={MAP_SHELTER_FOCUS_ZOOM}
             />
+            {selected ? (
+              <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-20 sm:left-auto sm:right-4 sm:w-[min(100%,22rem)]">
+                <div className="rounded-xl border border-sage/30 bg-white/95 p-3.5 shadow-elevated backdrop-blur-md">
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+                          {sourceLabel(selected.source)}
+                        </p>
+                        {selected.isDemoPartner ? (
+                          <span className="rounded-full bg-evergreen/10 px-1.5 py-0.5 text-[10px] font-semibold text-evergreen">
+                            Routing partner
+                          </span>
+                        ) : null}
+                      </div>
+                      <h3 className="text-sm font-bold text-graphite line-clamp-2">
+                        {selected.name}
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-graphite/50">
+                        {selected.city} · {selected.region}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(null)}
+                      className="rounded-lg px-2 py-1 text-xs font-medium text-graphite/50 hover:bg-bone hover:text-graphite"
+                      aria-label="Close shelter details"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <p className="flex items-start gap-1.5 text-xs text-graphite/65">
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <span>{selected.address}</span>
+                  </p>
+                  <p className="mt-1.5 text-xs font-semibold text-evergreen">
+                    Accepts: {formatShelterSpeciesLabel(selected)}
+                  </p>
+                  {selected.totalCapacity && selected.totalCapacity > 0 ? (
+                    <p className="mt-1 text-xs text-graphite/55">
+                      Capacity: {selected.currentOccupancy ?? 0}/
+                      {selected.totalCapacity}
+                    </p>
+                  ) : null}
+                  {selected.notes ? (
+                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-graphite/60">
+                      {selected.notes}
+                    </p>
+                  ) : null}
+                  {selected.phone ? (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-graphite/70">
+                      <Phone className="h-3.5 w-3.5" aria-hidden />
+                      {selected.phone}
+                    </p>
+                  ) : null}
+                  {selected.website ? (
+                    <a
+                      href={selected.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-evergreen hover:underline"
+                    >
+                      Website
+                      <ExternalLink className="h-3 w-3" aria-hidden />
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -188,25 +259,13 @@ export function SheltersMapWorkspace({
           <div className="shrink-0 border-b border-sage/15 px-4 py-2.5">
             <h2 className="text-sm font-semibold text-graphite">Directory</h2>
             <p className="text-xs text-graphite/50">
-              {hiddenLegendLayers.length > 0
-                ? "Map legend filters apply to this list"
-                : "Tap a pin or list item for details"}
+              {visibleShelters.length} shelters · details open on the map
             </p>
-          </div>
-
-          <div className="rc-scroll h-52 shrink-0 overflow-y-auto border-b border-sage/15 bg-bone/35 px-4 py-3">
-            {selected ? (
-              <ShelterDetailCard shelter={selected} />
-            ) : (
-              <p className="text-sm text-graphite/50">
-                Select a shelter from the list or map to view details.
-              </p>
-            )}
           </div>
 
           <div
             ref={listRef}
-            className="rc-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-2"
+            className="rc-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2"
           >
             {visibleShelters.length === 0 ? (
               <p className="px-2 py-6 text-center text-sm text-graphite/55">
@@ -230,8 +289,8 @@ export function SheltersMapWorkspace({
                   className={cn(
                     "w-full rounded-lg border px-3 py-2.5 text-left transition-colors",
                     selectedId === shelter.id
-                      ? "border-2 border-graphite/75 bg-bone/50 shadow-sm"
-                      : "border border-sage/20 bg-white hover:border-sage/35 hover:bg-bone/50",
+                      ? "border-evergreen/40 bg-evergreen/5 shadow-sm"
+                      : "border-transparent bg-transparent hover:border-sage/25 hover:bg-bone/50",
                   )}
                 >
                   <div className="flex items-start gap-2">
@@ -243,13 +302,13 @@ export function SheltersMapWorkspace({
                       aria-hidden
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-graphite line-clamp-2">
+                      <p className="text-sm font-semibold text-graphite line-clamp-1">
                         {shelter.name}
                       </p>
                       <p className="mt-0.5 text-xs text-graphite/55">
                         {shelter.city} · {shelter.region}
                       </p>
-                      <p className="mt-1 text-[11px] font-medium text-evergreen">
+                      <p className="mt-0.5 text-[11px] font-medium text-evergreen">
                         {formatShelterSpeciesLabel(shelter)}
                       </p>
                     </div>
@@ -259,80 +318,6 @@ export function SheltersMapWorkspace({
             )}
           </div>
         </section>
-      </div>
-    </div>
-  );
-}
-
-function ShelterDetailCard({ shelter }: { shelter: PhilippinesShelterRecord }) {
-  const capacityPct =
-    shelter.totalCapacity && shelter.totalCapacity > 0
-      ? Math.round((shelter.currentOccupancy ?? 0) / shelter.totalCapacity * 100)
-      : null;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-graphite/55">
-          {sourceLabel(shelter.source)}
-        </span>
-        {shelter.isDemoPartner ? (
-          <span className="rounded-full bg-evergreen/10 px-2 py-0.5 text-[10px] font-semibold text-evergreen">
-            ResCutes routing partner
-          </span>
-        ) : null}
-      </div>
-      <h3 className="text-base font-bold text-graphite">{shelter.name}</h3>
-      <p className="flex items-start gap-1.5 text-xs text-graphite/65">
-        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span>{shelter.address}</span>
-      </p>
-      <p className="text-xs text-graphite/55">
-        {shelter.city}, {shelter.region}
-      </p>
-      <p className="text-sm font-semibold text-evergreen">
-        Accepts: {formatShelterSpeciesLabel(shelter)}
-      </p>
-      {capacityPct != null ? (
-        <p className="text-xs text-graphite/55">
-          Capacity: {shelter.currentOccupancy}/{shelter.totalCapacity} ({capacityPct}% occupied)
-        </p>
-      ) : null}
-      {shelter.operator ? (
-        <p className="text-xs text-graphite/55">Operator: {shelter.operator}</p>
-      ) : null}
-      {shelter.notes ? (
-        <p className="text-xs leading-relaxed text-graphite/60">{shelter.notes}</p>
-      ) : null}
-      <div className="flex flex-wrap gap-3 pt-1 text-xs">
-        {shelter.phone ? (
-          <span className="inline-flex items-center gap-1 text-graphite/70">
-            <Phone className="h-3.5 w-3.5" aria-hidden />
-            {shelter.phone}
-          </span>
-        ) : null}
-        {shelter.website ? (
-          <a
-            href={shelter.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-semibold text-evergreen hover:underline"
-          >
-            Website
-            <ExternalLink className="h-3 w-3" aria-hidden />
-          </a>
-        ) : null}
-        {shelter.sourceUrl ? (
-          <a
-            href={shelter.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-graphite/55 hover:text-graphite"
-          >
-            Source ({formatStatus(shelter.source)})
-            <ExternalLink className="h-3 w-3" aria-hidden />
-          </a>
-        ) : null}
       </div>
     </div>
   );

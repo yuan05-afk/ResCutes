@@ -10,6 +10,8 @@ import {
   getAnimalById,
   getShelterById,
   getRescuers,
+  getMedicalClearanceForAnimal,
+  getNotesForAnimal,
   resolveCurrentUrgency,
 } from "@/lib/data/service";
 import { canManageCases, canViewReporterInfo, canViewMedicalNotes, canEditMedical } from "@/lib/auth/permissions";

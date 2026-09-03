@@ -8,6 +8,8 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { cn } from "@/lib/utils";
 import { useActionPending } from "@/components/shared/useActionPending";
 import { updateShelterSettingsAction } from "@/app/actions/case";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { showToast } from "@/components/ui/toast";
 import { Check, Minus, Plus, Stethoscope, PawPrint } from "lucide-react";
 
 const CAPABILITY_OPTIONS = [
@@ -73,6 +75,7 @@ export function ShelterSettingsForm({
   );
   const [selectedCaps, setSelectedCaps] = useState<string[]>(shelter.capabilities);
   const [saved, setSaved] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const available = Math.max(0, totalCapacity - currentOccupancy);
   const utilization = Math.round(
@@ -107,7 +110,11 @@ export function ShelterSettingsForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canEdit) return;
+    if (!canEdit || !isDirty) return;
+    setConfirmOpen(true);
+  }
+
+  async function persistSettings() {
     await run(
       () =>
         updateShelterSettingsAction(shelter.id, {
@@ -118,6 +125,11 @@ export function ShelterSettingsForm({
       { rewarm: ["/settings", "/dashboard"] },
     );
     setSaved(true);
+    showToast({
+      title: "Shelter settings saved",
+      description: `${shelter.name} capacity and capabilities updated.`,
+      variant: "success",
+    });
     setTimeout(() => setSaved(false), 2500);
   }
 
@@ -296,6 +308,17 @@ export function ShelterSettingsForm({
           </Button>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Save shelter settings?"
+        message={`Update capacity and capabilities for ${shelter.name}. This affects routing recommendations immediately.`}
+        confirmLabel="Save changes"
+        cancelLabel="Cancel"
+        variant="primary"
+        pending={loading}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={persistSettings}
+      />
     </form>
   );
 }

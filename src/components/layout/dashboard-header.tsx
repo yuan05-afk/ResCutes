@@ -1,10 +1,15 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { PageHeaderNotifications } from "@/components/notifications/notification-slot-context";
 
 interface DashboardHeaderProps {
   title: string;
   subtitle?: string;
   children?: React.ReactNode;
   compact?: boolean;
+  /** Hide the desktop notification bell (rare; default shows it). */
+  hideNotifications?: boolean;
 }
 
 export function DashboardHeader({
@@ -12,29 +17,29 @@ export function DashboardHeader({
   subtitle,
   children,
   compact = true,
+  hideNotifications = false,
 }: DashboardHeaderProps) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
+    <div className="flex items-start justify-between gap-3 sm:items-center">
+      <div className="min-w-0 flex-1">
         <h1
           className={cn(
             "font-bold tracking-tight text-graphite break-words",
-            compact ? "text-lg md:text-xl" : "text-2xl md:text-[28px]",
+            compact ? "text-lg md:text-xl" : "text-xl md:text-2xl",
           )}
         >
           {title}
         </h1>
-        {subtitle && (
+        {subtitle ? (
           <p className="mt-0.5 text-xs text-graphite/55 sm:text-sm break-words">
             {subtitle}
           </p>
-        )}
+        ) : null}
       </div>
-      {children && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-3">
-          {children}
-        </div>
-      )}
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        {children}
+        {!hideNotifications ? <PageHeaderNotifications /> : null}
+      </div>
     </div>
   );
 }
@@ -66,13 +71,13 @@ export function PageShell({
       )}
     >
       {header ? (
-        <header className="shrink-0 border-b border-sage/20 bg-bone/90 px-4 py-3 md:px-6">
+        <header className="shrink-0 border-b border-sage/20 bg-bone/90 px-4 py-2.5 md:px-5 md:py-3">
           {header}
         </header>
       ) : null}
       <div
         className={cn(
-          "flex min-w-0 flex-col overflow-x-hidden px-4 py-3 md:px-6 md:py-4",
+          "flex min-w-0 flex-col overflow-x-hidden px-4 py-3 md:px-5 md:py-4",
           fitViewport
             ? "lg:min-h-0 lg:flex-1 lg:overflow-hidden"
             : "lg:min-h-0 lg:flex-1 lg:overflow-y-auto rc-scroll",

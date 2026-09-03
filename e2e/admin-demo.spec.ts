@@ -19,10 +19,14 @@ test.describe("Administrator full access", () => {
 
     await page.goto("/rescue-cases");
     await expect(page.getByRole("heading", { name: "Rescue Cases" })).toBeVisible();
-    await expect(page.getByText("0 cases in system")).toBeVisible();
+    await expect(page.getByText(/\d+ cases? in system/)).toBeVisible();
 
     await page.goto("/animals");
     await expect(page.getByRole("heading", { name: "Animals" })).toBeVisible();
+    await expect(page.getByText("Luna").first()).toBeVisible();
+
+    await page.goto("/adoption");
+    await expect(page.getByRole("heading", { name: "Adoption" })).toBeVisible();
 
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: "Shelter Settings" })).toBeVisible();

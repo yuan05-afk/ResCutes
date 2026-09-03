@@ -7,7 +7,7 @@ import { AttentionQueueItem } from "@/components/dashboard/attention-queue-item"
 import { CaseDetailModal } from "@/components/admin/CaseDetailModal";
 import { ClickableRow } from "@/components/admin/ClickableTable";
 import { DashboardMapClient } from "@/app/(dashboard)/dashboard/dashboard-map";
-import { resolveCurrentUrgency } from "@/lib/data/service";
+import { resolveCurrentUrgency } from "@/lib/data/urgency";
 import type { RescueCaseRecord } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +72,13 @@ export function DashboardInteractiveSections({
               selectedMarkerId={openId ?? undefined}
               className="h-full min-h-[200px]"
             />
+            {mapCases.length === 0 ? (
+              <div className="pointer-events-none absolute inset-2 flex items-center justify-center rounded-lg bg-bone/70 backdrop-blur-[1px]">
+                <p className="max-w-[16rem] text-center text-sm text-graphite/60">
+                  No active rescue pins yet. New verified cases will appear here.
+                </p>
+              </div>
+            ) : null}
           </div>
         </section>
 

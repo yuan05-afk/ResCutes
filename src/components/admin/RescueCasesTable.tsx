@@ -14,7 +14,7 @@ import {
   useRescueCasesFilters,
 } from "@/components/admin/rescue-cases-filters";
 import type { AppUser, RescueCaseRecord } from "@/lib/data/types";
-import { resolveCurrentUrgency } from "@/lib/data/service";
+import { resolveCurrentUrgency } from "@/lib/data/urgency";
 
 const ROWS_PER_PAGE = 7;
 
