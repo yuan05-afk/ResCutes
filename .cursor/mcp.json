@@ -1,7 +1,3 @@
 {
-  "mcpServers": {
-    "stack-auth": {
-      "url": "https://mcp.hexclave.com/mcp"
-    }
-  }
+  "mcpServers": {}
 }

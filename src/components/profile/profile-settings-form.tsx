@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Toggle } from "@/components/ui/toggle";
 import { useActionPending } from "@/components/shared/useActionPending";
 import { updateProfileAction } from "@/app/actions/profile";
-import { hexclaveClientApp } from "@/stack/client";
+import { signOutAction } from "@/app/actions/auth";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
 import type { Role } from "@/lib/auth/permissions";
 import type { UserProfilePrefs } from "@/lib/data/user-profile";
@@ -109,14 +109,15 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
           </div>
 
           <div className="mt-5 space-y-2 border-t border-sage/15 pt-4">
-            <button
-              type="button"
-              onClick={() => void hexclaveClientApp.redirectToSignOut()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-sage/25 px-4 py-2.5 text-sm font-medium text-graphite/70 transition hover:border-rescue/30 hover:bg-rescue/5 hover:text-rescue"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </button>
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-sage/25 px-4 py-2.5 text-sm font-medium text-graphite/70 transition hover:border-rescue/30 hover:bg-rescue/5 hover:text-rescue"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </button>
+            </form>
           </div>
         </div>
       </aside>
