@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,7 @@ import {
   selectShelterAction,
   confirmHandoffAction,
   overrideUrgencyAction,
+  updateRescuerNoteAction,
 } from "@/app/actions/case";
 import { CaseIntakeForm } from "./case-intake-form";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ interface CaseStaffActionsProps {
   assignedShelterId?: string;
   hasHandoff?: boolean;
   hasAnimal?: boolean;
+  rescuerNote?: string;
   variant?: "default" | "compact" | "panel";
 }
 
@@ -71,6 +73,7 @@ export function CaseStaffActions({
   assignedShelterId,
   hasHandoff,
   hasAnimal,
+  rescuerNote = "",
   variant = "default",
 }: CaseStaffActionsProps) {
   const { pending: loading, error: actionError, setError: setActionError, run } =
@@ -82,6 +85,11 @@ export function CaseStaffActions({
   const [selectedShelter, setSelectedShelter] = useState("");
   const [shelterRejectReason, setShelterRejectReason] = useState("");
   const [handoffNotes, setHandoffNotes] = useState("");
+  const [rescuerNoteDraft, setRescuerNoteDraft] = useState(rescuerNote);
+
+  useEffect(() => {
+    setRescuerNoteDraft(rescuerNote);
+  }, [rescuerNote]);
 
   const temporaryId = `A-${caseNumber.replace("RC-", "")}`;
   const showRescueStageActions =
@@ -169,6 +177,29 @@ export function CaseStaffActions({
             size={btnSize}
           >
             Assign Rescuer
+          </Button>
+        </ActionBlock>
+      )}
+
+      {showRescueStageActions && caseStatus !== "report_submitted" && (
+        <ActionBlock title="Note for rescuer">
+          <Textarea
+            placeholder="Access instructions, hazards, on-site contact..."
+            value={rescuerNoteDraft}
+            onChange={(e) => setRescuerNoteDraft(e.target.value)}
+            rows={3}
+            className="min-h-[4.5rem] resize-none text-sm"
+          />
+          <Button
+            onClick={() =>
+              runAction(() => updateRescuerNoteAction(caseId, rescuerNoteDraft))
+            }
+            disabled={loading || rescuerNoteDraft === rescuerNote}
+            className="w-full"
+            size={btnSize}
+            variant="outline"
+          >
+            Save rescuer note
           </Button>
         </ActionBlock>
       )}

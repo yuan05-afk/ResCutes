@@ -13,6 +13,7 @@ interface CaseMediaStripProps {
   photoCaption?: string;
   latitude: number;
   longitude: number;
+  locationLabel?: string;
   caseId: string;
   caseNumber: string;
   urgencyLevel: string;
@@ -37,6 +38,7 @@ export function CaseMediaStrip({
   photoCaption,
   latitude,
   longitude,
+  locationLabel,
   caseId,
   caseNumber,
   urgencyLevel,
@@ -90,6 +92,7 @@ export function CaseMediaStrip({
               caseNumber,
               species,
               urgencyLevel,
+              address: locationLabel,
               color: markerColor(urgencyLevel),
             },
           ]}

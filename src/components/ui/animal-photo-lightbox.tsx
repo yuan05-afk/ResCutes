@@ -88,7 +88,7 @@ export function AnimalPhotoLightbox({
           </button>
         </div>
 
-        {/* Photo stage — bone canvas so contain doesn't feel like dead black bars */}
+        {/* Photo stage - bone canvas so contain doesn't feel like dead black bars */}
         <div className="relative flex min-h-0 flex-1 items-center justify-center bg-gradient-to-b from-white to-bone px-3 py-4 sm:px-6 sm:py-6">
           <div className="relative h-[min(68vh,560px)] w-full overflow-hidden rounded-xl border border-sage/20 bg-white shadow-card">
             <Image

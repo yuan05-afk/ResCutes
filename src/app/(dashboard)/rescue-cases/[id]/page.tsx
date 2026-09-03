@@ -9,8 +9,9 @@ import {
   getShelterById,
   getRescuers,
   resolveCurrentUrgency,
+  getCaseLocation,
 } from "@/lib/data/service";
-import { canManageCases, canViewReporterInfo } from "@/lib/auth/permissions";
+import { canManageCases, canViewReporterInfo, canViewExactLocation } from "@/lib/auth/permissions";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
@@ -30,6 +31,8 @@ export default async function RescueCaseDetailPage({
 
   const canManage = canManageCases(session.user.roles);
   const canReporter = canViewReporterInfo(session.user.roles);
+  const canExact = canViewExactLocation(session.user.roles);
+  const mapLocation = getCaseLocation(caseItem, session.user.roles, canExact);
   const [
     history,
     assignments,
@@ -82,8 +85,15 @@ export default async function RescueCaseDetailPage({
           description: caseItem.description,
           reporterName: caseItem.reporterName,
           contactPreference: caseItem.contactPreference,
-          latitude: caseItem.latitude,
-          longitude: caseItem.longitude,
+          locationLabel: caseItem.locationLabel,
+          locationNote: caseItem.locationNote,
+          rescuerNote: caseItem.rescuerNote,
+          latitude: mapLocation.latitude,
+          longitude: mapLocation.longitude,
+          isApproximateLocation: !canExact,
+          showRescuerNote: Boolean(
+            caseItem.rescuerNote && (canManage || canExact),
+          ),
           photoUrl: caseItem.photoUrl,
           assignedShelterId: caseItem.assignedShelterId,
           urgencyOverrideReason: caseItem.urgencyOverrideReason,

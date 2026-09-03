@@ -68,7 +68,7 @@ interface AnimalDetailViewProps {
 }
 
 function displayOrDash(value?: string | null) {
-  return value?.trim() ? value : "—";
+  return value?.trim() ? value : "-";
 }
 
 function Section({
@@ -163,7 +163,7 @@ export function AnimalDetailView({
       )}
     >
       <div className="space-y-4">
-        {/* Hero identity — single source of truth */}
+        {/* Hero identity - single source of truth */}
         <section className="overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card">
           <div className="grid sm:grid-cols-[220px_1fr]">
             <AnimalImage
@@ -219,7 +219,7 @@ export function AnimalDetailView({
                 <Fact
                   label="Intake"
                   value={
-                    animal.intakeDate ? formatDate(animal.intakeDate) : "—"
+                    animal.intakeDate ? formatDate(animal.intakeDate) : "-"
                   }
                 />
               </dl>

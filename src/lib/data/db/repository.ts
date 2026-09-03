@@ -198,6 +198,9 @@ function mapCaseBundle(bundle: CaseBundle): RescueCaseRecord {
     vulnerability: report.vulnerability,
     description: report.description,
     contactPreference: report.contactPreference,
+    locationLabel: report.locationLabel ?? undefined,
+    locationNote: report.locationNote ?? undefined,
+    rescuerNote: c.rescuerNote ?? undefined,
     latitude: report.latitude,
     longitude: report.longitude,
     approximateLatitude: report.approximateLatitude,
@@ -860,6 +863,8 @@ export async function insertReportBundle(input: {
   vulnerability: string;
   description: string;
   contactPreference: string;
+  locationLabel?: string;
+  locationNote?: string;
   latitude: number;
   longitude: number;
   approximateLatitude: number;
@@ -883,6 +888,8 @@ export async function insertReportBundle(input: {
       description: input.description,
       contactPreference:
         input.contactPreference as typeof rescueReports.$inferInsert.contactPreference,
+      locationLabel: input.locationLabel ?? null,
+      locationNote: input.locationNote ?? null,
       latitude: input.latitude,
       longitude: input.longitude,
       approximateLatitude: input.approximateLatitude,

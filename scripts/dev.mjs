@@ -63,7 +63,7 @@ async function main() {
   console.log("");
   console.log(`Starting ResCutes dev server at http://${HOST}:${PORT}`);
   if (!useWebpack) {
-    console.log("(Turbopack enabled — use npm run dev:webpack if you hit issues)");
+    console.log("(Turbopack enabled - use npm run dev:webpack if you hit issues)");
   }
   console.log("");
 

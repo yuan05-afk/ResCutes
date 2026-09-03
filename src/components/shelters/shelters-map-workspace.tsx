@@ -44,18 +44,65 @@ export function SheltersMapWorkspace({
 }) {
   const searchParams = useSearchParams();
   const highlightParam = searchParams.get("highlight");
+  const focusLat = Number(searchParams.get("lat"));
+  const focusLng = Number(searchParams.get("lng"));
+  const hasFocusCoords =
+    Number.isFinite(focusLat) && Number.isFinite(focusLng);
   const [search, setSearch] = useState("");
   const [region, setRegion] = useState("All regions");
   const [speciesProfile, setSpeciesProfile] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(
-    highlightParam && shelters.some((s) => s.id === highlightParam)
-      ? highlightParam
-      : null,
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    if (highlightParam && shelters.some((s) => s.id === highlightParam)) {
+      return highlightParam;
+    }
+    if (hasFocusCoords) {
+      const nearest = shelters.find(
+        (s) =>
+          Math.abs(s.latitude - focusLat) < 0.002 &&
+          Math.abs(s.longitude - focusLng) < 0.002,
+      );
+      return nearest?.id ?? null;
+    }
+    return null;
+  });
+  const [cameraRequestId, setCameraRequestId] = useState(0);
   const [hiddenLegendLayers, setHiddenLegendLayers] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const didApplyHighlight = useRef(false);
+
+  const availableRegions = useMemo(() => {
+    const withShelters = new Set(shelters.map((shelter) => shelter.region));
+    return PHILIPPINES_REGIONS.filter(
+      (item) => item === "All regions" || withShelters.has(item),
+    );
+  }, [shelters]);
+
+  const availableSpeciesOptions = useMemo(() => {
+    const withShelters = new Set(
+      shelters.map((shelter) => shelter.speciesProfile),
+    );
+    return SPECIES_FILTER_OPTIONS.filter(
+      (item) =>
+        item.value === "" ||
+        withShelters.has(item.value as ShelterSpeciesProfile),
+    );
+  }, [shelters]);
+
+  useEffect(() => {
+    if (region !== "All regions" && !availableRegions.includes(region)) {
+      setRegion("All regions");
+    }
+  }, [region, availableRegions]);
+
+  useEffect(() => {
+    if (
+      speciesProfile &&
+      !availableSpeciesOptions.some((item) => item.value === speciesProfile)
+    ) {
+      setSpeciesProfile("");
+    }
+  }, [speciesProfile, availableSpeciesOptions]);
 
   const filteredByControls = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -107,6 +154,7 @@ export function SheltersMapWorkspace({
 
   const selectShelter = useCallback((id: string) => {
     setSelectedId(id);
+    setCameraRequestId((n) => n + 1);
     requestAnimationFrame(() => {
       const button = itemRefs.current.get(id);
       const list = listRef.current;
@@ -130,16 +178,20 @@ export function SheltersMapWorkspace({
     selectShelter(highlightParam);
   }, [highlightParam, shelters, selectShelter]);
 
-  const markers = filteredByControls.map((shelter) => ({
-    id: shelter.id,
-    latitude: shelter.latitude,
-    longitude: shelter.longitude,
-    label: shelter.name,
-    species: formatShelterSpeciesLabel(shelter),
-    region: shelter.region,
-    color: shelterMarkerColor(shelter.speciesProfile),
-    legendLayerId: shelter.speciesProfile,
-  }));
+  const markers = useMemo(
+    () =>
+      filteredByControls.map((shelter) => ({
+        id: shelter.id,
+        latitude: shelter.latitude,
+        longitude: shelter.longitude,
+        label: shelter.name,
+        species: formatShelterSpeciesLabel(shelter),
+        region: shelter.region,
+        color: shelterMarkerColor(shelter.speciesProfile),
+        legendLayerId: shelter.speciesProfile,
+      })),
+    [filteredByControls],
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 lg:overflow-hidden">
@@ -155,7 +207,7 @@ export function SheltersMapWorkspace({
           onChange={(e) => setRegion(e.target.value)}
           className="h-9"
         >
-          {PHILIPPINES_REGIONS.map((item) => (
+          {availableRegions.map((item) => (
             <option key={item} value={item}>
               {item}
             </option>
@@ -166,7 +218,7 @@ export function SheltersMapWorkspace({
           onChange={(e) => setSpeciesProfile(e.target.value)}
           className="h-9"
         >
-          {SPECIES_FILTER_OPTIONS.map((item) => (
+          {availableSpeciesOptions.map((item) => (
             <option key={item.value || "all"} value={item.value}>
               {item.label}
             </option>
@@ -207,7 +259,8 @@ export function SheltersMapWorkspace({
               onMarkerClick={selectShelter}
               selectedMarkerId={selectedId ?? undefined}
               flyToSelectedMarker
-              pinSelectedPopup={false}
+              cameraRequestId={cameraRequestId}
+              pinSelectedPopup
               selectedMarkerZoom={MAP_SHELTER_FOCUS_ZOOM}
             />
             {selected ? (

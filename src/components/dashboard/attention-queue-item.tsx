@@ -17,6 +17,7 @@ interface AttentionQueueItemProps {
   photoUrl?: string;
   animalName?: string;
   onOpen?: () => void;
+  selected?: boolean;
   compact?: boolean;
 }
 
@@ -30,6 +31,7 @@ export function AttentionQueueItem({
   photoUrl,
   animalName,
   onOpen,
+  selected = false,
   compact = false,
 }: AttentionQueueItemProps) {
   const imageUrl = getCasePhotoUrl(species, photoUrl, id);
@@ -82,8 +84,11 @@ export function AttentionQueueItem({
   );
 
   const className = cn(
-    "flex w-full cursor-pointer gap-2.5 rounded-lg border border-sage/20 bg-white text-left transition-all hover:border-evergreen/30 hover:shadow-card",
+    "flex w-full cursor-pointer gap-2.5 rounded-lg border bg-white text-left transition-all",
     compact ? "p-2" : "gap-3 rounded-xl p-3",
+    selected
+      ? "border-evergreen/40 bg-evergreen/5 shadow-sm"
+      : "border-sage/20 hover:border-evergreen/30 hover:shadow-card",
   );
 
   if (onOpen) {

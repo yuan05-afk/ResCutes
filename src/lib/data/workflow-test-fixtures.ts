@@ -195,7 +195,7 @@ export async function seedLunaMedicalFixture() {
       injurySeverity: "moderate",
       environmentalDanger: "none",
       vulnerability: "juvenile",
-      description: "Luna — young aspin with leg injury.",
+      description: "Luna - young aspin with leg injury.",
       contactPreference: "in_app",
       latitude: DEMO_GEO.luna.latitude,
       longitude: DEMO_GEO.luna.longitude,

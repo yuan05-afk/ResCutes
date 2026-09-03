@@ -241,6 +241,10 @@ export const rescueReports = pgTable("rescue_reports", {
   vulnerability: vulnerabilityEnum("vulnerability").notNull(),
   description: text("description").notNull(),
   contactPreference: contactPreferenceEnum("contact_preference").notNull(),
+  /** Reverse-geocoded or reporter-supplied place label for maps / directions. */
+  locationLabel: text("location_label"),
+  /** Reporter landmark note (e.g. "behind the 7-Eleven"). */
+  locationNote: text("location_note"),
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
   approximateLatitude: doublePrecision("approximate_latitude").notNull(),
@@ -267,6 +271,8 @@ export const rescueCases = pgTable(
     duplicateOfCaseId: uuid("duplicate_of_case_id"),
     assignedShelterId: uuid("assigned_shelter_id").references(() => shelters.id),
     animalId: uuid("animal_id"),
+    /** Staff instructions for the assigned rescuer (access, hazards, contact on site). */
+    rescuerNote: text("rescuer_note"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

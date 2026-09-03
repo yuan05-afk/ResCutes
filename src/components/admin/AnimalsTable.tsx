@@ -216,7 +216,7 @@ export function AnimalsTable({
                   </td>
                   <td className={`${tableTdClass} text-graphite/65`}>
                     <p className="line-clamp-2 text-xs leading-relaxed">
-                      {a.temperament ?? a.bio ?? "—"}
+                      {a.temperament ?? a.bio ?? "-"}
                     </p>
                   </td>
                   <td className={`${tableTdClass} text-graphite/70`}>
@@ -241,7 +241,7 @@ export function AnimalsTable({
                         {a.caseNumber ?? "View case"}
                       </Link>
                     ) : (
-                      "—"
+                      "-"
                     )}
                   </td>
                   {canManage ? (

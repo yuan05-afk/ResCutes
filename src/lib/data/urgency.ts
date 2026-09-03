@@ -24,7 +24,7 @@ function urgencyInputFromCase(
   };
 }
 
-/** Safe for client components — no DB imports. */
+/** Safe for client components - no DB imports. */
 export function resolveCurrentUrgency(caseItem: RescueCaseRecord): UrgencyResult {
   if (caseItem.urgencyOverrideScore != null) {
     const score = caseItem.urgencyOverrideScore;

@@ -16,6 +16,7 @@ import {
   mailtoHref,
   shelterMapAppHref,
   telHref,
+  type ShelterMapsLocation,
 } from "@/lib/maps/shelter-links";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,18 @@ export function ShelterContactBlock({
     shelter.city,
     shelter.region,
   );
+
+  const mapsLocation: ShelterMapsLocation = {
+    name: shelter.name,
+    address: shelter.address,
+    city: shelter.city,
+    region: shelter.region,
+    latitude: shelter.latitude,
+    longitude: shelter.longitude,
+  };
+
+  const hasPlace =
+    Boolean(shelter.name.trim()) || Boolean(fullAddress.trim());
   const hasCoords =
     typeof shelter.latitude === "number" &&
     typeof shelter.longitude === "number" &&
@@ -61,15 +74,17 @@ export function ShelterContactBlock({
 
   const phoneLink = shelter.phone ? telHref(shelter.phone) : null;
   const emailLink = shelter.email ? mailtoHref(shelter.email) : null;
-  const mapsPin = hasCoords
-    ? googleMapsPinUrl(shelter.latitude!, shelter.longitude!)
-    : null;
-  const mapsDirections = hasCoords
-    ? googleMapsDirectionsUrl(shelter.latitude!, shelter.longitude!)
-    : null;
+  const mapsPin = hasPlace || hasCoords ? googleMapsPinUrl(mapsLocation) : null;
+  const mapsDirections =
+    hasPlace || hasCoords ? googleMapsDirectionsUrl(mapsLocation) : null;
   const appMapHref =
     !hideAppMapLink && shelter.directoryId
-      ? shelterMapAppHref(shelter.directoryId)
+      ? shelterMapAppHref(
+          shelter.directoryId,
+          hasCoords
+            ? { latitude: shelter.latitude!, longitude: shelter.longitude! }
+            : null,
+        )
       : null;
 
   const textClass = compact
@@ -95,7 +110,7 @@ export function ShelterContactBlock({
               target="_blank"
               rel="noopener noreferrer"
               className={cn("block leading-snug", linkClass)}
-              title="Open in Google Maps"
+              title={`Open ${shelter.name} in Google Maps`}
             >
               {fullAddress}
             </a>

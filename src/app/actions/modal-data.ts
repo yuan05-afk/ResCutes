@@ -13,8 +13,9 @@ import {
   getMedicalClearanceForAnimal,
   getNotesForAnimal,
   resolveCurrentUrgency,
+  getCaseLocation,
 } from "@/lib/data/service";
-import { canManageCases, canViewReporterInfo, canViewMedicalNotes, canEditMedical } from "@/lib/auth/permissions";
+import { canManageCases, canViewReporterInfo, canViewMedicalNotes, canEditMedical, canViewExactLocation } from "@/lib/auth/permissions";
 
 export async function fetchCaseModalData(caseId: string) {
   const session = await auth();
@@ -43,11 +44,14 @@ export async function fetchCaseModalData(caseId: string) {
     getRescuers(),
   ]);
   const currentUrgency = resolveCurrentUrgency(caseItem);
+  const canExact = canViewExactLocation(session.user.roles);
+  const mapLocation = getCaseLocation(caseItem, session.user.roles, canExact);
 
   return {
     data: {
       caseItem,
       currentUrgency,
+      mapLocation,
       history,
       assignments,
       recommendations,
@@ -57,6 +61,7 @@ export async function fetchCaseModalData(caseId: string) {
       rescuers,
       canManage: canManageCases(session.user.roles),
       canReporter: canViewReporterInfo(session.user.roles),
+      canExact,
     },
   };
 }

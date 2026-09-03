@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { formatDateTime, formatStatus, formatTimelineLabel } from "@/lib/utils";
+import { CaseLocationBlock } from "@/components/case/case-location-block";
 import { CaseActionsClient } from "./case-actions";
 
 export default async function MobileCaseDetailPage({
@@ -94,17 +95,21 @@ export default async function MobileCaseDetailPage({
           </Card>
         )}
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Location</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm">
-            <p className="text-graphite/60 mb-1">
-              {canExact ? "Exact coordinates" : "Approximate location"}
-            </p>
-            <p>{location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</p>
-          </CardContent>
-        </Card>
+        <CaseLocationBlock
+          location={{
+            caseNumber: caseItem.caseNumber,
+            locationLabel: caseItem.locationLabel,
+            locationNote: caseItem.locationNote,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            isApproximate: !canExact,
+            rescuerNote: caseItem.rescuerNote,
+            showRescuerNote: Boolean(
+              caseItem.rescuerNote &&
+                (canExact || myAssignment?.status === "accepted"),
+            ),
+          }}
+        />
 
         {canReporter && (
           <Card>

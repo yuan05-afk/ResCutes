@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { StatusBadge } from "@/components/status/status-badge";
 import { AssignmentActionsClient } from "./assignment-actions";
+import { CaseLocationBlock } from "@/components/case/case-location-block";
 
 export default async function AssignmentDetailPage({
   params,
@@ -71,13 +72,22 @@ export default async function AssignmentDetailPage({
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Case Details</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm space-y-2">
+          <CardContent className="text-sm">
             <p>{caseItem.description}</p>
-            <p className="text-graphite/60">
-              Location: {caseItem.latitude.toFixed(4)}, {caseItem.longitude.toFixed(4)}
-            </p>
           </CardContent>
         </Card>
+
+        <CaseLocationBlock
+          location={{
+            caseNumber: caseItem.caseNumber,
+            locationLabel: caseItem.locationLabel,
+            locationNote: caseItem.locationNote,
+            latitude: caseItem.latitude,
+            longitude: caseItem.longitude,
+            rescuerNote: caseItem.rescuerNote,
+            showRescuerNote: Boolean(caseItem.rescuerNote),
+          }}
+        />
 
         <AssignmentActionsClient
           assignmentId={assignment.id}
@@ -86,6 +96,9 @@ export default async function AssignmentDetailPage({
           caseStatus={caseItem.status}
           latitude={caseItem.latitude}
           longitude={caseItem.longitude}
+          caseNumber={caseItem.caseNumber}
+          locationLabel={caseItem.locationLabel}
+          locationNote={caseItem.locationNote}
           shelterName={shelter?.name}
           shelterAddress={shelter?.address}
         />

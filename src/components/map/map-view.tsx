@@ -65,6 +65,8 @@ interface MapViewProps {
   fitVisibleMarkers?: boolean;
   flyToSelectedMarker?: boolean;
   selectedMarkerZoom?: number;
+  /** Increment to re-trigger fly even when selectedMarkerId is unchanged. */
+  cameraRequestId?: number;
   pinSelectedPopup?: boolean;
 }
 
@@ -157,6 +159,7 @@ export function MapView({
   fitVisibleMarkers = true,
   flyToSelectedMarker = false,
   selectedMarkerZoom = 13,
+  cameraRequestId = 0,
   pinSelectedPopup = false,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -167,6 +170,8 @@ export function MapView({
   const onMarkerClickRef = useRef(onMarkerClick);
   const pinSelectedPopupRef = useRef(pinSelectedPopup);
   const selectedMarkerIdRef = useRef(selectedMarkerId);
+  const markersRef = useRef(markers);
+  const flyGenerationRef = useRef(0);
   const [mapError, setMapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [internalHiddenLayers, setInternalHiddenLayers] = useState<Set<string>>(
@@ -178,6 +183,7 @@ export function MapView({
   onMarkerClickRef.current = onMarkerClick;
   pinSelectedPopupRef.current = pinSelectedPopup;
   selectedMarkerIdRef.current = selectedMarkerId;
+  markersRef.current = markers;
 
   const hiddenLegendLayers = useMemo(
     () => new Set(controlledHiddenLayers ?? [...internalHiddenLayers]),
@@ -457,19 +463,41 @@ export function MapView({
       return;
     }
 
-    const marker = markers.find((item) => item.id === selectedMarkerId);
+    const marker = markersRef.current.find((item) => item.id === selectedMarkerId);
     if (!marker) return;
 
+    // Generation supersedes older flights. Do NOT cancelAnimationFrame on cleanup -
+    // that was the root cause of "map stuck on previous shelter" during rapid clicks:
+    // cleanup cancelled the newest pending fly before it ran.
+    const generation = ++flyGenerationRef.current;
+    const target = {
+      latitude: marker.latitude,
+      longitude: marker.longitude,
+    };
+
     const fly = () => {
-      // Keep camera correct if a modal/layout shift hits during selection.
-      map.resize();
-      flyMapToCenter(map, marker, selectedMarkerZoom);
+      if (generation !== flyGenerationRef.current) return;
+      const liveMap = mapRef.current;
+      if (!liveMap || !liveMap.isStyleLoaded()) return;
+      // resize() can leave the camera transform briefly invalid; flying in the
+      // same turn caused Mapbox: Cannot read properties of undefined (reading 'x').
+      try {
+        liveMap.resize();
+      } catch {
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        if (generation !== flyGenerationRef.current) return;
+        const mapAfterResize = mapRef.current;
+        if (!mapAfterResize || !mapAfterResize.isStyleLoaded()) return;
+        flyMapToCenter(mapAfterResize, target, selectedMarkerZoom);
+      });
     };
 
     if (map.isStyleLoaded()) {
-      // Defer one frame so overlay/modal paint does not cancel the fly.
-      const frame = window.requestAnimationFrame(fly);
-      return () => window.cancelAnimationFrame(frame);
+      // Immediate schedule so the latest click always wins.
+      fly();
+      return;
     }
 
     map.once("load", fly);
@@ -478,12 +506,11 @@ export function MapView({
     };
   }, [
     selectedMarkerId,
+    cameraRequestId,
     flyToSelectedMarker,
     selectedMarkerZoom,
-    markerOverlaySignature,
     animateCamera,
     loading,
-    markers,
   ]);
 
   useEffect(() => {

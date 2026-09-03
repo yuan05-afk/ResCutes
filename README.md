@@ -1,11 +1,11 @@
 # ResCutes
 
-ResCutes connects citizens, rescuers, shelters, and veterinarians through one coordinated workflow—from animal reporting to safe shelter intake and medical clearance.
+ResCutes connects citizens, rescuers, shelters, and veterinarians through one coordinated workflow from animal reporting to safe shelter intake and medical clearance.
 
 The app has two interfaces from one codebase:
 
-- **Mobile (PWA)** — citizens report animals and track cases; rescuers accept assignments and update rescue progress.
-- **Web dashboard** — shelter staff verify cases, assign rescuers, route to shelters, complete intake; veterinarians record examinations and medical clearance.
+- **Mobile (PWA)** - citizens report animals and track cases; rescuers accept assignments and update rescue progress.
+- **Web dashboard** - shelter staff verify cases, assign rescuers, route to shelters, complete intake; veterinarians record examinations and medical clearance.
 
 This is a hackathon MVP. Neon PostgreSQL persistence is prepared in the codebase but **not yet wired for day-to-day development**; the app currently runs on an in-memory demo data store.
 
@@ -112,9 +112,9 @@ If the app shows unstyled HTML, 404s on `/_next/static/...`, or `ENOENT` errors 
 
 **Common causes**
 
-1. **Two dev servers** on the same project (e.g. port 3000 and 3001) — only run one `npm run dev`.
-2. **`npm run build` while dev is running** — `npm run build` now refuses if port 3000 is in use.
-3. **Deleting `.next` while dev is still running** — stop dev first (`Ctrl+C`), then clean.
+1. **Two dev servers** on the same project (e.g. port 3000 and 3001) - only run one `npm run dev`.
+2. **`npm run build` while dev is running** - `npm run build` now refuses if port 3000 is in use.
+3. **Deleting `.next` while dev is still running** - stop dev first (`Ctrl+C`), then clean.
 
 `npm run dev` automatically removes a broken `.next` on startup. Use `npm run dev:clean` only when you want a full reset.
 

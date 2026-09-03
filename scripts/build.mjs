@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Production build guard — refuses to build while dev server holds the port.
+ * Production build guard - refuses to build while dev server holds the port.
  */
 import { spawn } from "node:child_process";
 import net from "node:net";

@@ -94,6 +94,9 @@ type ActiveCaseSeed = {
   daysAgo: number;
   lat: number;
   lng: number;
+  locationLabel: string;
+  locationNote?: string;
+  rescuerNote?: string;
   shelterSlug?: string;
   assignRescuer?: boolean;
 };
@@ -402,6 +405,10 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     daysAgo: 0,
     lat: 14.622,
     lng: 121.053,
+    locationLabel: "EDSA Cubao service road, Quezon City",
+    locationNote: "Near the curb by the southbound bus stop",
+    rescuerNote:
+      "Heavy traffic. Approach from Aurora underpass service lane. Wear hi-vis vest.",
     shelterSlug: "verified-paws-parc",
     assignRescuer: true,
   },
@@ -418,6 +425,10 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     daysAgo: 0,
     lat: 14.568,
     lng: 121.032,
+    locationLabel: "Barangay basketball court, Makati",
+    locationNote: "Storm drain grate beside the court fence",
+    rescuerNote:
+      "Bring catch pole and flashlight. Barangay gate is open until 8 PM.",
     assignRescuer: true,
   },
   {
@@ -433,6 +444,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     daysAgo: 1,
     lat: 14.595,
     lng: 120.994,
+    locationLabel: "Low-lying alley, Sampaloc, Manila",
+    locationNote: "Raised concrete ledge after overnight flooding",
   },
   {
     slug: "active-cat-rooftop",
@@ -441,12 +454,14 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     environmentalDanger: "trapped",
     vulnerability: "adult_healthy",
     description:
-      "Gray street cat stuck on a corrugated rooftop in Quezon City for about two days. Neighbors can hear it calling at night. Needs a ladder team — roof edge is steep and unsafe for untrained climbers.",
+      "Gray street cat stuck on a corrugated rooftop in Quezon City for about two days. Neighbors can hear it calling at night. Needs a ladder team - roof edge is steep and unsafe for untrained climbers.",
     reporterEmail: "camille.villanueva@rescutes.demo",
     status: "under_verification",
     daysAgo: 0,
     lat: 14.641,
     lng: 121.021,
+    locationLabel: "Corrugated rooftop, Quezon City",
+    locationNote: "Steep roof edge - ladder team required",
   },
   {
     slug: "active-puppies-market",
@@ -461,6 +476,9 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     daysAgo: 1,
     lat: 14.612,
     lng: 120.998,
+    locationLabel: "Divisoria wet market, Manila",
+    locationNote: "Under stall row 14 near the loading bay",
+    rescuerNote: "Vendor will hold puppies until 7 PM. Ask for Mang Tony.",
     shelterSlug: "verified-paws-parc",
     assignRescuer: true,
   },
@@ -477,6 +495,10 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     daysAgo: 0,
     lat: 14.548,
     lng: 121.05,
+    locationLabel: "C5 exit ramp, Taguig",
+    locationNote: "Collapsed beside the guardrail - active bleeding",
+    rescuerNote:
+      "Coordinate with traffic marshals on scene. Trauma kit and stretcher recommended.",
     assignRescuer: true,
   },
   {
@@ -492,6 +514,9 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     daysAgo: 1,
     lat: 14.557,
     lng: 121.018,
+    locationLabel: "Unfinished construction site, Makati",
+    locationNote: "Foreman will keep gate open until 6:00 PM",
+    rescuerNote: "Hard hat required on site. Contact foreman Enrique at the guard booth.",
     shelterSlug: "verified-pawssion-sjdm",
     assignRescuer: true,
   },
@@ -508,6 +533,8 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     daysAgo: 0,
     lat: 14.586,
     lng: 121.043,
+    locationLabel: "Marikina riverside park path",
+    locationNote: "Friendly cream aspin near the lamp post",
   },
 ];
 
@@ -641,6 +668,7 @@ async function seedDemo() {
       vulnerability: animal.vulnerability,
       description: `${animal.bio} Reported near ${animal.areaLabel}.`,
       contactPreference: "phone",
+      locationLabel: animal.areaLabel,
       latitude: animal.lat,
       longitude: animal.lng,
       approximateLatitude: animal.lat + 0.0006,
@@ -747,6 +775,8 @@ async function seedDemo() {
       vulnerability: item.vulnerability,
       description: item.description,
       contactPreference: "phone",
+      locationLabel: item.locationLabel,
+      locationNote: item.locationNote ?? null,
       latitude: item.lat,
       longitude: item.lng,
       approximateLatitude: item.lat + 0.0005,
@@ -766,6 +796,7 @@ async function seedDemo() {
       assignedShelterId: item.shelterSlug
         ? shelterIdForSlug(item.shelterSlug)
         : null,
+      rescuerNote: item.rescuerNote ?? null,
       createdAt,
       updatedAt: new Date(createdAt.getTime() + 60 * 60 * 1000),
     });

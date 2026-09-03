@@ -21,6 +21,7 @@ import {
   getAssignmentById,
   getAssignmentsForCase,
   updateCaseStatusAsRescuer,
+  updateRescuerNote,
   type ClearanceStatus,
 } from "@/lib/data/service";
 import {
@@ -190,6 +191,21 @@ export async function assignRescuerAction(caseId: string, rescuerId: string) {
   return { success: true };
 }
 
+export async function updateRescuerNoteAction(caseId: string, note: string) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+  if (!canManageCases(session.user.roles)) return { error: "Unauthorized" };
+  const reasonErr = validateOptionalText("Rescuer note", note, {
+    minLen: 0,
+    maxLen: 1000,
+  });
+  if (reasonErr) return { error: reasonErr };
+  const updated = await updateRescuerNote(caseId, note);
+  if (!updated) return { error: "Case not found" };
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
+  return { success: true };
+}
+
 export async function selectShelterAction(
   caseId: string,
   shelterId: string,
@@ -329,6 +345,7 @@ export async function updateMedicalClearanceAction(
     followUpDate?: string;
     clearanceStatus: string;
     veterinarianNotes?: string;
+    statusChangeNote?: string;
   },
 ) {
   const session = await auth();
@@ -358,13 +375,14 @@ export async function updateMedicalClearanceAction(
     ["Treatment summary", data.treatmentSummary, 2000],
     ["Restrictions", data.restrictions, 1000],
     ["Veterinarian notes", data.veterinarianNotes, 2000],
+    ["Status change note", data.statusChangeNote, 500],
   ] as const) {
     const err = validateOptionalText(label, value ?? "", { maxLen: max });
     if (err) return { error: err };
   }
 
-  let normalizedFollowUp: string | undefined = data.followUpDate;
-  if (data.clearanceStatus === "follow_up_required" || data.followUpDate) {
+  let normalizedFollowUp: string | undefined;
+  if (data.clearanceStatus === "follow_up_required") {
     const bounds = followUpDateBounds();
     const raw = data.followUpDate?.trim() ?? "";
     // Prefer calendar day (YYYY-MM-DD). If a full ISO datetime arrives, use UTC
@@ -380,7 +398,7 @@ export async function updateMedicalClearanceAction(
           return `${y}-${m}-${day}`;
         })();
     const dateErr = validateIsoDate(asDay, {
-      required: data.clearanceStatus === "follow_up_required",
+      required: true,
       label: "Follow-up date",
       notBeforeToday: true,
       min: bounds.min,
@@ -395,6 +413,7 @@ export async function updateMedicalClearanceAction(
     ...data,
     followUpDate: normalizedFollowUp,
     clearanceStatus: data.clearanceStatus as ClearanceStatus,
+    statusChangeNote: data.statusChangeNote,
   });
 
   if (!result.ok) return { error: result.error };

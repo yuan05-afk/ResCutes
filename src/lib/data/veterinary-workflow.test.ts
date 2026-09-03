@@ -4,6 +4,7 @@ import {
   confirmShelterHandoff,
   getAnimalById,
   getMedicalClearanceForAnimal,
+  updateAnimalProfile,
   updateMedicalClearance,
 } from "@/lib/data/service";
 import {
@@ -89,14 +90,79 @@ describe("veterinary workflow", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("locks medically cleared records", async () => {
-    await seedClearedAnimalFixture();
+  it("allows rollback from under treatment to examination", async () => {
+    const intake = await intakeAnimal();
+    if (!intake.ok) return;
 
-    const locked = await updateMedicalClearance(TEST_IDS.animal001, users.anita, {
+    await updateMedicalClearance(intake.animalId, users.anita, {
+      clearanceStatus: "under_treatment",
+      generalCondition: "Stable",
+      treatmentSummary: "Wound care",
+    });
+
+    const rolledBack = await updateMedicalClearance(intake.animalId, users.anita, {
+      clearanceStatus: "under_examination",
+    });
+    expect(rolledBack.ok).toBe(true);
+
+    const animal = await getAnimalById(intake.animalId);
+    expect(animal?.clearanceStatus).toBe("under_examination");
+    expect(animal?.pathwayStage).toBe("medical_clearance");
+  });
+
+  it("blocks reopening cleared animals on adoption pathway", async () => {
+    await seedClearedAnimalFixture();
+    await updateAnimalProfile(TEST_IDS.animal001, {
+      pathwayStage: "ready_for_adoption",
+    });
+
+    const blocked = await updateMedicalClearance(TEST_IDS.animal001, users.anita, {
       clearanceStatus: "under_treatment",
       generalCondition: "Changed",
     });
-    expect(locked.ok).toBe(false);
+    expect(blocked.ok).toBe(false);
+  });
+
+  it("rolls back from follow-up without requiring follow-up date", async () => {
+    const intake = await intakeAnimal();
+    if (!intake.ok) return;
+
+    await updateMedicalClearance(intake.animalId, users.anita, {
+      clearanceStatus: "under_treatment",
+      generalCondition: "Stable",
+      treatmentSummary: "Wound care",
+    });
+
+    const scheduled = await updateMedicalClearance(intake.animalId, users.anita, {
+      clearanceStatus: "follow_up_required",
+      followUpDate: "2026-12-01T12:00:00.000Z",
+    });
+    expect(scheduled.ok).toBe(true);
+
+    const rolledBack = await updateMedicalClearance(intake.animalId, users.anita, {
+      clearanceStatus: "awaiting_examination",
+      statusChangeNote: "Corrected from Follow-up.",
+    });
+    expect(rolledBack.ok).toBe(true);
+
+    const animal = await getAnimalById(intake.animalId);
+    expect(animal?.clearanceStatus).toBe("awaiting_examination");
+
+    const clearance = await getMedicalClearanceForAnimal(intake.animalId);
+    expect(clearance?.followUpDate).toBeUndefined();
+  });
+
+  it("allows reopening cleared animals still on behavior pathway", async () => {
+    await seedClearedAnimalFixture();
+
+    const reopened = await updateMedicalClearance(TEST_IDS.animal001, users.anita, {
+      clearanceStatus: "under_examination",
+    });
+    expect(reopened.ok).toBe(true);
+
+    const animal = await getAnimalById(TEST_IDS.animal001);
+    expect(animal?.clearanceStatus).toBe("under_examination");
+    expect(animal?.pathwayStage).toBe("medical_clearance");
   });
 
   it("updates luna fixture clearance", async () => {

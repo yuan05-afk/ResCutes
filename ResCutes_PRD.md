@@ -47,7 +47,7 @@ ShelterFlow provides one coordinated workflow from report to medical clearance.
 
 Use this positioning statement:
 
-“ShelterFlow connects citizens, rescuers, shelters, and veterinarians through one coordinated workflow—from animal reporting to safe shelter intake and medical clearance.”
+“ShelterFlow connects citizens, rescuers, shelters, and veterinarians through one coordinated workflow from animal reporting to safe shelter intake and medical clearance.”
 
 The main innovation is an explainable Capacity and Capability Routing Engine that recommends the most suitable shelter for each rescued animal.
 

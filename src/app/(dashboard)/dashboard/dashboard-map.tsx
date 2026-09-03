@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { MapView } from "@/components/map/map-view-dynamic";
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
 import { markerColorForUrgency } from "@/components/map/map-constants";
@@ -19,29 +20,35 @@ export function DashboardMapClient({
   cases,
   onMarkerClick,
   selectedMarkerId,
+  cameraRequestId,
   className,
 }: {
   cases: CaseMapItem[];
   onMarkerClick?: (id: string) => void;
   selectedMarkerId?: string;
+  cameraRequestId?: number;
   className?: string;
 }) {
-  const markers = cases.map((c) => ({
-    id: c.id,
-    latitude: c.latitude,
-    longitude: c.longitude,
-    caseNumber: c.caseNumber,
-    species: c.species,
-    status: c.status,
-    urgencyLevel: c.urgencyLevel,
-    color: markerColorForUrgency(c.urgencyLevel),
-    legendLayerId:
-      c.urgencyLevel === "critical"
-        ? "critical"
-        : c.urgencyLevel === "high"
-          ? "high"
-          : "standard",
-  }));
+  const markers = useMemo(
+    () =>
+      cases.map((c) => ({
+        id: c.id,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        caseNumber: c.caseNumber,
+        species: c.species,
+        status: c.status,
+        urgencyLevel: c.urgencyLevel,
+        color: markerColorForUrgency(c.urgencyLevel),
+        legendLayerId:
+          c.urgencyLevel === "critical"
+            ? "critical"
+            : c.urgencyLevel === "high"
+              ? "high"
+              : "standard",
+      })),
+    [cases],
+  );
 
   return (
     <MapView
@@ -50,9 +57,11 @@ export function DashboardMapClient({
       markers={markers}
       onMarkerClick={onMarkerClick}
       selectedMarkerId={selectedMarkerId}
+      cameraRequestId={cameraRequestId}
       fitVisibleMarkers
       flyToSelectedMarker
-      selectedMarkerZoom={14}
+      pinSelectedPopup
+      selectedMarkerZoom={15}
       center={
         cases.length > 0
           ? { latitude: cases[0].latitude, longitude: cases[0].longitude }

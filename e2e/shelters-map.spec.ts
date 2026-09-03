@@ -24,7 +24,7 @@ test.describe("Shelter map page", () => {
 
     await expect(page.getByText("PAWS Animal Rehabilitation Center")).toBeVisible();
 
-    const search = page.getByPlaceholder("Search shelter, city, or region...");
+    const search = page.getByPlaceholder(/Search shelter/i);
     await search.fill("CARA");
     const caraDirectoryItem = page.getByRole("button", {
       name: /CARA Welfare Philippines.*Mandaluyong City/i,
@@ -36,6 +36,18 @@ test.describe("Shelter map page", () => {
       page.getByRole("button", { name: "Close shelter details" }),
     ).toBeVisible();
     await expect(page.getByText("Accepts: Dog, Cat").first()).toBeVisible();
+
+    const popup = page.locator(".mapboxgl-popup");
+    await expect(popup).toBeVisible({ timeout: 15_000 });
+    await expect(popup).toContainText("CARA Welfare Philippines");
+
+    await page.getByRole("combobox").first().click();
+    await expect(page.getByRole("option", { name: "Region XIII" })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    await page.getByRole("combobox").nth(1).click();
+    await expect(page.getByRole("option", { name: "All animal types" })).toBeVisible();
+    await page.keyboard.press("Escape");
 
     await page.screenshot({
       path: path.join("e2e", "screenshots", "shelters-map-desktop.png"),

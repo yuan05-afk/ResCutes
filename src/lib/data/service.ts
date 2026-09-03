@@ -17,8 +17,15 @@ import type {
   ShelterRecord,
 } from "@/lib/data/types";
 import { CLEARANCE_STATUSES } from "@/lib/data/types";
+import {
+  canTransitionClearance,
+  formatClearanceStatusLabel,
+  isClearanceRollback,
+} from "@/lib/data/medical-clearance-workflow";
 import { resolveCurrentUrgency } from "@/lib/data/urgency";
 import { revalidateNotifications } from "@/lib/cache-revalidate";
+import { reverseGeocodeLabel } from "@/lib/maps/reverse-geocode";
+import { stripEmDashes, stripEmDashesOptional } from "@/lib/text/sanitize-copy";
 
 export { resolveCurrentUrgency } from "@/lib/data/urgency";
 export { CLEARANCE_STATUSES, type ClearanceStatus } from "@/lib/data/types";
@@ -358,6 +365,7 @@ export interface ReportInput {
   vulnerability: string;
   description: string;
   contactPreference: string;
+  locationNote?: string;
   latitude: number;
   longitude: number;
   photoUrl?: string;
@@ -365,14 +373,20 @@ export interface ReportInput {
 
 export async function submitReport(input: ReportInput): Promise<RescueCaseRecord> {
   const approx = approximateLocation(input.latitude, input.longitude);
+  const geocodedLabel = await reverseGeocodeLabel(
+    input.latitude,
+    input.longitude,
+  );
   return (await dataRepo()).insertReportBundle({
     reporterId: input.reporterId,
     species: input.species,
     injurySeverity: input.injurySeverity,
     environmentalDanger: input.environmentalDanger,
     vulnerability: input.vulnerability,
-    description: input.description,
+    description: stripEmDashes(input.description),
     contactPreference: input.contactPreference,
+    locationLabel: geocodedLabel ?? undefined,
+    locationNote: stripEmDashesOptional(input.locationNote),
     latitude: input.latitude,
     longitude: input.longitude,
     approximateLatitude: approx.latitude,
@@ -454,6 +468,21 @@ export async function assignRescuer(
     changedById: staffId,
     note: `Assigned ${rescuer.name}`,
   });
+}
+
+export async function updateRescuerNote(
+  caseId: string,
+  note: string,
+): Promise<RescueCaseRecord | undefined> {
+  const caseItem = await getCaseById(caseId);
+  if (!caseItem) return undefined;
+
+  const trimmed = stripEmDashes(note);
+  await (await dataRepo()).updateRescueCase(caseId, {
+    rescuerNote: trimmed || null,
+  });
+
+  return getCaseById(caseId) as Promise<RescueCaseRecord>;
 }
 
 export async function acceptAssignment(
@@ -827,22 +856,6 @@ export async function completeShelterIntake(
   return { ok: true, animalId: animal.id };
 }
 
-const CLEARANCE_TRANSITIONS: Record<ClearanceStatus, ClearanceStatus[]> = {
-  awaiting_examination: [
-    "under_examination",
-    "under_treatment",
-    "follow_up_required",
-  ],
-  under_examination: [
-    "under_treatment",
-    "follow_up_required",
-    "medically_cleared",
-  ],
-  under_treatment: ["follow_up_required", "medically_cleared"],
-  follow_up_required: ["under_treatment", "medically_cleared"],
-  medically_cleared: [],
-};
-
 function recommendedActionForClearance(status: ClearanceStatus): string {
   switch (status) {
     case "awaiting_examination":
@@ -869,6 +882,8 @@ export interface MedicalClearanceInput {
   followUpDate?: string;
   clearanceStatus: ClearanceStatus;
   veterinarianNotes?: string;
+  /** Optional note recorded when correcting / rolling back clearance status. */
+  statusChangeNote?: string;
 }
 
 export async function updateMedicalClearance(
@@ -885,25 +900,24 @@ export async function updateMedicalClearance(
   if (!CLEARANCE_STATUSES.includes(targetStatus)) {
     return { ok: false, error: "Invalid clearance status" };
   }
-  if (currentStatus === "medically_cleared") {
-    return {
-      ok: false,
-      error: "Medical clearance is complete and cannot be modified",
-    };
-  }
+
+  const rollback = isClearanceRollback(currentStatus, targetStatus);
+
   if (targetStatus !== currentStatus) {
-    const allowed = CLEARANCE_TRANSITIONS[currentStatus];
-    if (!allowed.includes(targetStatus)) {
-      return {
-        ok: false,
-        error: `Cannot transition from ${currentStatus.replace(/_/g, " ")} to ${targetStatus.replace(/_/g, " ")}`,
-      };
+    const transition = canTransitionClearance(
+      currentStatus,
+      targetStatus,
+      animal.pathwayStage,
+    );
+    if (!transition.ok) {
+      return { ok: false, error: transition.error };
     }
   }
 
   const recordingExam =
-    currentStatus === "awaiting_examination" ||
-    currentStatus === "under_examination";
+    !rollback &&
+    (currentStatus === "awaiting_examination" ||
+      currentStatus === "under_examination");
   const completingExam =
     recordingExam &&
     (targetStatus === "under_treatment" ||
@@ -916,6 +930,7 @@ export async function updateMedicalClearance(
     return { ok: false, error: "General condition is required to record examination" };
   }
   if (
+    !rollback &&
     targetStatus === "under_treatment" &&
     targetStatus !== currentStatus &&
     !data.treatmentSummary?.trim() &&
@@ -924,6 +939,7 @@ export async function updateMedicalClearance(
     return { ok: false, error: "Treatment summary is required for under treatment" };
   }
   if (
+    !rollback &&
     targetStatus === "follow_up_required" &&
     targetStatus !== currentStatus &&
     !data.followUpDate
@@ -934,9 +950,23 @@ export async function updateMedicalClearance(
   const examinationDate =
     data.examinationDate ??
     existing?.examinationDate ??
-    (completingExam || targetStatus === "under_examination"
+    (!rollback &&
+    (completingExam || targetStatus === "under_examination")
       ? new Date().toISOString()
       : undefined);
+
+  const clearFollowUp =
+    rollback &&
+    currentStatus === "follow_up_required" &&
+    targetStatus !== "follow_up_required";
+
+  const followUpDate = clearFollowUp
+    ? null
+    : data.followUpDate
+      ? new Date(data.followUpDate)
+      : existing?.followUpDate
+        ? new Date(existing.followUpDate)
+        : undefined;
 
   await (await dataRepo()).upsertMedicalClearance(animalId, {
     generalCondition: data.generalCondition ?? existing?.generalCondition,
@@ -946,7 +976,7 @@ export async function updateMedicalClearance(
     treatmentSummary:
       data.treatmentSummary?.trim() || existing?.treatmentSummary,
     restrictions: data.restrictions ?? existing?.restrictions,
-    followUpDate: data.followUpDate ? new Date(data.followUpDate) : undefined,
+    followUpDate,
     veterinarianNotes: data.veterinarianNotes ?? existing?.veterinarianNotes,
     examinationDate: examinationDate ? new Date(examinationDate) : undefined,
     clearanceStatus: targetStatus,
@@ -960,6 +990,21 @@ export async function updateMedicalClearance(
     pathwayStage,
     recommendedNextAction: recommendedActionForClearance(targetStatus),
   });
+
+  if (rollback && targetStatus !== currentStatus) {
+    const noteBody = data.statusChangeNote?.trim();
+    const fromLabel = formatClearanceStatusLabel(currentStatus);
+    const toLabel = formatClearanceStatusLabel(targetStatus);
+    const content = noteBody
+      ? `Medical clearance corrected: ${fromLabel} → ${toLabel}. ${noteBody}`
+      : `Medical clearance corrected: ${fromLabel} → ${toLabel}.`;
+    await (await dataRepo()).insertAnimalNote({
+      animalId,
+      authorId: vetId,
+      noteType: "staff",
+      content,
+    });
+  }
 
   if (targetStatus === "medically_cleared") {
     const staffUsers = await (await dataRepo()).fetchStaffUsersByRole("shelter_staff");

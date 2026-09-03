@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
@@ -9,9 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status/status-badge";
 import { SelectWithOtherSplit } from "@/components/ui/select-with-other";
 import { DatePicker } from "@/components/ui/date-picker";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useActionPending } from "@/components/shared/useActionPending";
 import { updateMedicalClearanceAction } from "@/app/actions/case";
 import type { ClearanceStatus } from "@/lib/data/types";
+import {
+  getClearanceRollbackOptions,
+  isClearanceRollback,
+  type ClearanceRollbackOption,
+} from "@/lib/data/medical-clearance-workflow";
 import { formatStatus, cn } from "@/lib/utils";
 import {
   GENERAL_CONDITION_OPTIONS,
@@ -30,6 +36,7 @@ const PRIORITIES = MEDICAL_PRIORITY_VALUES;
 interface MedicalClearanceFormProps {
   animalId: string;
   clearanceStatus: ClearanceStatus;
+  pathwayStage?: string;
   clearance?: {
     examinationDate?: string;
     generalCondition?: string;
@@ -46,6 +53,7 @@ interface MedicalClearanceFormProps {
 export function MedicalClearanceForm({
   animalId,
   clearanceStatus,
+  pathwayStage,
   clearance,
   variant = "default",
 }: MedicalClearanceFormProps) {
@@ -56,8 +64,15 @@ export function MedicalClearanceForm({
   const followUpBounds = followUpDateBounds();
   const treatmentInputRef = useRef<HTMLTextAreaElement>(null);
   const [focusTreatment, setFocusTreatment] = useState(false);
+  const [rollbackTarget, setRollbackTarget] =
+    useState<ClearanceRollbackOption | null>(null);
   const initialFollowUpDate =
     clearance?.followUpDate?.slice(0, 10) ?? "";
+
+  const rollbackOptions = useMemo(
+    () => getClearanceRollbackOptions(clearanceStatus, pathwayStage),
+    [clearanceStatus, pathwayStage],
+  );
 
   const [showTreatmentFields, setShowTreatmentFields] = useState(
     clearanceStatus === "under_treatment" ||
@@ -107,16 +122,26 @@ export function MedicalClearanceForm({
   const followUpDirty =
     Boolean(form.followUpDate) &&
     form.followUpDate !== baselineFollowUpDate;
+  const followUpDisplayError =
+    followUpDirty || autoSubmitOnPick ? dateError : null;
 
   async function submitStatus(
     targetStatus: ClearanceStatus,
     followUpOverride?: string,
+    opts?: { rollback?: boolean },
   ) {
     const followUpDate = followUpOverride ?? form.followUpDate;
+    const rollback =
+      opts?.rollback ??
+      isClearanceRollback(clearanceStatus, targetStatus);
 
     // Same pattern as Schedule follow-up: reveal fields first, warn only on
     // a second attempt while the treatment plan is still empty.
-    if (targetStatus === "under_treatment" && !form.treatmentSummary.trim()) {
+    if (
+      !rollback &&
+      targetStatus === "under_treatment" &&
+      !form.treatmentSummary.trim()
+    ) {
       if (!showTreatmentFields) {
         openTreatmentPlanner();
         return;
@@ -125,7 +150,7 @@ export function MedicalClearanceForm({
       return;
     }
 
-    if (targetStatus === "follow_up_required") {
+    if (!rollback && targetStatus === "follow_up_required") {
       const dateErr = validateIsoDate(followUpDate, {
         required: true,
         label: "Follow-up date",
@@ -140,7 +165,7 @@ export function MedicalClearanceForm({
         setError(null);
         return;
       }
-      // Already scheduled for this day — do not re-save or rewrite the date.
+      // Already scheduled for this day - do not re-save or rewrite the date.
       if (
         clearanceStatus === "follow_up_required" &&
         followUpDate === baselineFollowUpDate
@@ -153,6 +178,7 @@ export function MedicalClearanceForm({
     }
 
     if (
+      !rollback &&
       targetStatus === "medically_cleared" &&
       !conditionChoice &&
       !conditionOther.trim()
@@ -175,6 +201,11 @@ export function MedicalClearanceForm({
       resolveSelectOther(conditionChoice, conditionOther) ?? "";
     const payload = { ...form, generalCondition, followUpDate };
 
+    if (rollback) {
+      setDateError(null);
+      setError(null);
+    }
+
     await run(
       () =>
         updateMedicalClearanceAction(animalId, {
@@ -182,13 +213,17 @@ export function MedicalClearanceForm({
           medicalPriority: payload.medicalPriority,
           treatmentSummary: payload.treatmentSummary,
           restrictions: payload.restrictions,
-          // Pass calendar day only — avoids timezone shifting to another day.
+          // Only send follow-up when staying on / moving to follow-up.
+          // Leaving follow-up via Correct status must not re-validate a stale date.
           followUpDate:
-            targetStatus === "follow_up_required" || followUpDate
+            targetStatus === "follow_up_required"
               ? followUpDate || undefined
               : undefined,
           clearanceStatus: targetStatus,
           veterinarianNotes: payload.veterinarianNotes,
+          statusChangeNote: rollback
+            ? `Corrected from ${formatStatus(clearanceStatus)}.`
+            : undefined,
         }),
       {
         rewarm: [
@@ -204,6 +239,16 @@ export function MedicalClearanceForm({
             setForm((prev) => ({ ...prev, followUpDate }));
             setAutoSubmitOnPick(false);
           }
+          if (
+            rollback &&
+            clearanceStatus === "follow_up_required" &&
+            targetStatus !== "follow_up_required"
+          ) {
+            setBaselineFollowUpDate("");
+            setForm((prev) => ({ ...prev, followUpDate: "" }));
+            setShowFollowUpFields(false);
+          }
+          setRollbackTarget(null);
         },
       },
     );
@@ -481,7 +526,7 @@ export function MedicalClearanceForm({
             required
             disabled={loading}
             placeholder="Pick follow-up day"
-            error={dateError}
+            error={followUpDisplayError}
           />
           <p className="text-[11px] text-graphite/50">
             {baselineFollowUpDate
@@ -504,7 +549,28 @@ export function MedicalClearanceForm({
 
       {error ? <p className="text-xs text-rescue">{error}</p> : null}
       {actionButtons}
+      <StatusRollbackSection
+        options={rollbackOptions}
+        loading={loading}
+        onSelect={setRollbackTarget}
+      />
     </>
+  );
+
+  const rollbackDialog = (
+    <ConfirmDialog
+      open={rollbackTarget !== null}
+      title={rollbackTarget?.title ?? ""}
+      message={rollbackTarget?.message}
+      confirmLabel={rollbackTarget?.confirmLabel ?? "Confirm"}
+      variant="danger"
+      pending={loading}
+      onConfirm={() => {
+        if (!rollbackTarget) return;
+        void submitStatus(rollbackTarget.target, undefined, { rollback: true });
+      }}
+      onClose={() => setRollbackTarget(null)}
+    />
   );
 
   if (clearanceStatus === "medically_cleared") {
@@ -527,53 +593,107 @@ export function MedicalClearanceForm({
             {clearance.veterinarianNotes}
           </p>
         ) : null}
+        <StatusRollbackSection
+          options={rollbackOptions}
+          loading={loading}
+          onSelect={setRollbackTarget}
+        />
       </div>
     );
 
     if (isPanel || isWorkspace) {
       return (
-        <div className="flex flex-col">
-          <FormHeader variant={variant} />
-          <div className="p-3">{clearedBody}</div>
-        </div>
+        <>
+          <div className="flex flex-col">
+            <FormHeader variant={variant} />
+            <div className="p-3">{clearedBody}</div>
+          </div>
+          {rollbackDialog}
+        </>
       );
     }
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Medical clearance</CardTitle>
-        </CardHeader>
-        <CardContent>{clearedBody}</CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Medical clearance</CardTitle>
+          </CardHeader>
+          <CardContent>{clearedBody}</CardContent>
+        </Card>
+        {rollbackDialog}
+      </>
     );
   }
 
   if (isPanel || isWorkspace) {
     return (
-      <div className="flex flex-col">
-        <FormHeader variant={variant} status={clearanceStatus} />
-        <div className={cn("space-y-2.5", isWorkspace ? "p-3.5" : "p-3")}>
-          {formFields}
+      <>
+        <div className="flex flex-col">
+          <FormHeader variant={variant} status={clearanceStatus} />
+          <div className={cn("space-y-2.5", isWorkspace ? "p-3.5" : "p-3")}>
+            {formFields}
+          </div>
         </div>
-      </div>
+        {rollbackDialog}
+      </>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Medical clearance</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4 flex items-center gap-2">
-          <StatusBadge status={clearanceStatus} size="md" />
-        </div>
-        <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
-          {formFields}
-        </form>
-      </CardContent>
-    </Card>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Medical clearance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 flex items-center gap-2">
+            <StatusBadge status={clearanceStatus} size="md" />
+          </div>
+          <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
+            {formFields}
+          </form>
+        </CardContent>
+      </Card>
+      {rollbackDialog}
+    </>
+  );
+}
+
+function StatusRollbackSection({
+  options,
+  loading,
+  onSelect,
+}: {
+  options: ClearanceRollbackOption[];
+  loading: boolean;
+  onSelect: (option: ClearanceRollbackOption) => void;
+}) {
+  if (options.length === 0) return null;
+
+  return (
+    <div className="mt-3 space-y-2 border-t border-sage/20 pt-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+        Correct status
+      </p>
+      <p className="text-[11px] leading-relaxed text-graphite/50">
+        Use if the workflow stage was set by mistake. Clinical notes and exam
+        records are kept; a correction note is added to the animal file.
+      </p>
+      {options.map((option) => (
+        <Button
+          key={option.target}
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full border-sage/35 text-graphite/75 hover:border-rescue/30 hover:bg-rescue/5 hover:text-rescue"
+          disabled={loading}
+          onClick={() => onSelect(option)}
+        >
+          {option.confirmLabel}
+        </Button>
+      ))}
+    </div>
   );
 }
 

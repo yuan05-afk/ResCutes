@@ -180,7 +180,7 @@ export function MedicalWorkspace({ items, canEdit }: MedicalWorkspaceProps) {
   );
   const [urlSynced, setUrlSynced] = useState(false);
 
-  // Sync from ?animal= once after mount / URL change — do not fight tab clicks.
+  // Sync from ?animal= once after mount / URL change - do not fight tab clicks.
   useEffect(() => {
     if (!animalFromUrl) {
       setUrlSynced(true);
@@ -381,7 +381,7 @@ export function MedicalWorkspace({ items, canEdit }: MedicalWorkspaceProps) {
             </div>
           </div>
 
-          {/* Detail + form — one scrollable column so actions are never clipped */}
+          {/* Detail + form - one scrollable column so actions are never clipped */}
           <div className="rc-scroll min-h-0 flex-1 overflow-y-auto rounded-xl border border-sage/25 bg-bone/30 lg:min-h-0">
             {selected ? (
               <div className="space-y-3 p-3">
@@ -489,6 +489,7 @@ export function MedicalWorkspace({ items, canEdit }: MedicalWorkspaceProps) {
                       key={`${selected.animal.id}-${selected.animal.clearanceStatus}`}
                       variant="workspace"
                       animalId={selected.animal.id}
+                      pathwayStage={selected.animal.pathwayStage}
                       clearanceStatus={
                         selected.animal.clearanceStatus as ClearanceStatus
                       }

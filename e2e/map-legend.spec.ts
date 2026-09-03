@@ -18,7 +18,7 @@ async function loginAsRescuer(page: import("@playwright/test").Page) {
 }
 
 test.describe("Map legend layout", () => {
-  test("desktop dashboard — legend is horizontal, right of Mapbox logo", async ({
+  test("desktop dashboard - legend is horizontal, right of Mapbox logo", async ({
     page,
   }) => {
     await loginAsStaff(page);
@@ -68,7 +68,7 @@ test.describe("Map legend layout", () => {
     });
   });
 
-  test("mobile nearby — compact horizontal legend beside Mapbox logo", async ({
+  test("mobile nearby - compact horizontal legend beside Mapbox logo", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });

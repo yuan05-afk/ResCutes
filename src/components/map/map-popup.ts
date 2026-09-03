@@ -52,7 +52,7 @@ export function buildMapPopupHtml(marker: MapPopupFields): string {
   }
 
   const meta = metaParts.map(escapeHtml).join(" · ");
-  // Keep shelter hover light — address/phone/notes belong in the detail card.
+  // Keep shelter hover light - address/phone/notes belong in the detail card.
   const address = marker.caseNumber && marker.address
     ? escapeHtml(marker.address)
     : "";

@@ -154,7 +154,7 @@ export function AdoptionWorkspace({
                               <p className="text-[11px] capitalize text-graphite/50">
                                 {app.animalSpecies
                                   ? formatStatus(app.animalSpecies)
-                                  : "—"}
+                                  : "-"}
                               </p>
                             </div>
                           </div>

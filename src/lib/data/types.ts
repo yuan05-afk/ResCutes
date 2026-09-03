@@ -39,6 +39,9 @@ export interface RescueCaseRecord {
   vulnerability: string;
   description: string;
   contactPreference: string;
+  locationLabel?: string;
+  locationNote?: string;
+  rescuerNote?: string;
   latitude: number;
   longitude: number;
   approximateLatitude: number;

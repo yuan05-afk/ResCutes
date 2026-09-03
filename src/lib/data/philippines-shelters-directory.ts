@@ -99,7 +99,7 @@ const CURATED_SHELTERS: PhilippinesShelterRecord[] = [
     source: "verified",
     sourceUrl: "https://bmb.gov.ph/ninoy-aquino-parks-and-wildlife-center/",
     notes:
-      "Government wildlife rescue (DENR-BMB). Use the wildlife rescue hotline for injured wildlife — not a companion-animal shelter.",
+      "Government wildlife rescue (DENR-BMB). Use the wildlife rescue hotline for injured wildlife - not a companion-animal shelter.",
   },
   {
     id: "verified-cara",
@@ -133,7 +133,7 @@ const CURATED_SHELTERS: PhilippinesShelterRecord[] = [
     source: "verified",
     sourceUrl: "https://houndhavenph.org/",
     notes:
-      "Retired working-dog sanctuary. Contact via website form before visiting — no public walk-in hours published.",
+      "Retired working-dog sanctuary. Contact via website form before visiting - no public walk-in hours published.",
   },
   {
     id: "verified-pawssion-sjdm",
@@ -226,7 +226,7 @@ const CURATED_SHELTERS: PhilippinesShelterRecord[] = [
     source: "verified",
     sourceUrl: "https://mindanews.com/top-stories/2025/12/animal-shelter-says-we-were-ghosted-by-city-govt/",
     notes:
-      "Private rescue shelter. Confirm operating status with local contacts before visiting — no public phone listed.",
+      "Private rescue shelter. Confirm operating status with local contacts before visiting - no public phone listed.",
   },
   {
     id: "verified-aarrc",
@@ -241,7 +241,7 @@ const CURATED_SHELTERS: PhilippinesShelterRecord[] = [
     source: "verified",
     sourceUrl: "https://financialassistance.ph/animal-shelters-philippines/",
     notes:
-      "Community rescue center. No public phone listed — use Google Maps location link and confirm locally before travel.",
+      "Community rescue center. No public phone listed - use Google Maps location link and confirm locally before travel.",
   },
   {
     id: "verified-maro-cebu",
@@ -368,7 +368,7 @@ const CURATED_SHELTERS: PhilippinesShelterRecord[] = [
     source: "verified",
     sourceUrl: "https://financialassistance.ph/animal-shelters-philippines/",
     notes:
-      "Private sanctuary. No public phone listed — open the location in Google Maps and confirm before visiting.",
+      "Private sanctuary. No public phone listed - open the location in Google Maps and confirm before visiting.",
   },
 ];
 

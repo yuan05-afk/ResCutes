@@ -6,6 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Navigation, CheckCircle2 } from "lucide-react";
 import { useActionPending } from "@/components/shared/useActionPending";
 import {
+  googleMapsCaseDirectionsUrl,
+  type CaseMapsLocation,
+} from "@/lib/maps/case-links";
+import {
   acceptAssignmentAction,
   declineAssignmentAction,
   updateCaseStatusAction,
@@ -18,6 +22,9 @@ interface AssignmentActionsClientProps {
   caseStatus: string;
   latitude: number;
   longitude: number;
+  caseNumber: string;
+  locationLabel?: string;
+  locationNote?: string;
   shelterName?: string;
   shelterAddress?: string;
 }
@@ -31,6 +38,9 @@ export function AssignmentActionsClient({
   caseStatus,
   latitude,
   longitude,
+  caseNumber,
+  locationLabel,
+  locationNote,
   shelterName,
   shelterAddress,
 }: AssignmentActionsClientProps) {
@@ -39,10 +49,14 @@ export function AssignmentActionsClient({
   const [showDecline, setShowDecline] = useState(false);
 
   function openNavigation() {
-    window.open(
-      `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
-      "_blank",
-    );
+    const mapsLocation: CaseMapsLocation = {
+      caseNumber,
+      locationLabel,
+      locationNote,
+      latitude,
+      longitude,
+    };
+    window.open(googleMapsCaseDirectionsUrl(mapsLocation), "_blank");
   }
 
   async function runAction(fn: () => Promise<ActionResult>) {

@@ -23,6 +23,7 @@ const reportSchema = z.object({
     .min(10, "Description must be at least 10 characters")
     .max(2000, "Description must be under 2000 characters"),
   contactPreference: z.enum(REPORT_CONTACT),
+  locationNote: z.string().trim().max(300).optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   photoUrl: z.string().max(2000).optional(),

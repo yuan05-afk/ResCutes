@@ -7,10 +7,8 @@ import {
   ModalMeta,
   ModalSection,
 } from "@/components/admin/AdminModal";
-import {
-  CaseMediaStrip,
-  CaseMediaStripSkeleton,
-} from "@/components/admin/case-media-strip";
+import { CaseMediaStrip, CaseMediaStripSkeleton } from "@/components/admin/case-media-strip";
+import { CaseLocationBlock } from "@/components/case/case-location-block";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +52,8 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
     ? getCasePhotoUrl(caseItem.species, caseItem.photoUrl, caseItem.id)
     : "";
   const canManage = Boolean(data?.canManage);
+  const canExact = Boolean(data?.canExact);
+  const mapLocation = data?.mapLocation;
 
   return (
     <AdminModal
@@ -115,12 +115,31 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
               species={caseItem.species}
               photoAlt={`${formatStatus(caseItem.species)} · ${caseItem.caseNumber}`}
               photoCaption={caseItem.caseNumber}
-              latitude={caseItem.latitude}
-              longitude={caseItem.longitude}
+              latitude={mapLocation?.latitude ?? caseItem.latitude}
+              longitude={mapLocation?.longitude ?? caseItem.longitude}
+              locationLabel={caseItem.locationLabel}
               caseId={caseItem.id}
               caseNumber={caseItem.caseNumber}
               urgencyLevel={data.currentUrgency.level}
             />
+
+            {mapLocation ? (
+              <CaseLocationBlock
+                compact
+                location={{
+                  caseNumber: caseItem.caseNumber,
+                  locationLabel: caseItem.locationLabel,
+                  locationNote: caseItem.locationNote,
+                  latitude: mapLocation.latitude,
+                  longitude: mapLocation.longitude,
+                  isApproximate: !canExact,
+                  rescuerNote: caseItem.rescuerNote,
+                  showRescuerNote: Boolean(
+                    caseItem.rescuerNote && (canManage || canExact),
+                  ),
+                }}
+              />
+            ) : null}
 
             <p className="shrink-0 line-clamp-2 rounded-lg border border-sage/15 bg-bone/40 px-3 py-2 text-sm leading-relaxed text-graphite/80">
               {caseItem.description}
@@ -184,6 +203,7 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
                 assignedShelterId={caseItem.assignedShelterId}
                 hasHandoff={!!data.handoff}
                 hasAnimal={!!data.animal}
+                rescuerNote={caseItem.rescuerNote}
               />
             </aside>
           ) : null}

@@ -60,6 +60,7 @@ export function ReportFlow() {
     useState<ReportContact>("in_app");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationNote, setLocationNote] = useState("");
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "denied" | "ok">("idle");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
@@ -102,6 +103,7 @@ export function ReportFlow() {
         vulnerability,
         description,
         contactPreference,
+        locationNote: locationNote.trim() || undefined,
         latitude,
         longitude,
         photoUrl: photoPreview ?? undefined,
@@ -271,6 +273,20 @@ export function ReportFlow() {
                   </p>
                 </div>
               )}
+              <div className="mt-4 text-left">
+                <Label htmlFor="location-note" className="text-xs text-graphite/60">
+                  Landmark or directions (optional)
+                </Label>
+                <Textarea
+                  id="location-note"
+                  value={locationNote}
+                  onChange={(e) => setLocationNote(e.target.value)}
+                  placeholder='e.g. "Behind the 7-Eleven on EDSA" or "Gate 2 of the barangay hall"'
+                  rows={2}
+                  maxLength={300}
+                  className="mt-1.5 resize-none text-sm"
+                />
+              </div>
             </div>
           </div>
         )}

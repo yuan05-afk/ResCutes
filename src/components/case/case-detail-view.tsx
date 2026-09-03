@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CaseMediaStrip } from "@/components/admin/case-media-strip";
+import { CaseLocationBlock } from "@/components/case/case-location-block";
 import { ModalMeta, ModalSection } from "@/components/admin/AdminModal";
 import { CaseStaffActions } from "@/app/(dashboard)/rescue-cases/[id]/case-staff-actions";
 import { formatDateTime, formatStatus, formatTimelineLabel } from "@/lib/utils";
@@ -44,8 +45,13 @@ interface CaseDetailViewProps {
     description: string;
     reporterName: string;
     contactPreference: string;
+    locationLabel?: string;
+    locationNote?: string;
+    rescuerNote?: string;
     latitude: number;
     longitude: number;
+    isApproximateLocation?: boolean;
+    showRescuerNote?: boolean;
     photoUrl?: string;
     assignedShelterId?: string;
     urgencyOverrideReason?: string;
@@ -114,10 +120,25 @@ export function CaseDetailView({
           photoCaption={caseItem.caseNumber}
           latitude={caseItem.latitude}
           longitude={caseItem.longitude}
+          locationLabel={caseItem.locationLabel}
           caseId={caseItem.id}
           caseNumber={caseItem.caseNumber}
           urgencyLevel={currentUrgency.level}
           mapInteractive
+        />
+
+        <CaseLocationBlock
+          compact
+          location={{
+            caseNumber: caseItem.caseNumber,
+            locationLabel: caseItem.locationLabel,
+            locationNote: caseItem.locationNote,
+            latitude: caseItem.latitude,
+            longitude: caseItem.longitude,
+            isApproximate: caseItem.isApproximateLocation,
+            rescuerNote: caseItem.rescuerNote,
+            showRescuerNote: caseItem.showRescuerNote,
+          }}
         />
 
         <p className="shrink-0 line-clamp-2 rounded-lg border border-sage/15 bg-bone/40 px-3 py-2 text-sm leading-relaxed text-graphite/80">
@@ -234,10 +255,6 @@ export function CaseDetailView({
                 value={formatStatus(caseItem.contactPreference)}
               />
             ) : null}
-            <ModalMeta
-              label="Coordinates"
-              value={`${caseItem.latitude.toFixed(4)}, ${caseItem.longitude.toFixed(4)}`}
-            />
           </div>
         )}
 
@@ -255,6 +272,7 @@ export function CaseDetailView({
               assignedShelterId={caseItem.assignedShelterId}
               hasHandoff={hasHandoff}
               hasAnimal={hasAnimal}
+              rescuerNote={caseItem.rescuerNote}
             />
           </aside>
         ) : (
