@@ -66,7 +66,14 @@ export function flyMapToCenter(
       if (needsNudge) {
         map.jumpTo({ center: nudged, zoom: targetZoom });
       }
-      const easeOpts: mapboxgl.EaseToOptions = {
+      const easeOpts: {
+        center: [number, number];
+        zoom: number;
+        duration: number;
+        essential: boolean;
+        easing: (t: number) => number;
+        padding?: number | mapboxgl.PaddingOptions;
+      } = {
         center: target,
         zoom: targetZoom,
         duration: Math.max(
@@ -74,14 +81,22 @@ export function flyMapToCenter(
           Math.min(MAP_CAMERA_SHORT_HOP_MS, 420 + distance * 1400),
         ),
         essential: true,
-        easing: (t) => 1 - Math.pow(1 - t, 2.4),
+        easing: (t: number) => 1 - Math.pow(1 - t, 2.4),
       };
       if (padding) easeOpts.padding = padding;
       map.easeTo(easeOpts);
       return;
     }
 
-    const flyOpts: mapboxgl.FlyToOptions = {
+    const flyOpts: {
+      center: [number, number];
+      zoom: number;
+      duration: number;
+      essential: boolean;
+      curve: number;
+      speed: number;
+      padding?: number | mapboxgl.PaddingOptions;
+    } = {
       center: target,
       zoom: targetZoom,
       duration: MAP_CAMERA_FLY_MS,

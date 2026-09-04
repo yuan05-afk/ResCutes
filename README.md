@@ -7,7 +7,7 @@ The app has two interfaces from one codebase:
 - **Mobile (PWA)** - citizens report animals and track cases; rescuers accept assignments and update rescue progress.
 - **Web dashboard** - shelter staff verify cases, assign rescuers, route to shelters, complete intake; veterinarians record examinations and medical clearance.
 
-This is a hackathon MVP. Neon PostgreSQL persistence is prepared in the codebase but **not yet wired for day-to-day development**; the app currently runs on an in-memory demo data store.
+This is a hackathon MVP. Web dashboard and mobile (`/mobile`) share one Next.js app, Neon PostgreSQL, and Neon Auth.
 
 ---
 
@@ -18,8 +18,8 @@ This is a hackathon MVP. Neon PostgreSQL persistence is prepared in the codebase
 | Framework | Next.js 15 (App Router) |
 | Language | TypeScript |
 | UI | React 19, Tailwind CSS, Radix UI |
-| Auth | Auth.js (`next-auth` v5 beta) |
-| Database (planned) | Neon PostgreSQL, Drizzle ORM |
+| Auth | Neon Auth (`@neondatabase/auth`) |
+| Database | Neon PostgreSQL, Drizzle ORM |
 | Maps | Mapbox GL |
 | File storage (optional) | Vercel Blob |
 | Testing | Vitest, Playwright |
@@ -58,12 +58,39 @@ Copy `.env.example` to `.env.local` and fill in values locally. **Never commit `
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | Neon PostgreSQL connection string. Optional for local MVP work; required when database persistence is enabled. |
-| `AUTH_SECRET` | Secret used by Auth.js to sign sessions. Generate a long random string for local development (for example with `openssl rand -base64 32`). |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox public token for map views on dashboard and mobile. |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for photo uploads. Optional if you are not testing upload flows. |
+| `DATABASE_URL` | Neon PostgreSQL connection string. **Required** for web and mobile data. |
+| `NEON_AUTH_BASE_URL` | Neon Auth project URL (from Neon console). **Required** for login. |
+| `NEON_AUTH_COOKIE_SECRET` | Cookie signing secret for Neon Auth sessions. Generate a long random string. |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox public token for dashboard and mobile maps. |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for report photo uploads. Recommended in production. |
 
-If maps or uploads are not configured, some UI features may be limited, but core demo workflows still run with seeded data.
+If maps or uploads are not configured, some UI features may be limited.
+
+---
+
+## Deploy on Vercel
+
+Web and mobile ship from the same Next.js project (`/` dashboard, `/mobile` app). One Vercel project covers both.
+
+1. Push this repo to GitHub (already: `Rapnunu/ResCutes`).
+2. In Vercel: **Add New Project** → import the repo → Framework Preset **Next.js** → Root Directory `.`
+3. Set Environment Variables (Production + Preview) to match `.env.example`:
+   - `DATABASE_URL`
+   - `NEON_AUTH_BASE_URL`
+   - `NEON_AUTH_COOKIE_SECRET`
+   - `NEXT_PUBLIC_MAPBOX_TOKEN`
+   - `BLOB_READ_WRITE_TOKEN` (create a Blob store in the Vercel project if needed)
+4. In **Neon Auth** console, add your Vercel production URL (and preview URLs if you use them) to **trusted domains / allowed origins**.
+5. Deploy. After the first production URL is known, confirm login works on `/login`, `/dashboard`, and `/mobile`.
+
+`vercel.json` targets the Singapore region (`sin1`) for lower latency in the Philippines. Node **20+** is required (`engines` in `package.json`).
+
+Local production check (stop `npm run dev` first):
+
+```powershell
+npm run build
+npm run start
+```
 
 ---
 
@@ -83,12 +110,9 @@ All demo accounts use password **`demo1234`**.
 
 ## Demo data and persistence
 
-The MVP uses an **in-memory demo store** backed by `globalThis` in `src/lib/data/demo-store.ts`. Data survives across requests during a single dev server session but **resets when the server restarts**.
+Application data is stored in **Neon PostgreSQL** via Drizzle (`src/lib/data/db/repository.ts`). Set `DATABASE_URL` locally and on Vercel.
 
-- Data created on one developer machine is **not** shared with teammates automatically.
-- Neon migration and shared database seeding are **deferred**; Drizzle schema and scripts exist for a future milestone.
-
-For repeatable demos, use the seeded accounts and cases (for example Luna) or follow the workflow from a fresh report.
+Use `npm run db:push` / `npm run db:migrate` and `npm run db:seed` when setting up a fresh database. Demo accounts and sample cases come from seed scripts.
 
 ---
 

@@ -137,9 +137,6 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           }
           disabled={disabled}
           required={required}
-          // Avoid body pointer-events lock that can freeze the page if the
-          // menu is clipped inside overflow containers.
-          modal={false}
         >
           <SelectPrimitive.Trigger
             ref={ref}

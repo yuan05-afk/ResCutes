@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Production build guard - refuses to build while dev server holds the port.
+ * Production build guard - refuses to build while a local dev server holds the port.
+ * Skipped on Vercel/CI where Next.js runs `npm run build` in a clean environment.
  */
 import { spawn } from "node:child_process";
 import net from "node:net";
@@ -8,6 +9,7 @@ import { cleanNextCache, isNextCacheCorrupt } from "./next-cache.mjs";
 
 const DEV_PORT = Number(process.env.DEV_GUARD_PORT || 3000);
 const HOST = process.env.HOST || "localhost";
+const SKIP_DEV_GUARD = Boolean(process.env.VERCEL || process.env.CI);
 
 function isPortInUse(port, host) {
   return new Promise((resolve) => {
@@ -23,14 +25,16 @@ function isPortInUse(port, host) {
 }
 
 async function main() {
-  const devRunning = await isPortInUse(DEV_PORT, HOST);
-  if (devRunning) {
-    console.error("");
-    console.error(`Dev server is still running on port ${DEV_PORT}.`);
-    console.error("Stop it with Ctrl+C before running npm run build.");
-    console.error("Building while dev runs corrupts .next on this project.");
-    console.error("");
-    process.exit(1);
+  if (!SKIP_DEV_GUARD) {
+    const devRunning = await isPortInUse(DEV_PORT, HOST);
+    if (devRunning) {
+      console.error("");
+      console.error(`Dev server is still running on port ${DEV_PORT}.`);
+      console.error("Stop it with Ctrl+C before running npm run build.");
+      console.error("Building while dev runs corrupts .next on this project.");
+      console.error("");
+      process.exit(1);
+    }
   }
 
   if (isNextCacheCorrupt()) {

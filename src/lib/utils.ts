@@ -79,8 +79,8 @@ export function formatExactStatus(status: string): string {
 /** Display label for rescue-case timeline entries (presentation only). */
 export function formatTimelineLabel(entry: {
   toStatus: string;
-  fromStatus?: string;
-  note?: string;
+  fromStatus?: string | null;
+  note?: string | null;
 }): string {
   if (
     entry.note?.toLowerCase().includes("intake completed") &&
