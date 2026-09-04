@@ -2,7 +2,6 @@ import "server-only";
 
 import {
   calculateUrgencyScore,
-  classifyUrgencyLevel,
 } from "@/lib/urgency/scoring";
 import { calculateShelterRecommendations } from "@/lib/routing/shelter-routing";
 import { approximateLocation, type Role } from "@/lib/auth/permissions";

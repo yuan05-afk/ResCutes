@@ -90,20 +90,14 @@ export function findNearestMatchingShelter<T extends NearestMatchShelter>(
   );
   const pool = accepted.length > 0 ? accepted : shelters;
 
-  const ranked = sortByDistanceKm(pool, from).map((s) => ({
-    ...s,
-    matchRank:
-      capabilityBonus(s, answers.need) * 1000 -
-      // Closer is better; keep distance as secondary
-      s.distanceKm,
-  }));
+  const withDistance = sortByDistanceKm(pool, from);
+  withDistance.sort((a, b) => {
+    const rankA = capabilityBonus(a, answers.need) * 1000 - a.distanceKm;
+    const rankB = capabilityBonus(b, answers.need) * 1000 - b.distanceKm;
+    return rankB - rankA;
+  });
 
-  ranked.sort((a, b) => b.matchRank - a.matchRank);
-  const best = ranked[0];
-  if (!best) return null;
-
-  const { matchRank: _matchRank, ...rest } = best;
-  return rest;
+  return withDistance[0] ?? null;
 }
 
 export function nearestAnimalLabel(animal: NearestAnimal): string {
