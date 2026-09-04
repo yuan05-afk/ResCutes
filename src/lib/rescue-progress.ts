@@ -1,9 +1,9 @@
-/** Citizen-facing rescue progress steps mapped from case status. */
+/** Citizen-facing rescue progress steps mapped from case status / stages. */
 export const CITIZEN_PROGRESS_STEPS = [
   { id: "verified", label: "Report Verified" },
-  { id: "rescuer", label: "Rescuer Assigned" },
+  { id: "rescuer", label: "With Rescuer" },
   { id: "secured", label: "Animal Secured" },
-  { id: "handoff", label: "Shelter Handoff" },
+  { id: "handoff", label: "At Shelter" },
 ] as const;
 
 const STATUS_TO_STEP: Record<string, number> = {
@@ -28,15 +28,15 @@ export function getCitizenProgressIndex(status: string): number {
 
 export function getCitizenStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    report_submitted: "Report Submitted",
-    under_verification: "Under Verification",
-    verified: "Verified — Awaiting Rescuer",
-    rescuer_assigned: "Rescuer Assigned",
-    rescue_accepted: "Rescuer Accepted",
-    rescue_in_progress: "Rescue in Progress",
-    animal_secured: "Animal Secured",
-    awaiting_shelter: "Awaiting Shelter",
-    shelter_handoff: "At Shelter — Receiving Care",
+    report_submitted: "Report submitted",
+    under_verification: "Needs review",
+    verified: "Verified, awaiting rescuer",
+    rescuer_assigned: "With rescuer",
+    rescue_accepted: "With rescuer",
+    rescue_in_progress: "With rescuer",
+    animal_secured: "Animal secured",
+    awaiting_shelter: "Animal secured",
+    shelter_handoff: "At shelter, receiving care",
     completed: "Completed",
     rejected: "Rejected",
     duplicate: "Duplicate",

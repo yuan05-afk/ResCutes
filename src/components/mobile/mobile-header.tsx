@@ -5,15 +5,16 @@ import { Logo } from "@/components/ui/logo";
 interface MobileHeaderProps {
   userName: string;
   greeting?: string;
-  locationLabel?: string;
   notificationCount?: number;
+  /** Where the bell should go (cases list with updates). */
+  notificationsHref?: string;
 }
 
 export function MobileHeader({
   userName,
   greeting,
-  locationLabel = "Manila, Philippines",
   notificationCount = 0,
+  notificationsHref = "/mobile/cases#updates",
 }: MobileHeaderProps) {
   const firstName = userName.split(" ")[0];
   const timeGreeting =
@@ -26,31 +27,25 @@ export function MobileHeader({
     })();
 
   return (
-    <header className="bg-white px-4 pt-4 pb-5 border-b border-sage/20">
+    <header className="border-b border-sage/20 bg-white px-4 pb-4 pt-4">
       <div className="flex items-center justify-between">
         <Logo size="sm" />
         <Link
-          href="/mobile/cases"
-          className="relative flex h-10 w-10 items-center justify-center rounded-full hover:bg-bone transition-colors"
-          aria-label={`Notifications${notificationCount ? `, ${notificationCount} updates` : ""}`}
+          href={notificationsHref}
+          className="relative flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-bone"
+          aria-label={`Updates${notificationCount ? `, ${notificationCount} new` : ""}`}
         >
           <Bell className="h-5 w-5 text-graphite/70" />
           {notificationCount > 0 && (
-            <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rescue px-1 text-[10px] font-bold text-white">
-              {notificationCount}
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rescue px-1 text-[10px] font-bold text-white">
+              {notificationCount > 9 ? "9+" : notificationCount}
             </span>
           )}
         </Link>
       </div>
-      <div className="mt-5">
-        <h1 className="text-[22px] font-bold text-graphite leading-tight">
-          {timeGreeting}, {firstName}
-        </h1>
-        <p className="mt-1 flex items-center gap-1 text-sm text-graphite/55">
-          <span className="text-evergreen">📍</span>
-          {locationLabel}
-        </p>
-      </div>
+      <h1 className="mt-4 text-[22px] font-bold leading-tight text-graphite">
+        {timeGreeting}, {firstName}
+      </h1>
     </header>
   );
 }

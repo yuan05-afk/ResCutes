@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+/**
+ * Production build guard - refuses to build while a local dev server holds the port.
+ * Skipped on Vercel/CI where Next.js runs `npm run build` in a clean environment.
+ */
+import { spawn } from "node:child_process";
+import net from "node:net";
+import { cleanNextCache, isNextCacheCorrupt } from "./next-cache.mjs";
+
+const DEV_PORT = Number(process.env.DEV_GUARD_PORT || 3000);
+const HOST = process.env.HOST || "localhost";
+const SKIP_DEV_GUARD = Boolean(process.env.VERCEL || process.env.CI);
+
+function isPortInUse(port, host) {
+  return new Promise((resolve) => {
+    const tester = net.createServer();
+    tester.once("error", (err) => {
+      resolve(err.code === "EADDRINUSE");
+    });
+    tester.once("listening", () => {
+      tester.close(() => resolve(false));
+    });
+    tester.listen(port, host);
+  });
+}
+
+async function main() {
+  if (!SKIP_DEV_GUARD) {
+    const devRunning = await isPortInUse(DEV_PORT, HOST);
+    if (devRunning) {
+      console.error("");
+      console.error(`Dev server is still running on port ${DEV_PORT}.`);
+      console.error("Stop it with Ctrl+C before running npm run build.");
+      console.error("Building while dev runs corrupts .next on this project.");
+      console.error("");
+      process.exit(1);
+    }
+  }
+
+  if (isNextCacheCorrupt()) {
+    cleanNextCache("Removing broken .next before production build...");
+  }
+
+  const nextBin = process.platform === "win32" ? "next.cmd" : "next";
+  const child = spawn(nextBin, ["build"], {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env: process.env,
+  });
+
+  child.on("exit", (code) => process.exit(code ?? 0));
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

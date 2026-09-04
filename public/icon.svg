@@ -1,4 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="#183C35">
-  <circle cx="256" cy="256" r="240" fill="#F5F3ED"/>
-  <path d="M160 200c-20 0-36 16-36 36s16 36 36 36 36-16 36-36-16-36-36-36zm192 0c-20 0-36 16-36 36s16 36 36 36 36-16 36-36-16-36-36-36zm-96 48c-44 0-80 28-80 64h32c0-18 22-32 48-32s48 14 48 32h32c0-36-36-64-80-64z" fill="#183C35"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ResCutes">
+  <rect width="64" height="64" rx="14" fill="#183C35"/>
+  <rect x="10" y="10" width="44" height="44" rx="10" fill="#9DB7A9" fill-opacity="0.28"/>
+  <!-- Main pad -->
+  <ellipse cx="32" cy="40" rx="11" ry="9" fill="none" stroke="#FFFFFF" stroke-width="2.4"/>
+  <!-- Toe pads -->
+  <circle cx="20" cy="24" r="4.2" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+  <circle cx="28" cy="18.5" r="4.2" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+  <circle cx="36" cy="18.5" r="4.2" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+  <circle cx="44" cy="24" r="4.2" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
 </svg>

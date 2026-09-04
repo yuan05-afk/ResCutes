@@ -1,0 +1,30 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { neonAuth } from "@/lib/auth/server";
+import { getRolesByEmail } from "@/lib/auth/user-roles";
+import { getPostLoginPath } from "@/lib/auth/permissions";
+
+export async function signInAction(
+  _prevState: { error: string } | null,
+  formData: FormData,
+): Promise<{ error: string } | null> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const callbackUrl = String(formData.get("callbackUrl") ?? "").trim();
+
+  if (!email || !password) {
+    return { error: "Email and password are required." };
+  }
+
+  const { error } = await neonAuth.signIn.email({ email, password });
+
+  if (error) {
+    return {
+      error: "Invalid email or password. Use demo1234 for seeded demo accounts.",
+    };
+  }
+
+  const roles = await getRolesByEmail(email);
+  redirect(getPostLoginPath(roles, callbackUrl));
+}

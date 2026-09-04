@@ -3,6 +3,18 @@ import {
   canViewExactLocation,
   canViewMedicalNotes,
   canManageCases,
+  canEditMedical,
+  canManageSettings,
+  canViewReporterInfo,
+  canActAsRescuer,
+  canUseCitizenMobileFeatures,
+  canAccessDashboard,
+  canAccessMobileCase,
+  shouldUseRescuerMobileExperience,
+  getDisplayRoleLabel,
+  getHomePathForRoles,
+  getPostLoginPath,
+  isAdministrator,
   ROLES,
 } from "@/lib/auth/permissions";
 
@@ -24,5 +36,91 @@ describe("Authorization helpers", () => {
     expect(canManageCases([ROLES.SHELTER_STAFF])).toBe(true);
     expect(canManageCases([ROLES.ADMINISTRATOR])).toBe(true);
     expect(canManageCases([ROLES.RESCUER])).toBe(false);
+  });
+
+  it("grants administrators every capability", () => {
+    const admin = [ROLES.ADMINISTRATOR];
+
+    expect(isAdministrator(admin)).toBe(true);
+    expect(canViewExactLocation(admin)).toBe(true);
+    expect(canViewReporterInfo(admin)).toBe(true);
+    expect(canViewMedicalNotes(admin)).toBe(true);
+    expect(canManageCases(admin)).toBe(true);
+    expect(canEditMedical(admin)).toBe(true);
+    expect(canManageSettings(admin)).toBe(true);
+    expect(canAccessDashboard(admin)).toBe(true);
+    expect(canActAsRescuer(admin)).toBe(true);
+    expect(canUseCitizenMobileFeatures(admin)).toBe(true);
+    expect(shouldUseRescuerMobileExperience(admin)).toBe(true);
+    expect(getDisplayRoleLabel(admin)).toBe("Administrator");
+  });
+
+  it("gates mobile case detail to reporter, assigned rescuer, or staff", () => {
+    const caseOpts = {
+      reporterId: "citizen-1",
+      assignedRescuerIds: ["rescuer-1"],
+    };
+
+    expect(
+      canAccessMobileCase({
+        userId: "citizen-1",
+        userRoles: [ROLES.CITIZEN],
+        ...caseOpts,
+      }),
+    ).toBe(true);
+
+    expect(
+      canAccessMobileCase({
+        userId: "other-citizen",
+        userRoles: [ROLES.CITIZEN],
+        ...caseOpts,
+      }),
+    ).toBe(false);
+
+    expect(
+      canAccessMobileCase({
+        userId: "rescuer-1",
+        userRoles: [ROLES.RESCUER],
+        ...caseOpts,
+      }),
+    ).toBe(true);
+
+    expect(
+      canAccessMobileCase({
+        userId: "rescuer-2",
+        userRoles: [ROLES.RESCUER],
+        ...caseOpts,
+      }),
+    ).toBe(false);
+
+    expect(
+      canAccessMobileCase({
+        userId: "staff-1",
+        userRoles: [ROLES.SHELTER_STAFF],
+        ...caseOpts,
+      }),
+    ).toBe(true);
+  });
+
+  it("routes field roles to mobile and operations roles to the web dashboard", () => {
+    expect(getHomePathForRoles([ROLES.CITIZEN])).toBe("/mobile");
+    expect(getHomePathForRoles([ROLES.RESCUER])).toBe("/mobile");
+    expect(getHomePathForRoles([ROLES.SHELTER_STAFF])).toBe("/dashboard");
+    expect(getHomePathForRoles([ROLES.VETERINARIAN])).toBe("/dashboard");
+    expect(getHomePathForRoles([ROLES.ADMINISTRATOR])).toBe("/dashboard");
+  });
+
+  it("ignores callback URLs that point at the wrong surface for the role", () => {
+    expect(getPostLoginPath([ROLES.CITIZEN], "/mobile/report")).toBe(
+      "/mobile/report",
+    );
+    expect(getPostLoginPath([ROLES.CITIZEN], "/dashboard")).toBe("/mobile");
+    expect(getPostLoginPath([ROLES.SHELTER_STAFF], "/mobile")).toBe(
+      "/dashboard",
+    );
+    expect(getPostLoginPath([ROLES.VETERINARIAN], "/medical")).toBe("/medical");
+    expect(getPostLoginPath([ROLES.ADMINISTRATOR], "/mobile/cases")).toBe(
+      "/dashboard",
+    );
   });
 });

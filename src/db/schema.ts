@@ -138,6 +138,21 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "handoff",
   "medical_update",
   "system",
+  "adoption",
+]);
+
+export const adoptionApplicationStatusEnum = pgEnum("adoption_application_status", [
+  "pending",
+  "under_review",
+  "approved",
+  "rejected",
+  "withdrawn",
+  "completed",
+]);
+
+export const adoptionInterestDecisionEnum = pgEnum("adoption_interest_decision", [
+  "pass",
+  "interested",
 ]);
 
 // Users
@@ -231,6 +246,10 @@ export const rescueReports = pgTable("rescue_reports", {
   vulnerability: vulnerabilityEnum("vulnerability").notNull(),
   description: text("description").notNull(),
   contactPreference: contactPreferenceEnum("contact_preference").notNull(),
+  /** Reverse-geocoded or reporter-supplied place label for maps / directions. */
+  locationLabel: text("location_label"),
+  /** Reporter landmark note (e.g. "behind the 7-Eleven"). */
+  locationNote: text("location_note"),
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
   approximateLatitude: doublePrecision("approximate_latitude").notNull(),
@@ -257,6 +276,8 @@ export const rescueCases = pgTable(
     duplicateOfCaseId: uuid("duplicate_of_case_id"),
     assignedShelterId: uuid("assigned_shelter_id").references(() => shelters.id),
     animalId: uuid("animal_id"),
+    /** Staff instructions for the assigned rescuer (access, hazards, contact on site). */
+    rescuerNote: text("rescuer_note"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -358,6 +379,7 @@ export const shelterHandoffs = pgTable(
     confirmedByStaffId: uuid("confirmed_by_staff_id").references(() => users.id),
     handoffNotes: text("handoff_notes"),
     confirmedAt: timestamp("confirmed_at"),
+    intakeCompletedAt: timestamp("intake_completed_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [index("shelter_handoffs_case_id_idx").on(table.caseId)],
@@ -375,6 +397,8 @@ export const animals = pgTable(
     breed: text("breed"),
     color: text("color"),
     sex: text("sex"),
+    bio: text("bio"),
+    temperament: text("temperament"),
     rescueCaseId: uuid("rescue_case_id").references(() => rescueCases.id),
     shelterId: uuid("shelter_id").references(() => shelters.id),
     intakeDate: timestamp("intake_date"),
@@ -387,6 +411,62 @@ export const animals = pgTable(
   (table) => [
     index("animals_shelter_id_idx").on(table.shelterId),
     index("animals_rescue_case_id_idx").on(table.rescueCaseId),
+    index("animals_pathway_stage_idx").on(table.pathwayStage),
+  ],
+);
+
+export const adoptionApplications = pgTable(
+  "adoption_applications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    animalId: uuid("animal_id")
+      .notNull()
+      .references(() => animals.id, { onDelete: "cascade" }),
+    applicantName: text("applicant_name").notNull(),
+    applicantEmail: text("applicant_email").notNull(),
+    applicantPhone: text("applicant_phone"),
+    homeType: text("home_type").notNull(),
+    hasYard: boolean("has_yard").default(false).notNull(),
+    hasOtherPets: boolean("has_other_pets").default(false).notNull(),
+    householdSize: integer("household_size").default(1).notNull(),
+    experienceNotes: text("experience_notes"),
+    motivation: text("motivation").notNull(),
+    status: adoptionApplicationStatusEnum("status")
+      .notNull()
+      .default("pending"),
+    reviewedById: uuid("reviewed_by_id").references(() => users.id),
+    reviewNotes: text("review_notes"),
+    submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+    decidedAt: timestamp("decided_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("adoption_applications_animal_id_idx").on(table.animalId),
+    index("adoption_applications_status_idx").on(table.status),
+  ],
+);
+
+export const adoptionInterests = pgTable(
+  "adoption_interests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    animalId: uuid("animal_id")
+      .notNull()
+      .references(() => animals.id, { onDelete: "cascade" }),
+    decision: adoptionInterestDecisionEnum("decision").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("adoption_interests_user_animal_uidx").on(
+      table.userId,
+      table.animalId,
+    ),
+    index("adoption_interests_user_id_idx").on(table.userId),
+    index("adoption_interests_animal_id_idx").on(table.animalId),
   ],
 );
 
@@ -467,11 +547,34 @@ export const auditLogs = pgTable(
 );
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const userPreferences = pgTable("user_preferences", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  department: text("department").notNull().default(""),
+  notifyEmail: boolean("notify_email").notNull().default(true),
+  notifyUrgentCases: boolean("notify_urgent_cases").notNull().default(true),
+  notifyAssignments: boolean("notify_assignments").notNull().default(true),
+  notifyWeeklyDigest: boolean("notify_weekly_digest").notNull().default(false),
+  timezone: text("timezone").notNull().default("Asia/Manila"),
+});
+
+export const usersRelations = relations(users, ({ one, many }) => ({
   roles: many(userRoles),
   reports: many(rescueReports),
   assignments: many(rescuerAssignments),
   notifications: many(notifications),
+  preferences: one(userPreferences, {
+    fields: [users.id],
+    references: [userPreferences.userId],
+  }),
+}));
+
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userPreferences.userId],
+    references: [users.id],
+  }),
 }));
 
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
@@ -543,7 +646,37 @@ export const animalsRelations = relations(animals, ({ one, many }) => ({
   }),
   medicalClearance: one(medicalClearances),
   notes: many(animalNotes),
+  adoptionApplications: many(adoptionApplications),
+  adoptionInterests: many(adoptionInterests),
 }));
+
+export const adoptionInterestsRelations = relations(
+  adoptionInterests,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [adoptionInterests.userId],
+      references: [users.id],
+    }),
+    animal: one(animals, {
+      fields: [adoptionInterests.animalId],
+      references: [animals.id],
+    }),
+  }),
+);
+
+export const adoptionApplicationsRelations = relations(
+  adoptionApplications,
+  ({ one }) => ({
+    animal: one(animals, {
+      fields: [adoptionApplications.animalId],
+      references: [animals.id],
+    }),
+    reviewer: one(users, {
+      fields: [adoptionApplications.reviewedById],
+      references: [users.id],
+    }),
+  }),
+);
 
 export const medicalClearancesRelations = relations(
   medicalClearances,

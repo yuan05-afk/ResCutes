@@ -1,35 +1,34 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import type { DemoUser } from "@/lib/data/demo-store";
-
-const STATUSES = [
-  "report_submitted",
-  "under_verification",
-  "verified",
-  "rescuer_assigned",
-  "rescue_accepted",
-  "rescue_in_progress",
-  "animal_secured",
-  "awaiting_shelter",
-  "shelter_handoff",
-  "completed",
-  "rejected",
-  "duplicate",
-];
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import type { AppUser } from "@/lib/data/types";
+import { CASE_STAGE_FILTER_OPTIONS } from "@/lib/rescue-stages";
 
 const URGENCY_LEVELS = ["critical", "high", "medium", "low"];
 
 export function RescueCasesFilters({
   rescuers,
 }: {
-  rescuers: Pick<DemoUser, "id" | "name">[];
+  rescuers: Pick<AppUser, "id" | "name">[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    const current = params.get("search") ?? "";
+    if (debouncedSearch === current) return;
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    else params.delete("search");
+    router.replace(`/rescue-cases?${params.toString()}`);
+  }, [debouncedSearch, router, searchParams]);
 
   function updateFilter(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -43,8 +42,8 @@ export function RescueCasesFilters({
       <div className="flex-1 min-w-[200px]">
         <Input
           placeholder="Search cases..."
-          defaultValue={searchParams.get("search") ?? ""}
-          onChange={(e) => updateFilter("search", e.target.value)}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
       </div>
       <Select
@@ -52,9 +51,11 @@ export function RescueCasesFilters({
         onChange={(e) => updateFilter("status", e.target.value)}
         className="w-[160px]"
       >
-        <option value="">All statuses</option>
-        {STATUSES.map((s) => (
-          <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+        <option value="">All stages</option>
+        {CASE_STAGE_FILTER_OPTIONS.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label}
+          </option>
         ))}
       </Select>
       <Select
@@ -82,13 +83,17 @@ export function RescueCasesFilters({
         onChange={(e) => updateFilter("sort", e.target.value)}
         className="w-[140px]"
       >
-        <option value="date">Report date</option>
+        <option value="date">Newest</option>
         <option value="urgency">Urgency</option>
-        <option value="waiting">Waiting time</option>
+        <option value="waiting">Waiting</option>
       </Select>
       <Button
+        type="button"
         variant="outline"
-        onClick={() => router.push("/rescue-cases")}
+        onClick={() => {
+          setSearch("");
+          router.push("/rescue-cases");
+        }}
       >
         Clear
       </Button>

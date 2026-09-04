@@ -1,6 +1,8 @@
 "use server";
 
+import { revalidatePath, revalidateTag } from "next/cache";
 import { auth } from "@/lib/auth";
+import { revalidateRescueData } from "@/lib/cache-revalidate";
 import {
   acceptAssignment,
   declineAssignment,
@@ -10,23 +12,79 @@ import {
   assignRescuer,
   generateRecommendationsForCase,
   selectShelter,
-  confirmHandoff,
+  confirmShelterHandoff,
+  completeShelterIntake,
   overrideUrgency,
   updateMedicalClearance,
   updateShelterCapacity,
   updateShelterCapabilities,
+  getAssignmentById,
+  getAssignmentsForCase,
+  updateCaseStatusAsRescuer,
+  updateRescuerNote,
+  type ClearanceStatus,
 } from "@/lib/data/service";
 import {
   canManageCases,
   canAssignRescuer,
   canEditMedical,
   canManageSettings,
+  isAdministrator,
 } from "@/lib/auth/permissions";
+import {
+  ANIMAL_AGE_OPTIONS,
+  ANIMAL_SEX_OPTIONS,
+  COAT_COLOR_OPTIONS,
+  GENERAL_CONDITION_OPTIONS,
+  isAllowedBreed,
+  isAllowedCatalogOrOther,
+  isMedicalPriority,
+  validateOptionalText,
+} from "@/lib/forms/animal-field-options";
+import {
+  followUpDateBounds,
+  validateIsoDate,
+} from "@/lib/forms/date-validation";
+
+function revalidateCaseViews(
+  caseId: string,
+  userId: string,
+  email: string,
+  assignmentId?: string,
+  animalId?: string,
+) {
+  const paths = [
+    `/rescue-cases/${caseId}`,
+    "/rescue-cases",
+    "/dashboard",
+    `/mobile/cases/${caseId}`,
+    "/mobile/cases",
+    "/mobile",
+    "/animals",
+  ];
+  if (animalId) paths.push(`/animals/${animalId}`);
+  if (assignmentId) paths.push(`/mobile/assignments/${assignmentId}`);
+  revalidateRescueData(userId, paths, email);
+  revalidateTag("dashboard-metrics");
+  revalidateTag("rescue-cases");
+  revalidateTag("animals");
+}
 
 export async function acceptAssignmentAction(assignmentId: string) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
-  acceptAssignment(assignmentId, session.user.id);
+  const adminOverride = isAdministrator(session.user.roles);
+  const accepted = await acceptAssignment(assignmentId, session.user.id, { adminOverride });
+  if (!accepted) return { error: "Assignment not found or already responded" };
+  const assignment = await getAssignmentById(assignmentId);
+  if (assignment) {
+    revalidateCaseViews(
+      assignment.caseId,
+      session.user.id,
+      session.user.email,
+      assignmentId,
+    );
+  }
   return { success: true };
 }
 
@@ -37,14 +95,61 @@ export async function declineAssignmentAction(
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
   if (!reason.trim()) return { error: "Reason required" };
-  declineAssignment(assignmentId, session.user.id, reason);
+  const reasonErr = validateOptionalText("Decline reason", reason, {
+    minLen: 3,
+    maxLen: 500,
+  });
+  if (reasonErr) return { error: reasonErr };
+  const adminOverride = isAdministrator(session.user.roles);
+  const declined = await declineAssignment(assignmentId, session.user.id, reason, {
+    adminOverride,
+  });
+  if (!declined) return { error: "Assignment not found or already responded" };
+  const assignment = await getAssignmentById(assignmentId);
+  if (assignment) {
+    revalidateCaseViews(
+      assignment.caseId,
+      session.user.id,
+      session.user.email,
+      assignmentId,
+    );
+  }
   return { success: true };
 }
 
 export async function updateCaseStatusAction(caseId: string, status: string) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
-  updateCaseStatus(caseId, status, session.user.id);
+
+  const adminOverride = isAdministrator(session.user.roles);
+
+  if (adminOverride) {
+    const rescuerResult = await updateCaseStatusAsRescuer(
+      caseId,
+      session.user.id,
+      status,
+      { adminOverride: true },
+    );
+    if (!rescuerResult.ok) {
+      await updateCaseStatus(caseId, status, session.user.id);
+    }
+  } else if (canManageCases(session.user.roles)) {
+    await updateCaseStatus(caseId, status, session.user.id);
+  } else {
+    const result = await updateCaseStatusAsRescuer(caseId, session.user.id, status);
+    if (!result.ok) return { error: result.error };
+  }
+
+  const assignments = await getAssignmentsForCase(caseId);
+  const assignment = assignments.find(
+    (a) => a.rescuerId === session.user!.id || adminOverride,
+  );
+  revalidateCaseViews(
+    caseId,
+    session.user.id,
+    session.user.email,
+    assignment?.id,
+  );
   return { success: true };
 }
 
@@ -53,8 +158,10 @@ export async function verifyCaseAction(caseId: string) {
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  verifyCase(caseId, session.user.id);
-  generateRecommendationsForCase(caseId);
+  const updated = await verifyCase(caseId, session.user.id);
+  if (!updated) return { error: "Case not found" };
+  await generateRecommendationsForCase(caseId);
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -63,7 +170,14 @@ export async function rejectCaseAction(caseId: string, reason: string) {
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  rejectCase(caseId, session.user.id, reason);
+  if (!reason.trim()) return { error: "Rejection reason required" };
+  const reasonErr = validateOptionalText("Rejection reason", reason, {
+    minLen: 3,
+    maxLen: 500,
+  });
+  if (reasonErr) return { error: reasonErr };
+  await rejectCase(caseId, session.user.id, reason.trim());
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -72,7 +186,23 @@ export async function assignRescuerAction(caseId: string, rescuerId: string) {
   if (!session?.user) return { error: "Unauthorized" };
   if (!canAssignRescuer(session.user.roles))
     return { error: "Unauthorized" };
-  assignRescuer(caseId, rescuerId, session.user.id);
+  await assignRescuer(caseId, rescuerId, session.user.id);
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
+  return { success: true };
+}
+
+export async function updateRescuerNoteAction(caseId: string, note: string) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+  if (!canManageCases(session.user.roles)) return { error: "Unauthorized" };
+  const reasonErr = validateOptionalText("Rescuer note", note, {
+    minLen: 0,
+    maxLen: 1000,
+  });
+  if (reasonErr) return { error: reasonErr };
+  const updated = await updateRescuerNote(caseId, note);
+  if (!updated) return { error: "Case not found" };
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -85,7 +215,8 @@ export async function selectShelterAction(
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
-  selectShelter(caseId, shelterId, session.user.id, rejectionReason);
+  await selectShelter(caseId, shelterId, session.user.id, rejectionReason);
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -96,14 +227,88 @@ export async function confirmHandoffAction(
 ) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
-  confirmHandoff(
+  if (!canManageCases(session.user.roles))
+    return { error: "Unauthorized" };
+  const result = await confirmShelterHandoff(
     caseId,
     shelterId,
     session.user.id,
-    session.user.id,
     notes,
   );
+  if (!result.ok) return { error: result.error };
+  const assignments = await getAssignmentsForCase(caseId);
+  const assignment = assignments.find(
+    (a) => a.status === "completed" || a.status === "accepted",
+  );
+  revalidateCaseViews(
+    caseId,
+    session.user.id,
+    session.user.email,
+    assignment?.id,
+  );
   return { success: true };
+}
+
+export async function completeShelterIntakeAction(
+  caseId: string,
+  input?: {
+    name?: string;
+    estimatedAge?: string;
+    sex?: string;
+    breed?: string;
+    color?: string;
+    initialCondition?: string;
+  },
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+  if (!canManageCases(session.user.roles))
+    return { error: "Unauthorized" };
+
+  if (input) {
+    const nameErr = validateOptionalText("Name", input.name ?? "", {
+      maxLen: 80,
+    });
+    if (nameErr) return { error: nameErr };
+    if (
+      input.sex !== undefined &&
+      !isAllowedCatalogOrOther(input.sex, ANIMAL_SEX_OPTIONS)
+    ) {
+      return { error: "Invalid sex value" };
+    }
+    if (
+      input.estimatedAge !== undefined &&
+      !isAllowedCatalogOrOther(input.estimatedAge, ANIMAL_AGE_OPTIONS)
+    ) {
+      return { error: "Invalid age value" };
+    }
+    if (
+      input.color !== undefined &&
+      !isAllowedCatalogOrOther(input.color, COAT_COLOR_OPTIONS)
+    ) {
+      return { error: "Invalid color value" };
+    }
+    if (input.breed !== undefined && !isAllowedBreed(input.breed)) {
+      return { error: "Invalid breed value" };
+    }
+    const condErr = validateOptionalText(
+      "Initial condition",
+      input.initialCondition ?? "",
+      { maxLen: 2000 },
+    );
+    if (condErr) return { error: condErr };
+  }
+
+  const result = await completeShelterIntake(caseId, session.user.id, input);
+  if (!result.ok) return { error: result.error };
+  revalidateCaseViews(
+    caseId,
+    session.user.id,
+    session.user.email,
+    undefined,
+    result.animalId,
+  );
+  return { success: true, animalId: result.animalId };
 }
 
 export async function overrideUrgencyAction(
@@ -116,7 +321,16 @@ export async function overrideUrgencyAction(
   if (!canManageCases(session.user.roles))
     return { error: "Unauthorized" };
   if (!reason.trim()) return { error: "Override reason required" };
-  overrideUrgency(caseId, score, reason, session.user.id);
+  const reasonErr = validateOptionalText("Override reason", reason, {
+    minLen: 3,
+    maxLen: 500,
+  });
+  if (reasonErr) return { error: reasonErr };
+  if (!Number.isFinite(score) || score < 0 || score > 100) {
+    return { error: "Urgency score must be between 0 and 100" };
+  }
+  await overrideUrgency(caseId, score, reason.trim(), session.user.id);
+  revalidateCaseViews(caseId, session.user.id, session.user.email);
   return { success: true };
 }
 
@@ -131,13 +345,83 @@ export async function updateMedicalClearanceAction(
     followUpDate?: string;
     clearanceStatus: string;
     veterinarianNotes?: string;
+    statusChangeNote?: string;
   },
 ) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
   if (!canEditMedical(session.user.roles))
     return { error: "Unauthorized" };
-  updateMedicalClearance(animalId, session.user.id, data);
+
+  if (
+    data.generalCondition !== undefined &&
+    data.generalCondition.trim() &&
+    !isAllowedCatalogOrOther(data.generalCondition, GENERAL_CONDITION_OPTIONS, {
+      allowEmpty: true,
+      maxLen: 200,
+    })
+  ) {
+    return { error: "Invalid general condition" };
+  }
+
+  if (
+    data.medicalPriority !== undefined &&
+    !isMedicalPriority(data.medicalPriority)
+  ) {
+    return { error: "Invalid medical priority" };
+  }
+
+  for (const [label, value, max] of [
+    ["Treatment summary", data.treatmentSummary, 2000],
+    ["Restrictions", data.restrictions, 1000],
+    ["Veterinarian notes", data.veterinarianNotes, 2000],
+    ["Status change note", data.statusChangeNote, 500],
+  ] as const) {
+    const err = validateOptionalText(label, value ?? "", { maxLen: max });
+    if (err) return { error: err };
+  }
+
+  let normalizedFollowUp: string | undefined;
+  if (data.clearanceStatus === "follow_up_required") {
+    const bounds = followUpDateBounds();
+    const raw = data.followUpDate?.trim() ?? "";
+    // Prefer calendar day (YYYY-MM-DD). If a full ISO datetime arrives, use UTC
+    // date parts so timezone conversion does not shift the scheduled day.
+    const asDay = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+      ? raw
+      : (() => {
+          const d = new Date(raw);
+          if (Number.isNaN(d.getTime())) return "";
+          const y = d.getUTCFullYear();
+          const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+          const day = String(d.getUTCDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        })();
+    const dateErr = validateIsoDate(asDay, {
+      required: true,
+      label: "Follow-up date",
+      notBeforeToday: true,
+      min: bounds.min,
+      max: bounds.max,
+    });
+    if (dateErr) return { error: dateErr };
+    // Store noon UTC so the calendar day is stable across timezones.
+    normalizedFollowUp = asDay ? `${asDay}T12:00:00.000Z` : undefined;
+  }
+
+  const result = await updateMedicalClearance(animalId, session.user.id, {
+    ...data,
+    followUpDate: normalizedFollowUp,
+    clearanceStatus: data.clearanceStatus as ClearanceStatus,
+    statusChangeNote: data.statusChangeNote,
+  });
+
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/animals");
+  revalidatePath("/medical");
+  revalidatePath(`/animals/${animalId}`);
   return { success: true };
 }
 
@@ -154,10 +438,13 @@ export async function updateShelterSettingsAction(
   if (!canManageSettings(session.user.roles))
     return { error: "Unauthorized" };
   if (data.totalCapacity !== undefined && data.currentOccupancy !== undefined) {
-    updateShelterCapacity(shelterId, data.totalCapacity, data.currentOccupancy);
+    await updateShelterCapacity(shelterId, data.totalCapacity, data.currentOccupancy);
   }
   if (data.capabilities) {
-    updateShelterCapabilities(shelterId, data.capabilities);
+    await updateShelterCapabilities(shelterId, data.capabilities);
   }
+  revalidateRescueData(session.user.id, ["/dashboard", "/settings"], session.user.email);
+  revalidateTag("dashboard-metrics");
+  revalidateTag("shelters");
   return { success: true };
 }

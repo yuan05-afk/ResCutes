@@ -1,6 +1,6 @@
 /**
- * Fictional Metro Manila demo geography for ResCutes hackathon seed data.
- * Not affiliated with real organizations or addresses.
+ * Metro Manila geography for ResCutes demo rescue scenarios.
+ * Shelter coordinates align with verified listings on the Philippines shelter map.
  */
 export const DEMO_GEO = {
   center: { latitude: 14.5995, longitude: 120.9842 },
@@ -13,23 +13,23 @@ export const DEMO_GEO = {
     areaLabel: "España Boulevard, Sampaloc, Manila",
   },
   shelters: {
-    pawsHope: {
-      latitude: 14.676,
-      longitude: 121.0437,
-      address: "45 Katipunan Avenue, Quezon City, Metro Manila",
-      phone: "+63 917 678 1234",
+    paws: {
+      latitude: 14.63322,
+      longitude: 121.07676,
+      address: "Aurora Boulevard cor. Katipunan Avenue, Loyola Heights, Quezon City, NCR",
+      phone: "+63 2 8475 1688",
     },
-    greenValley: {
-      latitude: 14.5764,
-      longitude: 121.0851,
-      address: "12 Ortigas Avenue, Pasig City, Metro Manila",
-      phone: "+63 917 890 2345",
+    cara: {
+      latitude: 14.58375,
+      longitude: 121.04937,
+      address: "175 Lopez Rizal St. cor. Samat St., Mandaluyong City, NCR",
+      phone: "+63 2 8532 3340",
     },
-    coastalRescue: {
-      latitude: 14.4793,
-      longitude: 121.0198,
-      address: "88 Dr. A. Santos Avenue, Parañaque City, Metro Manila",
-      phone: "+63 917 901 3456",
+    helpMas: {
+      latitude: 14.5863,
+      longitude: 121.0439,
+      address: "588 Nueve de Febrero, Mandaluyong City, NCR",
+      phone: "",
     },
   },
 } as const;

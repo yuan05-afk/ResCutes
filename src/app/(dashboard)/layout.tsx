@@ -1,6 +1,11 @@
+import { Suspense } from "react";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/permissions";
-import { WebSidebar } from "@/components/layout/web-sidebar";
+import { AppShell } from "@/components/layout/AppShell";
+import { NotificationBellServer } from "@/components/notifications/NotificationBellServer";
+import { NotificationBellFallback } from "@/components/notifications/NotificationBellClient";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({
   children,
@@ -14,11 +19,17 @@ export default async function DashboardLayout({
   ]);
 
   return (
-    <div className="flex min-h-screen bg-bone">
-      <WebSidebar userName={session.user.name} userRoles={session.user.roles} />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
+    <AppShell
+      userName={session.user.name}
+      userEmail={session.user.email}
+      userRoles={session.user.roles}
+      notificationSlot={
+        <Suspense fallback={<NotificationBellFallback />}>
+          <NotificationBellServer userId={session.user.id} />
+        </Suspense>
+      }
+    >
+      {children}
+    </AppShell>
   );
 }

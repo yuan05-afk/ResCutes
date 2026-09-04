@@ -9,38 +9,67 @@ import {
   PawPrint,
   Settings,
   LogOut,
+  ChevronRight,
+  MapPinned,
+  HeartHandshake,
+  Stethoscope,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOutAction } from "@/app/actions/auth";
 import { Logo } from "@/components/ui/logo";
 import type { Role } from "@/lib/auth/permissions";
-import { ROLE_LABELS } from "@/lib/auth/permissions";
+import { getDisplayRoleLabel } from "@/lib/auth/permissions";
+import { AdminExperienceSwitcher } from "@/components/layout/admin-experience-switcher";
+import { prefetchRouteNow } from "@/components/layout/AppRoutePrefetcher";
+import { useNavigationPending } from "@/components/layout/NavigationPending";
+import { useRouter } from "next/navigation";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/rescue-cases", label: "Rescue Cases", icon: ClipboardList },
   { href: "/animals", label: "Animals", icon: PawPrint },
+  { href: "/medical", label: "Medical", icon: Stethoscope },
+  { href: "/adoption", label: "Adoption", icon: HeartHandshake },
+  { href: "/shelters", label: "Shelter Map", icon: MapPinned },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-interface WebSidebarProps {
-  userName: string;
-  userRoles: Role[];
+function userInitials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
-export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
+interface WebSidebarProps {
+  userName: string;
+  userEmail: string;
+  userRoles: Role[];
+  isAdministrator?: boolean;
+}
+
+export function WebSidebar({
+  userName,
+  userEmail,
+  userRoles,
+  isAdministrator = false,
+}: WebSidebarProps) {
   const pathname = usePathname();
-  const primaryRole = userRoles[0];
+  const router = useRouter();
+  const { startPending } = useNavigationPending();
+  const isProfileActive = pathname.startsWith("/profile");
 
   return (
     <aside
-      className="hidden md:flex w-[260px] shrink-0 flex-col bg-evergreen text-white"
+      className="hidden md:flex w-[260px] shrink-0 flex-col sticky top-0 self-start min-h-[100dvh] bg-evergreen text-white"
       aria-label="Main navigation"
     >
-      <div className="px-5 py-6 border-b border-white/10">
+      <div className="shrink-0 px-5 py-6 border-b border-white/10">
         <Logo variant="light" size="lg" />
       </div>
 
-      <nav className="flex-1 px-3 py-5 space-y-1">
+      <nav className="rc-scroll flex-1 min-h-0 overflow-y-auto px-3 py-5 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -48,6 +77,9 @@ export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch
+              onMouseEnter={() => prefetchRouteNow(router, item.href)}
+              onClick={() => startPending(item.href)}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors",
                 isActive
@@ -63,21 +95,61 @@ export function WebSidebar({ userName, userRoles }: WebSidebarProps) {
         })}
       </nav>
 
-      <div className="border-t border-white/10 p-4">
-        <div className="rounded-xl bg-white/10 p-4">
-          <p className="text-sm font-semibold truncate">{userName}</p>
-          <p className="text-xs text-white/60 mt-0.5">
-            {primaryRole ? ROLE_LABELS[primaryRole] : "Staff"}
-          </p>
+      {isAdministrator ? (
+        <div className="shrink-0 border-t border-white/10 px-3 py-3">
+          <AdminExperienceSwitcher
+            variant="web"
+            className="w-full justify-center border-white/25 bg-white/10 text-white hover:bg-white/20"
+          />
+        </div>
+      ) : null}
+
+      <div className="shrink-0 border-t border-white/10 p-3">
+        <Link
+          href="/profile"
+          prefetch
+          onMouseEnter={() => prefetchRouteNow(router, "/profile")}
+          onClick={() => startPending("/profile")}
+          className={cn(
+            "group flex items-center gap-3 rounded-xl p-3 transition-colors",
+            isProfileActive
+              ? "bg-white/15 ring-1 ring-white/20"
+              : "bg-white/10 hover:bg-white/15",
+          )}
+          aria-current={isProfileActive ? "page" : undefined}
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white">
+            {userInitials(userName)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold truncate">{userName}</p>
+            <p className="text-[11px] text-white/55 truncate">
+              {getDisplayRoleLabel(userRoles)}
+            </p>
+            <p className="text-[10px] text-white/40 truncate mt-0.5">
+              {userEmail}
+            </p>
+          </div>
+          <ChevronRight
+            className={cn(
+              "h-4 w-4 shrink-0 transition-transform",
+              isProfileActive
+                ? "text-white"
+                : "text-white/40 group-hover:translate-x-0.5 group-hover:text-white/70",
+            )}
+            aria-hidden
+          />
+        </Link>
+
+        <form action={signOutAction} className="mt-2">
           <button
-            type="button"
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="mt-3 flex items-center gap-2 text-sm text-white/75 hover:text-white transition-colors min-h-[44px]"
+            type="submit"
+            className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
             <LogOut className="h-4 w-4" aria-hidden />
             Sign out
           </button>
-        </div>
+        </form>
       </div>
     </aside>
   );

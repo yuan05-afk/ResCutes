@@ -1,9 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { StatusBadge } from "@/components/status/status-badge";
-import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { getCasePhotoUrl } from "@/lib/demo-images";
+import { formatCaseStageLabel } from "@/lib/rescue-stages";
+import { formatStatus, cn } from "@/lib/utils";
+import { getUrgencyLevelLabel } from "@/lib/urgency/scoring";
 import { ChevronRight } from "lucide-react";
+import { useNavigationPending } from "@/components/layout/NavigationPending";
 
 interface MobileCaseCardProps {
   id: string;
@@ -14,7 +19,15 @@ interface MobileCaseCardProps {
   urgencyScore: number;
   description: string;
   photoUrl?: string;
+  href?: string;
 }
+
+const urgencyText: Record<string, string> = {
+  critical: "text-rescue",
+  high: "text-ochre",
+  medium: "text-evergreen",
+  low: "text-graphite/50",
+};
 
 export function MobileCaseCard({
   id,
@@ -23,43 +36,76 @@ export function MobileCaseCard({
   status,
   urgencyLevel,
   urgencyScore,
-  description,
+  description: _description,
   photoUrl,
+  href,
 }: MobileCaseCardProps) {
+  const router = useRouter();
+  const { startPending } = useNavigationPending();
   const imageUrl = getCasePhotoUrl(species, photoUrl, id);
+  const linkHref = href ?? `/mobile/cases/${id}`;
+  const stageLabel = formatCaseStageLabel(status);
+  const speciesLabel = formatStatus(species);
+  const showUrgency = urgencyScore > 0;
+  const urgencyLabel = showUrgency
+    ? getUrgencyLevelLabel(
+        urgencyLevel as "critical" | "high" | "medium" | "low",
+      )
+    : null;
 
   return (
-    <Link href={`/mobile/cases/${id}`} className="block group">
-      <article
-        className="flex gap-3 rounded-2xl border border-sage/25 bg-white p-4 shadow-card transition-shadow group-hover:shadow-card-hover"
-      >
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-sage/20">
+    <Link
+      href={linkHref}
+      prefetch
+      onMouseEnter={() => router.prefetch(linkHref)}
+      onTouchStart={() => router.prefetch(linkHref)}
+      onClick={() => startPending(linkHref)}
+      className="block"
+      aria-label={`${caseNumber}, ${speciesLabel}, ${stageLabel}${
+        urgencyLabel ? `, ${urgencyLabel}` : ""
+      }`}
+    >
+      <article className="flex min-h-[4.75rem] overflow-hidden rounded-2xl border border-sage/20 bg-white shadow-card transition-colors active:bg-bone/60">
+        <div className="relative w-[4.75rem] shrink-0 self-stretch bg-sage/15">
           <Image
             src={imageUrl}
             alt=""
             fill
-            className="object-cover"
+            draggable={false}
+            className="object-cover pointer-events-none select-none [-webkit-user-drag:none]"
             unoptimized
-            sizes="64px"
+            sizes="76px"
           />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold text-graphite">{caseNumber}</span>
-            {urgencyScore > 0 && (
-              <UrgencyBadge level={urgencyLevel} score={urgencyScore} />
-            )}
+
+        <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2">
+              <h2 className="truncate text-[15px] font-bold leading-tight text-graphite">
+                {caseNumber}
+              </h2>
+              {showUrgency && urgencyLabel ? (
+                <span
+                  className={cn(
+                    "shrink-0 text-[10px] font-bold uppercase tracking-wide",
+                    urgencyText[urgencyLevel] ?? urgencyText.low,
+                  )}
+                >
+                  {urgencyLabel}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1 truncate text-sm text-graphite/70">
+              {speciesLabel}
+              <span className="text-graphite/35"> · </span>
+              {stageLabel}
+            </p>
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <StatusBadge status={status} />
-            <span className="text-xs text-graphite/50 capitalize">{species}</span>
-          </div>
-          <p className="mt-2 text-sm text-graphite/65 line-clamp-2">{description}</p>
+          <ChevronRight
+            className="h-4 w-4 shrink-0 text-graphite/25"
+            aria-hidden
+          />
         </div>
-        <ChevronRight
-          className="h-5 w-5 shrink-0 text-graphite/30 self-center"
-          aria-hidden
-        />
       </article>
     </Link>
   );

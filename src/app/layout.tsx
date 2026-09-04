@@ -9,10 +9,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ResCutes — Coordinated Animal Rescue",
+  title: "ResCutes | Coordinated Animal Rescue",
   description:
     "ResCutes connects citizens, rescuers, shelters, and veterinarians through one coordinated workflow.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/favicon.png", sizes: "180x180" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -24,7 +31,7 @@ export const viewport: Viewport = {
   themeColor: "#183C35",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({

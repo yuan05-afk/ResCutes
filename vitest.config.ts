@@ -5,10 +5,13 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    setupFiles: ["src/test-setup.ts"],
+    fileParallelism: false,
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "server-only": path.resolve(__dirname, "./src/test-shims/server-only.ts"),
     },
   },
 });

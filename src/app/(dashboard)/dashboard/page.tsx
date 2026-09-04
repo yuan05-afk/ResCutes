@@ -1,9 +1,8 @@
-import { getDashboardMetrics, getCases, getAnimalById } from "@/lib/data/service";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UrgencyBadge } from "@/components/status/urgency-badge";
-import { StatusBadge } from "@/components/status/status-badge";
-import Link from "next/link";
-import { DashboardMapClient } from "./dashboard-map";
+import { getAnimalById, resolveCurrentUrgency } from "@/lib/data/service";
+import {
+  getDashboardMapCasesCached,
+  getDashboardMetricsCached,
+} from "@/lib/data/cached-loaders";
 import {
   DashboardHeader,
   PageShell,
@@ -11,222 +10,192 @@ import {
 import { KpiCard } from "@/components/ui/kpi-card";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { CapacityRing } from "@/components/ui/capacity-ring";
-import { AttentionQueueItem } from "@/components/dashboard/attention-queue-item";
-import {
-  Activity,
-  AlertCircle,
-  PawPrint,
-  Stethoscope,
-} from "lucide-react";
+import { DashboardInteractiveSections } from "@/components/dashboard/dashboard-interactive-sections";
 
-export default function DashboardPage() {
-  const metrics = getDashboardMetrics();
-  const mapCases = getCases({ sortBy: "urgency" })
-    .filter(
-      (c) =>
-        !["completed", "rejected", "duplicate", "cancelled"].includes(c.status),
-    )
-    .slice(0, 10);
+export default async function DashboardPage() {
+  const [metrics, mapCases] = await Promise.all([
+    getDashboardMetricsCached(),
+    getDashboardMapCasesCached(),
+  ]);
 
   const capacityPct = Math.round(
     (metrics.capacityUsed / metrics.capacityTotal) * 100,
   );
   const capacityAvailable = metrics.capacityTotal - metrics.capacityUsed;
+  const assignmentPct =
+    metrics.activeCases > 0
+      ? Math.round((metrics.assignedCases / metrics.activeCases) * 100)
+      : 0;
+  const priorityPct =
+    metrics.activeCases > 0
+      ? Math.round((metrics.criticalHigh / metrics.activeCases) * 100)
+      : 0;
   const dateLabel = new Date().toLocaleDateString("en-SG", {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
 
-  return (
-    <PageShell>
-      <DashboardHeader title="Operations Overview" subtitle={dateLabel} />
+  const criticalCases = await Promise.all(
+    metrics.criticalCases.map(async (c) => {
+      const animal = c.animalId ? await getAnimalById(c.animalId) : null;
+      const urgency = resolveCurrentUrgency(c);
+      return {
+        id: c.id,
+        caseNumber: c.caseNumber,
+        species: c.species,
+        status: c.status,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        urgencyLevel: urgency.level,
+        urgencyScore: urgency.score,
+        description: c.description,
+        photoUrl: c.photoUrl,
+        animalName: animal?.name,
+      };
+    }),
+  );
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  return (
+    <PageShell
+      header={
+        <DashboardHeader title="Operations Overview" subtitle={dateLabel} />
+      }
+      className="flex min-h-0 flex-1 flex-col gap-3 lg:overflow-hidden"
+      fitViewport
+    >
+      <div className="grid shrink-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Shelter Capacity"
           value={`${metrics.capacityUsed} / ${metrics.capacityTotal}`}
-          icon={PawPrint}
-          detail={`${capacityAvailable} spaces available`}
+          icon="paw"
+          accent="sage"
+          href="/settings"
+          hrefLabel="Manage capacity"
+          detail={`${capacityAvailable} spaces available · ${metrics.underTreatment} in treatment`}
         >
-          <div className="flex items-center gap-4">
-            <div className="relative flex items-center justify-center">
-              <CapacityRing percentage={capacityPct} size={52} />
-              <span className="absolute text-xs font-bold text-graphite">
+          <div className="flex items-center gap-3 rounded-lg bg-bone/60 px-3 py-2.5">
+            <div className="relative flex shrink-0 items-center justify-center">
+              <CapacityRing percentage={capacityPct} size={44} />
+              <span className="absolute text-[10px] font-bold text-graphite">
                 {capacityPct}%
               </span>
             </div>
-            <ProgressBar value={metrics.capacityUsed} max={metrics.capacityTotal} />
+            <div className="min-w-0 flex-1">
+              <ProgressBar
+                value={metrics.capacityUsed}
+                max={metrics.capacityTotal}
+              />
+            </div>
           </div>
         </KpiCard>
 
         <KpiCard
           label="Active Rescue Cases"
           value={metrics.activeCases}
-          icon={Activity}
+          icon="activity"
+          accent="evergreen"
           href="/rescue-cases"
-          hrefLabel="View all cases →"
-        />
+          hrefLabel="View all cases"
+          detail={`${metrics.assignedCases} assigned · ${metrics.unassigned} unassigned`}
+        >
+          <div className="space-y-2 rounded-lg bg-bone/60 px-3 py-2.5">
+            <div className="flex items-center justify-between text-[10px] font-medium text-graphite/55">
+              <span>Assignment coverage</span>
+              <span>{assignmentPct}%</span>
+            </div>
+            <ProgressBar
+              value={metrics.assignedCases}
+              max={Math.max(metrics.activeCases, 1)}
+            />
+            <p className="text-[10px] leading-snug text-graphite/50">
+              {metrics.unassigned > 0
+                ? `${metrics.unassigned} case${metrics.unassigned === 1 ? "" : "s"} still need a rescuer`
+                : "All active cases have a rescuer assigned"}
+            </p>
+          </div>
+        </KpiCard>
 
         <KpiCard
           label="Attention Needed"
           value={metrics.criticalHigh}
-          icon={AlertCircle}
-          href="/rescue-cases?urgency=critical"
-          hrefLabel="View queue →"
-        />
+          icon="alert"
+          accent="rescue"
+          href="/rescue-cases"
+          hrefLabel="View priority queue"
+          detail={`${metrics.criticalCount} critical · ${metrics.highCount} high priority`}
+        >
+          <div className="space-y-2 rounded-lg bg-bone/60 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 text-[10px] font-medium">
+              <span className="inline-flex items-center gap-1 text-rescue">
+                <span className="h-1.5 w-1.5 rounded-full bg-rescue" aria-hidden />
+                Critical {metrics.criticalCount}
+              </span>
+              <span className="inline-flex items-center gap-1 text-ochre">
+                <span className="h-1.5 w-1.5 rounded-full bg-ochre" aria-hidden />
+                High {metrics.highCount}
+              </span>
+            </div>
+            <ProgressBar
+              value={metrics.criticalHigh}
+              max={Math.max(metrics.activeCases, 1)}
+              barClassName="bg-rescue"
+            />
+            <p className="text-[10px] leading-snug text-graphite/50">
+              {priorityPct}% of active cases need urgent review
+            </p>
+          </div>
+        </KpiCard>
 
         <KpiCard
           label="Awaiting Examination"
           value={metrics.awaitingMedical}
-          icon={Stethoscope}
-          href="/animals?clearance=awaiting_examination"
-          hrefLabel="View animals →"
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-12">
-        <Card className="lg:col-span-7">
-          <CardHeader className="pb-3">
-            <CardTitle>Live Rescue Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DashboardMapClient cases={mapCases} />
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-5">
-          <CardHeader className="pb-3">
-            <CardTitle>Rescue Attention Queue</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {metrics.criticalCases.length === 0 ? (
-              <p className="text-sm text-graphite/60 py-4 text-center">
-                No critical or high-urgency cases right now.
+          icon="stethoscope"
+          accent="ochre"
+          href="/medical"
+          hrefLabel="View animals"
+          detail={`${metrics.underTreatment} currently in treatment`}
+        >
+          <div className="grid grid-cols-3 gap-2 rounded-lg bg-bone/60 px-3 py-2.5">
+            <div className="text-center">
+              <p className="text-sm font-bold text-graphite">{metrics.awaitingExam}</p>
+              <p className="text-[9px] font-medium leading-tight text-graphite/50">
+                Awaiting
               </p>
-            ) : (
-              metrics.criticalCases.map((c) => {
-                const animal = c.animalId ? getAnimalById(c.animalId) : null;
-                return (
-                  <AttentionQueueItem
-                    key={c.id}
-                    id={c.id}
-                    caseNumber={c.caseNumber}
-                    species={c.species}
-                    urgencyLevel={c.urgencyLevel}
-                    urgencyScore={c.urgencyScore}
-                    description={c.description}
-                    photoUrl={c.photoUrl}
-                    animalName={animal?.name}
-                  />
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
+            </div>
+            <div className="border-x border-sage/20 text-center">
+              <p className="text-sm font-bold text-graphite">{metrics.underExam}</p>
+              <p className="text-[9px] font-medium leading-tight text-graphite/50">
+                In exam
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-graphite">
+                {metrics.followUpRequired}
+              </p>
+              <p className="text-[9px] font-medium leading-tight text-graphite/50">
+                Follow-up
+              </p>
+            </div>
+          </div>
+        </KpiCard>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Shelter Capacity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-3xl font-bold text-graphite">
-                  {metrics.capacityUsed}
-                  <span className="text-lg font-normal text-graphite/50">
-                    {" "}
-                    / {metrics.capacityTotal}
-                  </span>
-                </p>
-                <p className="text-sm text-graphite/60 mt-1">
-                  {capacityAvailable} spaces available
-                </p>
-              </div>
-              <p className="text-sm font-semibold text-evergreen">{capacityPct}% occupied</p>
-            </div>
-            <ProgressBar
-              value={metrics.capacityUsed}
-              max={metrics.capacityTotal}
-              showLabel
-            />
-            <div className="grid grid-cols-3 gap-3 pt-2 text-center">
-              <div className="rounded-xl bg-bone p-3">
-                <p className="text-xs text-graphite/55">Under Treatment</p>
-                <p className="text-lg font-bold text-graphite mt-1">
-                  {metrics.underTreatment}
-                </p>
-              </div>
-              <div className="rounded-xl bg-bone p-3">
-                <p className="text-xs text-graphite/55">Unassigned</p>
-                <p className="text-lg font-bold text-graphite mt-1">
-                  {metrics.unassigned}
-                </p>
-              </div>
-              <div className="rounded-xl bg-bone p-3">
-                <p className="text-xs text-graphite/55">Completed</p>
-                <p className="text-lg font-bold text-graphite mt-1">
-                  {metrics.completed}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Cases Waiting for Rescuer</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-sage/20 bg-bone/50 text-left text-xs font-medium uppercase tracking-wide text-graphite/55">
-                    <th className="px-5 py-3">Case</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Urgency</th>
-                    <th className="px-5 py-3">Species</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {metrics.waitingForRescuer.slice(0, 6).map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-b border-sage/15 last:border-0 hover:bg-bone/40 transition-colors"
-                    >
-                      <td className="px-5 py-3.5">
-                        <Link
-                          href={`/rescue-cases/${c.id}`}
-                          className="font-semibold text-evergreen hover:underline"
-                        >
-                          {c.caseNumber}
-                        </Link>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <StatusBadge status={c.status} />
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {c.urgencyScore > 0 ? (
-                          <UrgencyBadge
-                            level={c.urgencyLevel}
-                            score={c.urgencyScore}
-                          />
-                        ) : (
-                          <span className="text-graphite/40">—</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 capitalize text-graphite/80">
-                        {c.species}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-0 flex-1 flex-col lg:overflow-hidden">
+        <DashboardInteractiveSections
+          mapCases={mapCases.map((c) => ({
+            id: c.id,
+            latitude: c.latitude,
+            longitude: c.longitude,
+            caseNumber: c.caseNumber,
+            species: c.species,
+            status: c.status,
+            urgencyLevel: resolveCurrentUrgency(c).level,
+            photoUrl: c.photoUrl,
+          }))}
+          criticalCases={criticalCases}
+          waitingForRescuer={metrics.waitingForRescuer}
+        />
       </div>
     </PageShell>
   );

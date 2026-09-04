@@ -1,697 +1,169 @@
-# 🐾 ResCutes
+# ResCutes
 
-**ResCutes** is a coordinated animal rescue and shelter-routing platform that connects citizens, volunteer rescuers, shelter staff, and veterinarians through one end-to-end workflow.
+ResCutes connects citizens, rescuers, shelters, and veterinarians through one coordinated workflow from animal reporting to safe shelter intake and medical clearance.
 
-> **ResCutes is currently a hackathon MVP.**  
-> The project focuses on demonstrating a complete, transparent, and role-based animal rescue workflow from initial reporting to shelter intake, veterinary clearance, and continued shelter care.
+The app has two interfaces from one codebase:
 
----
+- **Mobile (PWA)** - citizens report animals and track cases; rescuers accept assignments and update rescue progress.
+- **Web dashboard** - shelter staff verify cases, assign rescuers, route to shelters, complete intake; veterinarians record examinations and medical clearance.
 
-## Overview
-
-Animal rescue coordination often involves disconnected communication between citizens, rescuers, shelters, and veterinary teams.
-
-ResCutes brings these processes together into one platform.
-
-```text
-Report Animal
-      ↓
-Verify Case
-      ↓
-Calculate Rescue Urgency
-      ↓
-Assign Rescuer
-      ↓
-Rescue Animal
-      ↓
-Recommend Shelter
-      ↓
-Shelter Handoff
-      ↓
-Shelter Intake
-      ↓
-Create Animal Record
-      ↓
-Veterinary Examination
-      ↓
-Treatment / Follow-Up
-      ↓
-Medical Clearance
-      ↓
-Behavior Assessment
-```
-
-The platform uses a single Next.js codebase with two responsive interfaces:
-
-### 📱 Mobile PWA
-
-Designed for:
-
-- Citizens
-- Volunteer rescuers
-
-Citizens can:
-
-- Report stray or injured animals
-- Submit animal photos
-- Capture the report location
-- Describe visible condition and environmental danger
-- Select a preferred contact method
-- Track rescue-case progress
-
-Rescuers can:
-
-- Receive rescue assignments
-- Accept or decline assignments
-- Start rescue operations
-- Mark animals as secured
-- Request shelter placement
-- Complete shelter handoff
-
-### 🖥️ Web Operations Dashboard
-
-Designed for:
-
-- Shelter Staff
-- Authorized Veterinarians
-- Administrators
-
-Staff can:
-
-- Review rescue reports
-- Verify or reject cases
-- Detect duplicate cases
-- Review rescue urgency
-- Assign available rescuers
-- Review shelter recommendations
-- Confirm shelter destinations
-- Record shelter handoff
-- Complete shelter intake
-- Manage animal records
-- Monitor shelter operations
-
-Veterinarians can:
-
-- Start veterinary examinations
-- Record medical condition and priority
-- Mark animals as under treatment
-- Schedule veterinary follow-ups
-- Record care restrictions
-- Complete medical clearance
+This is a hackathon MVP. Web dashboard and mobile (`/mobile`) share one Next.js app, Neon PostgreSQL, and Neon Auth.
 
 ---
 
-# ✨ Core Features
-
-## Rescue Urgency Scoring
-
-ResCutes calculates a transparent rescue urgency score from **0–100**.
-
-The score considers:
-
-| Factor | Maximum |
-|---|---:|
-| Visible Injury Severity | 35 |
-| Environmental Danger | 30 |
-| Animal Vulnerability | 20 |
-| Waiting Time After Verification | 15 |
-
-Urgency levels:
-
-| Score | Level |
-|---|---|
-| 80–100 | Critical |
-| 60–79 | High |
-| 30–59 | Medium |
-| 0–29 | Low |
-
-The system displays the individual factors contributing to the score instead of presenting an unexplained number.
-
----
-
-## Shelter Recommendation Engine
-
-When an animal needs shelter placement, ResCutes ranks compatible shelters using operational factors.
-
-| Factor | Weight |
-|---|---:|
-| Medical Capability | 35% |
-| Available Capacity | 25% |
-| Species Compatibility | 20% |
-| Distance / Travel Time | 15% |
-| Operational Workload | 5% |
-
-Recommendations also explain:
-
-- available shelter spaces
-- species compatibility
-- medical capabilities
-- distance
-- missing capabilities
-- operational workload
-
-This keeps routing decisions transparent for shelter staff.
-
----
-
-## Role-Based Access
-
-ResCutes currently supports five roles:
-
-| Role | Primary Interface |
-|---|---|
-| Citizen | Mobile PWA |
-| Rescuer | Mobile PWA |
-| Shelter Staff | Web Dashboard |
-| Authorized Veterinarian | Web Dashboard |
-| Administrator | Web Dashboard |
-
-Permissions are enforced server-side.
-
-Sensitive information such as exact rescue coordinates and veterinary notes is restricted based on role.
-
----
-
-## Veterinary Workflow
-
-Animal medical care is tracked separately from rescue-case status.
-
-```text
-Awaiting Examination
-        ↓
-Under Examination
-        ↓
-Under Treatment
-        ↓
-Follow-Up Required
-        ↓
-Medically Cleared
-        ↓
-Behavior Assessment
-```
-
-Veterinary records can contain:
-
-- General condition
-- Medical priority
-- Examination notes
-- Treatment summary
-- Care restrictions
-- Follow-up date
-- Veterinary notes
-- Veterinarian attribution
-
-Only users with appropriate permissions can modify veterinary records.
-
----
-
-# 🛠️ Technology Stack
+## Technology stack
 
 | Area | Technology |
-|---|---|
-| Framework | Next.js 15 |
-| Architecture | App Router |
+|------|------------|
+| Framework | Next.js 15 (App Router) |
 | Language | TypeScript |
-| Frontend | React |
-| Styling | Tailwind CSS |
-| UI Components | Radix / shadcn-style primitives |
-| Authentication | Auth.js |
-| ORM | Drizzle ORM |
-| Database | Neon PostgreSQL |
-| Maps | Mapbox |
-| File Storage | Vercel Blob |
-| Charts | Recharts |
-| Unit / Integration Testing | Vitest |
-| End-to-End Testing | Playwright |
-| Deployment | Vercel |
+| UI | React 19, Tailwind CSS, Radix UI |
+| Auth | Neon Auth (`@neondatabase/auth`) |
+| Database | Neon PostgreSQL, Drizzle ORM |
+| Maps | Mapbox GL |
+| File storage (optional) | Vercel Blob |
+| Testing | Vitest, Playwright |
+| Linting | ESLint |
 
 ---
-
-# 🚀 Getting Started
 
 ## Requirements
 
-Install the following first:
-
-- [Node.js](https://nodejs.org/) — LTS recommended
-- npm
-- Git
+- **Node.js** (LTS recommended)
+- **npm**
+- **Git**
 
 ---
 
-## 1. Clone the Repository
+## Installation
+
+Clone the repository, switch to the integration branch, install dependencies, and configure environment variables.
 
 ```powershell
 git clone https://github.com/Rapnunu/ResCutes.git
 cd ResCutes
-```
-
----
-
-## 2. Switch to the Development Branch
-
-The latest shared development version is maintained on:
-
-```text
-develop
-```
-
-Run:
-
-```powershell
 git checkout develop
-git pull
-```
-
----
-
-## 3. Install Dependencies
-
-```powershell
 npm install
-```
-
----
-
-## 4. Create Your Environment File
-
-Copy the included environment template:
-
-```powershell
 Copy-Item .env.example .env.local
-```
-
-Never commit `.env.local`.
-
----
-
-## 5. Configure Environment Variables
-
-The project uses the following environment variables:
-
-```env
-DATABASE_URL=
-AUTH_SECRET=
-NEXT_PUBLIC_MAPBOX_TOKEN=
-BLOB_READ_WRITE_TOKEN=
-```
-
-### `DATABASE_URL`
-
-Neon PostgreSQL connection string.
-
-Database persistence is not yet used for the primary hackathon development workflow.
-
-### `AUTH_SECRET`
-
-Secret used by Auth.js.
-
-Use a secure random value for development.
-
-### `NEXT_PUBLIC_MAPBOX_TOKEN`
-
-Public Mapbox token used by map interfaces.
-
-### `BLOB_READ_WRITE_TOKEN`
-
-Used when Vercel Blob-backed uploads are enabled.
-
-Some integrations may remain unconfigured during local MVP development.
-
----
-
-## 6. Start the Development Server
-
-```powershell
 npm run dev
 ```
 
-Open:
-
-[http://localhost:3000](http://localhost:3000)
+Open the app at [http://localhost:3000](http://localhost:3000).
 
 ---
 
-# 🔐 Demo Accounts
+## Environment variables
 
-All demo accounts use:
+Copy `.env.example` to `.env.local` and fill in values locally. **Never commit `.env.local` or real secrets.**
 
-```text
-Password: demo1234
-```
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Neon PostgreSQL connection string. **Required** for web and mobile data. |
+| `NEON_AUTH_BASE_URL` | Neon Auth project URL (from Neon console). **Required** for login. |
+| `NEON_AUTH_COOKIE_SECRET` | Cookie signing secret for Neon Auth sessions. Generate a long random string. |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox public token for dashboard and mobile maps. |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for report photo uploads. Recommended in production. |
 
-| Role | Email |
-|---|---|
-| Citizen | `citizen@rescutes.demo` |
-| Rescuer | `rescuer@rescutes.demo` |
-| Shelter Staff | `staff@rescutes.demo` |
-| Veterinarian | `vet@rescutes.demo` |
-| Administrator | `admin@rescutes.demo` |
+If maps or uploads are not configured, some UI features may be limited.
 
 ---
 
-# 🧪 Testing
+## Deploy on Vercel
 
-Run the automated test suite:
+Web and mobile ship from the same Next.js project (`/` dashboard, `/mobile` app). One Vercel project covers both.
 
-```powershell
-npm test
-```
+1. Push this repo to GitHub.
+2. In Vercel: **Add New Project** → import the repo → Framework Preset **Next.js** → Root Directory `.`
+   - Install/authorize the [Vercel GitHub App](https://github.com/apps/vercel) on the repo owner if prompted.
+   - Set the Production Branch to the branch you ship from (`main` or `develop`).
+3. Set Environment Variables (Production + Preview) to match `.env.example`:
+   - `DATABASE_URL`
+   - `NEON_AUTH_BASE_URL`
+   - `NEON_AUTH_COOKIE_SECRET`
+   - `NEXT_PUBLIC_MAPBOX_TOKEN`
+   - `BLOB_READ_WRITE_TOKEN` (create a Blob store in the Vercel project if needed)
+4. In **Neon Auth** console, add your Vercel production URL (and preview URLs if you use them) to **trusted domains / allowed origins**.
+5. Deploy. After the first production URL is known, confirm login works on `/login`, `/dashboard`, and `/mobile`.
 
-Run ESLint:
+`vercel.json` targets the Singapore region (`sin1`) for lower latency in the Philippines. Node **20+** is required (`engines` in `package.json`).
 
-```powershell
-npm run lint
-```
-
-Before submitting changes, both should pass.
-
----
-
-# ⚠️ Development Build Warning
-
-Do **not** run:
+Local production check (stop `npm run dev` first):
 
 ```powershell
 npm run build
+npm run start
 ```
 
-while:
+One Vercel project serves both surfaces:
+
+| Surface | Path |
+|---------|------|
+| Web dashboard | `/dashboard`, `/rescue-cases`, `/animals`, … |
+| Mobile app | `/mobile`, `/mobile/report`, `/mobile/cases`, … |
+---
+
+## Demo accounts
+
+All demo accounts use password **`demo1234`**.
+
+| Email | Role |
+|-------|------|
+| `citizen@rescutes.demo` | Citizen |
+| `rescuer@rescutes.demo` | Rescuer |
+| `staff@rescutes.demo` | Shelter staff |
+| `vet@rescutes.demo` | Veterinarian |
+| `admin@rescutes.demo` | Administrator |
+
+---
+
+## Demo data and persistence
+
+Application data is stored in **Neon PostgreSQL** via Drizzle (`src/lib/data/db/repository.ts`). Set `DATABASE_URL` locally and on Vercel.
+
+Use `npm run db:push` / `npm run db:migrate` and `npm run db:seed` when setting up a fresh database. Demo accounts and sample cases come from seed scripts.
+
+---
+
+## Useful commands
 
 ```powershell
-npm run dev
+npm run dev          # Start dev server (auto-fixes broken .next, blocks double-start)
+npm run dev:clean    # Force-delete .next then start dev
+npm run dev:webpack  # Dev without Turbopack (fallback if Turbopack misbehaves)
+npm run lint         # Run ESLint
+npm test             # Run Vitest unit/integration tests
 ```
 
-is still running.
+Other scripts in `package.json` (for example `npm run test:watch`, `npm run db:push`, `npm run db:seed`) are for database work and extended testing when that milestone is active.
 
-During development, running both processes simultaneously previously caused `.next` cache/chunk corruption.
+---
+
+## Dev server / `.next` cache
+
+If the app shows unstyled HTML, 404s on `/_next/static/...`, or `ENOENT` errors for `routes-manifest.json`, the `.next` folder is usually corrupted.
+
+**Common causes**
+
+1. **Two dev servers** on the same project (e.g. port 3000 and 3001) - only run one `npm run dev`.
+2. **`npm run build` while dev is running** - `npm run build` now refuses if port 3000 is in use.
+3. **Deleting `.next` while dev is still running** - stop dev first (`Ctrl+C`), then clean.
+
+`npm run dev` automatically removes a broken `.next` on startup. Use `npm run dev:clean` only when you want a full reset.
+
+---
+
+## Build warning
+
+**Do not run `npm run build` while `npm run dev` is running.** The build script blocks this when port 3000 is in use.
 
 If you need to test a production build:
 
-### 1. Stop the development server
-
-```text
-Ctrl + C
-```
-
-### 2. Build
-
-```powershell
-npm run build
-```
-
-### 3. Delete the `.next` cache
-
-```powershell
-Remove-Item -Recurse -Force .next
-```
-
-### 4. Restart development
-
-```powershell
-npm run dev
-```
+1. Stop the dev server (`Ctrl+C`)
+2. Run `npm run build`
+3. Restart with `npm run dev` (no manual `.next` delete needed in most cases)
 
 ---
 
-# 💾 Current MVP Data Persistence
+## Contributing
 
-ResCutes currently uses an **in-memory demo data store** for the primary development workflow.
-
-The implementation is located in:
-
-```text
-src/lib/data/demo-store.ts
-```
-
-The store uses `globalThis` so mutations generally survive route navigation and requests while the same Node.js development process remains active.
-
-However:
-
-- restarting the development server resets runtime mutations
-- data created on one developer's computer is not automatically visible to another developer
-- the shared PostgreSQL persistence layer is still a future milestone
-
-Seeded demo records are provided so major workflows can still be demonstrated consistently.
-
----
-
-# 🌏 Demo Geography
-
-Current demo rescue data is located around **Metro Manila, Philippines**, including areas such as:
-
-- Manila
-- Quezon City
-- Pasig
-- Makati
-- Mandaluyong
-- Parañaque
-
-Demo shelters include locations across Metro Manila.
-
----
-
-# 🌿 Git Workflow
-
-ResCutes uses the following branch structure:
-
-```text
-main
-  ↑
-develop
-  ↑
-feature/*
-```
-
-### `main`
-
-Stable and demo-ready versions.
-
-### `develop`
-
-Latest integrated development work.
-
-### `feature/*`
-
-Individual features and tasks.
-
-Examples:
-
-```text
-feature/veterinary-workflow
-feature/behavior-assessment
-feature/admin-dashboard
-```
-
----
-
-## Starting a Feature
-
-Always start from the latest `develop`:
-
-```powershell
-git checkout develop
-git pull
-```
-
-Create your feature branch:
-
-```powershell
-git checkout -b feature/my-feature
-```
-
----
-
-## Committing Changes
-
-Check your work:
-
-```powershell
-git status
-```
-
-Stage it:
-
-```powershell
-git add .
-```
-
-Check again:
-
-```powershell
-git status
-```
-
-Commit:
-
-```powershell
-git commit -m "feat: add my feature"
-```
-
-Push:
-
-```powershell
-git push -u origin feature/my-feature
-```
-
-Then create a Pull Request:
-
-```text
-feature/my-feature
-        ↓
-      develop
-```
-
-Do not normally commit directly to `main` or `develop`.
-
-For the complete team workflow, read:
-
-👉 [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
-# 📝 Commit Convention
-
-Common commit prefixes:
-
-| Prefix | Purpose |
-|---|---|
-| `feat:` | New functionality |
-| `fix:` | Bug fix |
-| `refactor:` | Internal restructuring |
-| `test:` | Test changes |
-| `docs:` | Documentation |
-| `chore:` | Tooling or maintenance |
-
-Examples:
-
-```text
-feat: implement veterinary examination and medical clearance workflow
-
-feat: complete rescue workflow through shelter intake
-
-fix: prevent duplicate shelter intake
-
-test: add veterinary workflow coverage
-
-docs: add team onboarding guide
-```
-
----
-
-# 🔒 Never Commit
-
-Do not commit:
-
-```text
-.env
-.env.local
-node_modules/
-.next/
-API keys
-database passwords
-authentication secrets
-access tokens
-```
-
-Always review:
-
-```powershell
-git status
-```
-
-before committing.
-
----
-
-# 📂 Project Documentation
-
-Additional project documentation is available in the repository:
-
-- `ResCutes_PRD.md`
-- `ResCutes_starter_prompt.md`
-- `CONTRIBUTING.md`
-
-Use these documents as references when implementing new features or evaluating whether something is within the project scope.
-
----
-
-# 🗺️ Current Development Status
-
-Completed major workflows include:
-
-- ✅ Authentication and role-based interfaces
-- ✅ Citizen animal reporting
-- ✅ Rescue urgency scoring
-- ✅ Rescue case verification
-- ✅ Rescuer assignment
-- ✅ Rescuer mobile workflow
-- ✅ Shelter recommendation engine
-- ✅ Shelter handoff
-- ✅ Shelter intake
-- ✅ Animal record creation
-- ✅ Veterinary examination
-- ✅ Treatment and veterinary follow-up
-- ✅ Medical clearance
-- ✅ Animal and rescue operations dashboards
-
-Currently being expanded:
-
-- 🚧 Behavior assessment and post-medical shelter pathway
-- 🚧 Administrative capabilities
-- 🚧 Database persistence
-- 🚧 Final integration and demo polish
-
----
-
-# 🎯 Project Scope
-
-ResCutes focuses on **rescue coordination and shelter operations**.
-
-The hackathon MVP intentionally does not attempt to function as:
-
-- a veterinary diagnosis system
-- a prescription or medication recommendation system
-- a replacement for licensed veterinarians
-- a public adoption marketplace
-- a native Android or iOS application
-
-The citizen/rescuer experience is delivered as an installable responsive **Progressive Web App (PWA)**.
-
----
-
-# 🤝 Contributing
-
-Team members should read:
-
-[CONTRIBUTING.md](CONTRIBUTING.md)
-
-before implementing features.
-
-The general workflow is:
-
-```text
-develop
-   ↓
-create feature branch
-   ↓
-implement
-   ↓
-test + lint
-   ↓
-commit
-   ↓
-push
-   ↓
-Pull Request
-   ↓
-develop
-```
-
-Keep each branch focused on one feature or milestone whenever possible.
-
----
-
-## ResCutes
-
-**Coordinating rescue from report to safe shelter care.** 🐾
+See [CONTRIBUTING.md](CONTRIBUTING.md) for branch strategy, commit conventions, pull requests, and team workflow.

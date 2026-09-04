@@ -26,18 +26,111 @@
 }
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   * {
     @apply border-border;
   }
   body {
     @apply bg-bone text-graphite antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(24, 60, 53, 0.28) transparent;
   }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(24, 60, 53, 0.28) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(157, 183, 169, 0.55);
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(24, 60, 53, 0.42);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Marketing landing (scoped; does not affect dashboard/mobile chrome) */
+.landing-page {
+  font-family: var(--font-landing-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+.landing-page .landing-brand,
+.landing-page .landing-display {
+  font-family: var(--font-landing-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.03em;
+}
+
+.landing-page .landing-brand {
+  font-weight: 700;
+}
+
+.landing-page .landing-display {
+  font-weight: 600;
+}
+
+.landing-hero-scrim {
+  background:
+    linear-gradient(
+      108deg,
+      rgba(10, 26, 22, 0.9) 0%,
+      rgba(10, 26, 22, 0.74) 36%,
+      rgba(10, 26, 22, 0.28) 66%,
+      rgba(10, 26, 22, 0.16) 100%
+    ),
+    linear-gradient(to top, rgba(10, 26, 22, 0.58) 0%, transparent 46%);
+}
+
+.landing-photo {
+  box-shadow: 0 22px 56px rgba(24, 60, 53, 0.16);
 }
 
 @layer utilities {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  .mockup-notch-pad {
+    /* Clear the dynamic island overlay in the desktop phone frame */
+    padding-top: 2.75rem;
+  }
+  .app-main-pad {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 768px) {
+    .app-main-pad {
+      padding-bottom: 0;
+    }
   }
   .shadow-card {
     box-shadow: 0 1px 3px rgba(32, 40, 37, 0.06), 0 4px 12px rgba(32, 40, 37, 0.04);
@@ -48,6 +141,449 @@
   .shadow-elevated {
     box-shadow: 0 8px 24px rgba(24, 60, 53, 0.12);
   }
+  .rc-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(24, 60, 53, 0.28) transparent;
+  }
+  .rc-scroll::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .rc-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .rc-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(157, 183, 169, 0.55);
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+  .rc-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(24, 60, 53, 0.42);
+  }
+
+  /* Dropdown lists: visible scrollbar (Radix hides it by default) */
+  [data-radix-select-viewport].rc-scroll-dropdown {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin !important;
+    -ms-overflow-style: auto !important;
+    scrollbar-color: rgba(24, 60, 53, 0.42) rgba(24, 60, 53, 0.1);
+  }
+  [data-radix-select-viewport].rc-scroll-dropdown::-webkit-scrollbar {
+    display: block !important;
+    width: 6px !important;
+    height: 6px !important;
+  }
+  [data-radix-select-viewport].rc-scroll-dropdown::-webkit-scrollbar-track {
+    margin: 4px 0;
+    border-radius: 9999px;
+    background: rgba(24, 60, 53, 0.08);
+  }
+  [data-radix-select-viewport].rc-scroll-dropdown::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: rgba(24, 60, 53, 0.38);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    background-clip: padding-box;
+  }
+  [data-radix-select-viewport].rc-scroll-dropdown::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(24, 60, 53, 0.55);
+  }
+}
+
+@keyframes rc-nav-progress {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+.rc-nav-progress {
+  animation: rc-nav-progress 0.9s ease-in-out infinite;
+}
+
+@keyframes rc-bell-nudge {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-6deg);
+  }
+}
+
+.rc-bell-nudge {
+  animation: rc-bell-nudge 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-bell-nudge {
+    animation: none !important;
+  }
+}
+
+/* Mapbox embeds: required © Mapbox + © OpenStreetMap stay; optional links hidden */
+.rescutes-map .mapbox-improve-map,
+.rescutes-map a[href*="openstreetmap.org/fixthemap"] {
+  display: none !important;
+}
+
+.rescutes-map .mapboxgl-ctrl-attrib {
+  font-size: 10px;
+  line-height: 1.2;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 4px;
+  margin: 0;
+  padding: 2px 6px;
+  max-width: min(16rem, calc(100% - 4rem));
+}
+
+.rescutes-map .mapboxgl-ctrl-attrib a {
+  color: #4a5c56;
+}
+
+.rescutes-map .mapboxgl-ctrl-attrib-button {
+  background-color: rgba(255, 255, 255, 0.92);
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(24, 60, 53, 0.12);
+}
+
+.rescutes-map .mapboxgl-ctrl-top-left {
+  top: 8px;
+  left: 8px;
+}
+
+/* Map pins: fade shell keeps Mapbox wrapper at opacity 1 while inner node animates */
+.rescutes-map-marker-shell {
+  display: block;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  transition:
+    width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rescutes-map-marker-fade {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background-color: var(--marker-color, #183c35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  transform-origin: center center;
+  opacity: 1;
+  overflow: hidden;
+  transition:
+    opacity 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 280ms ease,
+    border-color 280ms ease,
+    border-width 280ms ease,
+    background-color 280ms ease;
+}
+
+.mapboxgl-marker.rescutes-map-marker--off {
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+.mapboxgl-marker.rescutes-map-marker--off .rescutes-map-marker-fade {
+  opacity: 0;
+  transform: scale(0.86);
+}
+
+.mapboxgl-marker.rescutes-map-marker--instant .rescutes-map-marker-fade {
+  transition: none !important;
+}
+
+.rescutes-map-marker-shell--selected {
+  width: 16px;
+  height: 16px;
+}
+
+.rescutes-map-marker-shell--selected .rescutes-map-marker-fade {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--marker-color) 28%, transparent),
+    0 2px 8px rgba(0, 0, 0, 0.32);
+}
+
+/* Case photo pins: readable circular thumbnails with urgency ring */
+.rescutes-map-marker-shell--photo {
+  width: 48px;
+  height: 48px;
+}
+
+.rescutes-map-marker-shell--photo.rescutes-map-marker-shell--selected {
+  width: 54px;
+  height: 54px;
+}
+
+.rescutes-map-marker-shell--photo .rescutes-map-marker-fade {
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 3px solid #fff;
+  background-color: #d7ddd9;
+  box-shadow:
+    0 0 0 3px var(--marker-color),
+    0 4px 14px rgba(24, 60, 53, 0.28);
+}
+
+.rescutes-map-marker-shell--photo.rescutes-map-marker-shell--selected .rescutes-map-marker-fade {
+  box-shadow:
+    0 0 0 3px var(--marker-color),
+    0 0 0 7px color-mix(in srgb, var(--marker-color) 30%, transparent),
+    0 6px 18px rgba(24, 60, 53, 0.32);
+}
+
+.rescutes-map-marker-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 9999px;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transform: scale(0.72);
+  transition:
+    opacity 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.rescutes-map-marker-shell--photo .rescutes-map-marker-photo--on {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.rescutes-map-marker-shell--clickable:not(:disabled):hover.rescutes-map-marker-shell--photo .rescutes-map-marker-fade,
+.rescutes-map-marker-shell--clickable:not(:disabled):focus-visible.rescutes-map-marker-shell--photo .rescutes-map-marker-fade {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 3px var(--marker-color),
+    0 0 0 8px color-mix(in srgb, var(--marker-color) 28%, transparent),
+    0 6px 18px rgba(24, 60, 53, 0.34);
+}
+
+.rescutes-map-marker-shell--clickable {
+  cursor: pointer;
+}
+
+.rescutes-map-marker-shell--clickable:not(:disabled):hover:not(.rescutes-map-marker-shell--photo) .rescutes-map-marker-fade,
+.rescutes-map-marker-shell--clickable:not(:disabled):focus-visible:not(.rescutes-map-marker-shell--photo) .rescutes-map-marker-fade {
+  transform: scale(1.4);
+  border-color: #fff;
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--marker-color) 32%, transparent),
+    0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.rescutes-map-marker-shell--clickable:not(:disabled):focus-visible {
+  outline: none;
+}
+
+.rescutes-map-marker-shell--clickable:not(:disabled):active:not(.rescutes-map-marker-shell--photo) .rescutes-map-marker-fade {
+  transform: scale(1.2);
+  transition-duration: 0.1s;
+}
+
+.rescutes-map-marker-shell--selected.rescutes-map-marker-shell--clickable:not(:disabled):hover:not(.rescutes-map-marker-shell--photo) .rescutes-map-marker-fade {
+  transform: scale(1.25);
+}
+
+.rescutes-map-marker-shell:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Legacy class names kept for any stale markup */
+.rescutes-map-marker {
+  display: block;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background-color: var(--marker-color, #183c35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  will-change: transform;
+}
+
+.rescutes-map-marker--selected {
+  width: 16px;
+  height: 16px;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--marker-color) 28%, transparent),
+    0 2px 8px rgba(0, 0, 0, 0.32);
+}
+
+.rescutes-map-marker--clickable {
+  cursor: pointer;
+}
+
+.rescutes-map-marker--clickable:not(:disabled):hover,
+.rescutes-map-marker--clickable:not(:disabled):focus-visible {
+  transform: scale(1.4);
+  border-color: #fff;
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--marker-color) 32%, transparent),
+    0 4px 14px rgba(0, 0, 0, 0.35);
+  outline: none;
+}
+
+.rescutes-map-marker--clickable:not(:disabled):active {
+  transform: scale(1.2);
+  transition-duration: 0.1s;
+}
+
+.rescutes-map-marker--selected.rescutes-map-marker--clickable:not(:disabled):hover {
+  transform: scale(1.25);
+}
+
+.rescutes-map-marker:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Legend swatches: mirror pin hover feel */
+.rescutes-map-legend-dot {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background-color: var(--legend-color, #183c35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+    box-shadow 0.22s ease;
+}
+
+.rescutes-map-legend-dot--compact {
+  width: 8px;
+  height: 8px;
+  border-width: 1.5px;
+}
+
+.group:hover .rescutes-map-legend-dot,
+.group:focus-within .rescutes-map-legend-dot {
+  transform: scale(1.35);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--legend-color) 30%, transparent),
+    0 3px 10px rgba(0, 0, 0, 0.28);
+}
+
+.rescutes-map-legend-item--hidden .rescutes-map-legend-dot {
+  opacity: 0.35;
+  transform: scale(0.9);
+}
+
+.rescutes-map-legend-item--hidden .rescutes-map-legend-label {
+  opacity: 0.45;
+  text-decoration: line-through;
+  text-decoration-color: rgba(32, 40, 37, 0.35);
+}
+
+.rescutes-map .mapboxgl-popup.rescutes-map-popup .mapboxgl-popup-content {
+  padding: 8px 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(32, 40, 37, 0.14);
+}
+
+.rescutes-map-popup__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rescutes-map-popup__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #202825;
+}
+
+.rescutes-map-popup__meta {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #4a5751;
+}
+
+.rescutes-map-popup__status {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: #6b7872;
+}
+
+.rescutes-map-popup__address,
+.rescutes-map-popup__phone,
+.rescutes-map-popup__capacity,
+.rescutes-map-popup__source,
+.rescutes-map-popup__notes {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #4a5751;
+}
+
+.rescutes-map-popup__notes {
+  max-width: 220px;
+  color: #6b7872;
+}
+
+.rescutes-map .mapboxgl-popup.rescutes-map-popup .mapboxgl-popup-content {
+  max-width: 260px;
+}
+
+@keyframes rc-bell-nudge {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-6deg);
+  }
+}
+
+.rc-bell-nudge {
+  animation: rc-bell-nudge 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-bell-nudge {
+    animation: none;
+  }
+}
+
+/* Desktop phone mockup: compact dynamic island overlay (sibling of screen, not app content) */
+.rescutes-mobile-device-mockup > div > div > div:last-child > div {
+  transform: scale(0.72);
+  transform-origin: top center;
 }
 
 @media (prefers-reduced-motion: reduce) {

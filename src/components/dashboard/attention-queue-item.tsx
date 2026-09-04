@@ -1,8 +1,10 @@
+"use client";
+
 import Link from "next/link";
-import Image from "next/image";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
+import { AnimalImage } from "@/components/ui/animal-image";
 import { getCasePhotoUrl } from "@/lib/demo-images";
-import { formatStatus } from "@/lib/utils";
+import { formatStatus, cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 
 interface AttentionQueueItemProps {
@@ -14,6 +16,9 @@ interface AttentionQueueItemProps {
   description: string;
   photoUrl?: string;
   animalName?: string;
+  onOpen?: () => void;
+  selected?: boolean;
+  compact?: boolean;
 }
 
 export function AttentionQueueItem({
@@ -25,37 +30,89 @@ export function AttentionQueueItem({
   description,
   photoUrl,
   animalName,
+  onOpen,
+  selected = false,
+  compact = false,
 }: AttentionQueueItemProps) {
   const imageUrl = getCasePhotoUrl(species, photoUrl, id);
+  const title = animalName ?? formatStatus(species);
 
-  return (
-    <Link
-      href={`/rescue-cases/${id}`}
-      className="flex gap-3 rounded-xl border border-sage/20 bg-white p-3 transition-all hover:border-evergreen/30 hover:shadow-card"
-    >
-      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sage/20">
-        <Image
+  const content = (
+    <>
+      <div
+        className={cn(
+          "relative shrink-0 overflow-hidden rounded-lg",
+          compact ? "h-11 w-11" : "h-14 w-14",
+        )}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        <AnimalImage
           src={imageUrl}
-          alt=""
-          fill
-          className="object-cover"
-          unoptimized
+          species={species}
+          alt={title}
+          containerClassName="absolute inset-0 h-full w-full rounded-lg"
           sizes="56px"
+          objectPosition="center top"
+          expandable
+          showExpandHint={false}
+          lightboxCaption={caseNumber}
         />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="font-semibold text-graphite text-sm">
-              {animalName ?? formatStatus(species)}
-            </p>
+            <p className="text-sm font-semibold text-graphite">{title}</p>
             <p className="text-xs text-graphite/50">{caseNumber}</p>
           </div>
           <UrgencyBadge level={urgencyLevel} score={urgencyScore} />
         </div>
-        <p className="mt-1.5 text-xs text-graphite/65 line-clamp-2">{description}</p>
+        <p
+          className={cn(
+            "line-clamp-1 text-graphite/65",
+            compact ? "mt-1 text-[11px]" : "mt-1.5 text-xs",
+          )}
+        >
+          {description}
+        </p>
       </div>
-      <ChevronRight className="h-5 w-5 shrink-0 text-graphite/30 self-center" aria-hidden />
+      <ChevronRight
+        className="h-5 w-5 shrink-0 self-center text-graphite/30"
+        aria-hidden
+      />
+    </>
+  );
+
+  const className = cn(
+    "flex w-full cursor-pointer gap-2.5 rounded-lg border bg-white text-left transition-all",
+    compact ? "p-2" : "gap-3 rounded-xl p-3",
+    selected
+      ? "border-evergreen/40 bg-evergreen/5 shadow-sm"
+      : "border-sage/20 hover:border-evergreen/30 hover:shadow-card",
+  );
+
+  if (onOpen) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onOpen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpen();
+          }
+        }}
+        className={className}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={`/rescue-cases/${id}`} className={cn(className, "group")}>
+      {content}
     </Link>
   );
 }

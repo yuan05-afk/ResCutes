@@ -1,6 +1,6 @@
 import type { Role } from "@/lib/auth/permissions";
+import { userIdForEmail } from "@/db/stable-ids";
 
-/** Lightweight user list for auth — kept separate from demo-store for Edge middleware. */
 export interface AuthDemoUser {
   id: string;
   email: string;
@@ -9,75 +9,132 @@ export interface AuthDemoUser {
   roles: Role[];
 }
 
-export const AUTH_DEMO_USERS: AuthDemoUser[] = [
+const DEMO_ACCOUNT_DEFS = [
   {
-    id: "user-maria-citizen",
     email: "citizen@rescutes.demo",
     name: "Maria Santos",
     password: "demo1234",
-    roles: ["citizen"],
+    roles: ["citizen"] as Role[],
   },
   {
-    id: "user-james-rescuer",
+    email: "jose.delacruz@rescutes.demo",
+    name: "Jose Dela Cruz",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "ana.reyes@rescutes.demo",
+    name: "Ana Reyes",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "miguel.torres@rescutes.demo",
+    name: "Miguel Torres",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "camille.villanueva@rescutes.demo",
+    name: "Camille Villanueva",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "rafael.mendoza@rescutes.demo",
+    name: "Rafael Mendoza",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "sofia.garcia@rescutes.demo",
+    name: "Sofia Garcia",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "enrico.ramos@rescutes.demo",
+    name: "Enrico Ramos",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "patricia.lim@rescutes.demo",
+    name: "Patricia Lim",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "carlo.bautista@rescutes.demo",
+    name: "Carlo Bautista",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "jasmine.cruz@rescutes.demo",
+    name: "Jasmine Cruz",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
+    email: "mark.villanueva@rescutes.demo",
+    name: "Mark Villanueva",
+    password: "demo1234",
+    roles: ["citizen"] as Role[],
+  },
+  {
     email: "rescuer@rescutes.demo",
     name: "James Chen",
     password: "demo1234",
-    roles: ["rescuer"],
+    roles: ["rescuer"] as Role[],
   },
   {
-    id: "user-sarah-staff",
     email: "staff@rescutes.demo",
     name: "Sarah Lim",
     password: "demo1234",
-    roles: ["shelter_staff"],
+    roles: ["shelter_staff"] as Role[],
   },
   {
-    id: "user-anita-vet",
     email: "vet@rescutes.demo",
     name: "Dr. Anita Rao",
     password: "demo1234",
-    roles: ["veterinarian"],
+    roles: ["veterinarian"] as Role[],
   },
   {
-    id: "user-alex-admin",
     email: "admin@rescutes.demo",
     name: "Alex Wong",
     password: "demo1234",
-    roles: ["administrator", "shelter_staff"],
+    roles: ["administrator"] as Role[],
   },
   {
-    id: "user-rescuer-2",
     email: "rescuer2@rescutes.demo",
     name: "Priya Nair",
     password: "demo1234",
-    roles: ["rescuer"],
+    roles: ["rescuer"] as Role[],
   },
   {
-    id: "user-rescuer-3",
     email: "rescuer3@rescutes.demo",
     name: "Tom Bradley",
     password: "demo1234",
-    roles: ["rescuer"],
+    roles: ["rescuer"] as Role[],
   },
   {
-    id: "user-rescuer-4",
     email: "rescuer4@rescutes.demo",
     name: "Lisa Koh",
     password: "demo1234",
-    roles: ["rescuer"],
+    roles: ["rescuer"] as Role[],
   },
   {
-    id: "user-rescuer-5",
     email: "rescuer5@rescutes.demo",
     name: "David Tan",
     password: "demo1234",
-    roles: ["rescuer"],
+    roles: ["rescuer"] as Role[],
   },
-];
+] as const;
 
-export function findAuthUser(email: string, password: string): AuthDemoUser | undefined {
-  const normalized = email.trim().toLowerCase();
-  return AUTH_DEMO_USERS.find(
-    (u) => u.email === normalized && u.password === password,
-  );
-}
+export const AUTH_DEMO_USERS: AuthDemoUser[] = DEMO_ACCOUNT_DEFS.map(
+  (account) => ({
+    ...account,
+    id: userIdForEmail(account.email),
+  }),
+);

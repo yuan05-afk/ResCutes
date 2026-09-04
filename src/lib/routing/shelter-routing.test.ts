@@ -7,26 +7,26 @@ import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
 
 const mockShelters = [
   {
-    id: "s1",
-    name: "Paws Hope",
-    latitude: DEMO_GEO.shelters.pawsHope.latitude,
-    longitude: DEMO_GEO.shelters.pawsHope.longitude,
+    id: "verified-paws-parc",
+    name: "PAWS Animal Rehabilitation Center (PARC)",
+    latitude: DEMO_GEO.shelters.paws.latitude,
+    longitude: DEMO_GEO.shelters.paws.longitude,
     speciesAccepted: ["dog", "cat"],
     capabilities: ["orthopedic treatment", "wound care", "emergency surgery"],
-    totalCapacity: 80,
-    currentOccupancy: 50,
-    operationalWorkload: 30,
+    totalCapacity: 85,
+    currentOccupancy: 58,
+    operationalWorkload: 41,
   },
   {
-    id: "s2",
-    name: "Green Valley",
-    latitude: DEMO_GEO.shelters.greenValley.latitude,
-    longitude: DEMO_GEO.shelters.greenValley.longitude,
-    speciesAccepted: ["dog", "cat", "rabbit"],
+    id: "verified-cara",
+    name: "CARA Welfare Philippines",
+    latitude: DEMO_GEO.shelters.cara.latitude,
+    longitude: DEMO_GEO.shelters.cara.longitude,
+    speciesAccepted: ["dog", "cat"],
     capabilities: ["basic veterinary care", "wound care"],
-    totalCapacity: 120,
-    currentOccupancy: 120,
-    operationalWorkload: 60,
+    totalCapacity: 48,
+    currentOccupancy: 48,
+    operationalWorkload: 28,
   },
 ];
 
@@ -57,11 +57,11 @@ describe("Shelter Routing Engine", () => {
 
   it("warns when shelter lacks capacity", () => {
     const recs = calculateShelterRecommendations(mockShelters, {
-      caseLatitude: DEMO_GEO.shelters.greenValley.latitude,
-      caseLongitude: DEMO_GEO.shelters.greenValley.longitude,
+      caseLatitude: DEMO_GEO.shelters.cara.latitude,
+      caseLongitude: DEMO_GEO.shelters.cara.longitude,
       species: "dog",
     });
-    const lowCapacity = recs.find((r) => r.shelterId === "s2");
+    const lowCapacity = recs.find((r) => r.shelterId === "verified-cara");
     expect(lowCapacity?.warnings.some((w) => w.includes("capacity"))).toBe(true);
   });
 

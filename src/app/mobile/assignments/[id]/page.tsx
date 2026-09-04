@@ -1,11 +1,21 @@
+import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
-import { getAssignmentById, getCaseById } from "@/lib/data/service";
+import {
+  getAssignmentById,
+  getCaseById,
+  getShelterById,
+  resolveCurrentUrgency,
+  canAccessAssignment,
+} from "@/lib/data/service";
+import { isAdministrator } from "@/lib/auth/permissions";
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import { ChevronLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { StatusBadge } from "@/components/status/status-badge";
 import { AssignmentActionsClient } from "./assignment-actions";
+import { CaseLocationBlock } from "@/components/case/case-location-block";
 
 export default async function AssignmentDetailPage({
   params,
@@ -14,26 +24,50 @@ export default async function AssignmentDetailPage({
 }) {
   const { id } = await params;
   const session = await requireAuth();
-  const assignment = getAssignmentById(id);
+  const assignment = await getAssignmentById(id);
   if (!assignment) notFound();
 
-  const caseItem = getCaseById(assignment.caseId);
+  const caseItem = await getCaseById(assignment.caseId);
   if (!caseItem) notFound();
 
-  if (assignment.rescuerId !== session.user.id) {
+  if (
+    !(await canAccessAssignment(id, session.user.id, {
+      adminOverride: isAdministrator(session.user.roles),
+    }))
+  ) {
     notFound();
   }
 
+  const currentUrgency = resolveCurrentUrgency(caseItem);
+  const shelter = caseItem.assignedShelterId
+    ? await getShelterById(caseItem.assignedShelterId)
+    : null;
+
   return (
-    <div>
-      <header className="border-b border-sage/30 bg-white px-4 py-4">
-        <h1 className="text-lg font-semibold text-evergreen">Assignment</h1>
-        <p className="text-sm text-graphite/70">{caseItem.caseNumber}</p>
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bone">
+      <header className="shrink-0 border-b border-sage/20 bg-white px-2 py-2.5">
+        <div className="flex items-center gap-1">
+          <Link
+            href="/mobile/cases"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-graphite/70 active:bg-bone"
+            aria-label="Back to cases"
+          >
+            <ChevronLeft className="h-5 w-5" aria-hidden />
+          </Link>
+          <div className="min-w-0 flex-1 pr-3">
+            <h1 className="truncate text-base font-bold text-graphite">
+              Assignment
+            </h1>
+            <p className="truncate text-xs text-graphite/60">
+              {caseItem.caseNumber}
+            </p>
+          </div>
+        </div>
       </header>
 
-      <div className="px-4 py-6 space-y-4">
-        {caseItem.photoUrl && (
-          <div className="relative h-48 w-full rounded-lg overflow-hidden bg-sage/20">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-3">
+        {caseItem.photoUrl ? (
+          <div className="relative h-36 w-full overflow-hidden rounded-2xl bg-sage/20">
             <Image
               src={caseItem.photoUrl}
               alt="Animal"
@@ -42,25 +76,43 @@ export default async function AssignmentDetailPage({
               unoptimized
             />
           </div>
-        )}
+        ) : null}
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={assignment.status} />
-          <UrgencyBadge level={caseItem.urgencyLevel} score={caseItem.urgencyScore} />
+          <StatusBadge status={caseItem.status} />
+          {currentUrgency.score > 0 ? (
+            <UrgencyBadge
+              level={currentUrgency.level}
+              score={currentUrgency.score}
+              size="sm"
+            />
+          ) : null}
         </div>
 
-        <Card>
+        <Card className="border-sage/20 shadow-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Case Details</CardTitle>
+            <CardTitle className="text-base">Case details</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm space-y-2">
+          <CardContent className="text-sm">
             <p>{caseItem.description}</p>
-            <p className="text-graphite/60">
-              Location: {caseItem.latitude.toFixed(4)}, {caseItem.longitude.toFixed(4)}
-            </p>
           </CardContent>
         </Card>
 
+        <CaseLocationBlock
+          location={{
+            caseNumber: caseItem.caseNumber,
+            locationLabel: caseItem.locationLabel,
+            locationNote: caseItem.locationNote,
+            latitude: caseItem.latitude,
+            longitude: caseItem.longitude,
+            rescuerNote: caseItem.rescuerNote,
+            showRescuerNote: Boolean(caseItem.rescuerNote),
+          }}
+        />
+      </div>
+
+      <div className="z-20 shrink-0 border-t border-sage/20 bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(24,60,53,0.06)]">
         <AssignmentActionsClient
           assignmentId={assignment.id}
           caseId={caseItem.id}
@@ -68,6 +120,11 @@ export default async function AssignmentDetailPage({
           caseStatus={caseItem.status}
           latitude={caseItem.latitude}
           longitude={caseItem.longitude}
+          caseNumber={caseItem.caseNumber}
+          locationLabel={caseItem.locationLabel}
+          locationNote={caseItem.locationNote}
+          shelterName={shelter?.name}
+          shelterAddress={shelter?.address}
         />
       </div>
     </div>
