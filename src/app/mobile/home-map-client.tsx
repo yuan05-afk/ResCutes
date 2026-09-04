@@ -21,9 +21,15 @@ import {
   CasePeekSheet,
   type CasePeekData,
 } from "@/components/mobile/case-peek-sheet";
+import { NearestShelterQuiz } from "@/components/mobile/nearest-shelter-quiz";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { sortByDistanceKm } from "@/lib/maps/geo-distance";
+import type { ShelterSpeciesProfile } from "@/lib/data/philippines-shelters-directory";
+import {
+  findNearestMatchingShelter,
+  nearestAnimalLabel,
+  type NearestQuizAnswers,
+} from "@/lib/maps/nearest-shelter-match";
 import {
   googleMapsDirectionsUrl,
   googleMapsPinUrl,
@@ -43,6 +49,10 @@ export interface HomeMapShelter {
   phone?: string;
   email?: string;
   website?: string;
+  speciesAccepted: string[];
+  speciesProfile: ShelterSpeciesProfile;
+  speciesLabel: string;
+  capabilities?: string[];
 }
 
 export interface HomeMapCase {
@@ -65,7 +75,12 @@ interface HomeMapClientProps {
 }
 
 type Peek =
-  | { kind: "shelter"; shelter: HomeMapShelter; distanceKm?: number }
+  | {
+      kind: "shelter";
+      shelter: HomeMapShelter;
+      distanceKm?: number;
+      matchNote?: string;
+    }
   | { kind: "case"; caseItem: CasePeekData };
 
 export function HomeMapClient({
@@ -77,8 +92,13 @@ export function HomeMapClient({
   const [showCases, setShowCases] = useState(showCasesLayer);
   const [peek, setPeek] = useState<Peek | null>(null);
   const [locationExplainOpen, setLocationExplainOpen] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [userCoords, setUserCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [cameraCenter, setCameraCenter] = useState<{
     latitude: number;
     longitude: number;
@@ -166,8 +186,12 @@ export function HomeMapClient({
     return list;
   }, [shelters, cases, showShelters, showCases, showCasesLayer]);
 
-  function openShelter(shelter: HomeMapShelter, distanceKm?: number) {
-    setPeek({ kind: "shelter", shelter, distanceKm });
+  function openShelter(
+    shelter: HomeMapShelter,
+    distanceKm?: number,
+    matchNote?: string,
+  ) {
+    setPeek({ kind: "shelter", shelter, distanceKm, matchNote });
     setSelectedMarkerId(`shelter:${shelter.id}`);
     setCameraCenter({
       latitude: shelter.latitude,
@@ -207,8 +231,10 @@ export function HomeMapClient({
     }
   }
 
-  function requestNearestShelter() {
+  function requestUserLocation() {
     setLocationError(null);
+    setPeek(null);
+    setSelectedMarkerId(undefined);
     setLocating(true);
     if (!navigator.geolocation) {
       setLocating(false);
@@ -219,18 +245,17 @@ export function HomeMapClient({
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const ranked = sortByDistanceKm(shelters, {
+        setLocating(false);
+        setUserCoords({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         });
-        setLocating(false);
-        const nearest = ranked[0];
-        if (!nearest) {
-          setLocationError("No shelters are available on the map yet.");
-          return;
-        }
-        setShowShelters(true);
-        openShelter(nearest, nearest.distanceKm);
+        setCameraCenter({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        setCameraRequestId((n) => n + 1);
+        setQuizOpen(true);
       },
       () => {
         setLocating(false);
@@ -239,6 +264,27 @@ export function HomeMapClient({
         );
       },
       { timeout: 12000, enableHighAccuracy: true },
+    );
+  }
+
+  function completeNearestQuiz(answers: NearestQuizAnswers) {
+    setQuizOpen(false);
+    if (!userCoords) {
+      setLocationError("Location was lost. Tap Nearest and try again.");
+      return;
+    }
+
+    const match = findNearestMatchingShelter(shelters, userCoords, answers);
+    if (!match) {
+      setLocationError("No shelters are available on the map yet.");
+      return;
+    }
+
+    setShowShelters(true);
+    openShelter(
+      match,
+      match.distanceKm,
+      `Best match for ${nearestAnimalLabel(answers.animal)} · ${match.speciesLabel}`,
     );
   }
 
@@ -322,6 +368,12 @@ export function HomeMapClient({
           selectedMarkerZoom={14}
           fitVisibleMarkers={false}
         />
+
+        <NearestShelterQuiz
+          open={quizOpen}
+          onClose={() => setQuizOpen(false)}
+          onComplete={completeNearestQuiz}
+        />
       </div>
 
       {shelterPeek && mapsLocation ? (
@@ -339,6 +391,15 @@ export function HomeMapClient({
                   ? ` · ${shelterPeek.distanceKm.toFixed(1)} km`
                   : ""}
               </p>
+              {shelterPeek.matchNote ? (
+                <p className="mt-1 text-xs font-medium text-evergreen">
+                  {shelterPeek.matchNote}
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-graphite/50">
+                  Accepts {shelterPeek.shelter.speciesLabel}
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -409,14 +470,14 @@ export function HomeMapClient({
 
       <ConfirmDialog
         open={locationExplainOpen}
-        title="Find the nearest shelter?"
-        message="ResCutes uses your location once to sort shelters by distance and open directions. You can deny access and still browse the map."
+        title="Find the right shelter?"
+        message="ResCutes uses your location once, then asks two quick questions about the animal so we can match a shelter that accepts them. You can deny access and still browse the map."
         confirmLabel="Use my location"
         cancelLabel="Not now"
         variant="primary"
         onConfirm={() => {
           setLocationExplainOpen(false);
-          requestNearestShelter();
+          requestUserLocation();
         }}
         onClose={() => setLocationExplainOpen(false)}
       />

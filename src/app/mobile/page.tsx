@@ -4,7 +4,11 @@ import {
   canViewExactLocation,
   shouldUseRescuerMobileExperience,
 } from "@/lib/auth/permissions";
-import { getCuratedShelterRecords } from "@/lib/data/philippines-shelters-directory";
+import {
+  formatShelterSpeciesLabel,
+  getCuratedShelterRecords,
+} from "@/lib/data/philippines-shelters-directory";
+import { OPERATIONAL_SHELTER_PROFILES } from "@/lib/data/operational-shelter-profiles";
 import { isActiveCaseStatus, statusToStage } from "@/lib/rescue-stages";
 import { HomeMapClient } from "./home-map-client";
 
@@ -13,18 +17,27 @@ export default async function MobileHomePage() {
   const isRescuer = shouldUseRescuerMobileExperience(session.user.roles);
   const canExact = canViewExactLocation(session.user.roles);
 
-  const shelters = getCuratedShelterRecords().map((s) => ({
-    id: s.id,
-    name: s.name,
-    address: s.address,
-    city: s.city,
-    region: s.region,
-    latitude: s.latitude,
-    longitude: s.longitude,
-    phone: s.phone,
-    email: s.email,
-    website: s.website,
-  }));
+  const shelters = getCuratedShelterRecords().map((s) => {
+    const profile = OPERATIONAL_SHELTER_PROFILES[s.id];
+    return {
+      id: s.id,
+      name: s.name,
+      address: s.address,
+      city: s.city,
+      region: s.region,
+      latitude: s.latitude,
+      longitude: s.longitude,
+      phone: s.phone,
+      email: s.email,
+      website: s.website,
+      speciesAccepted: [...s.speciesAccepted],
+      speciesProfile: s.speciesProfile,
+      speciesLabel: formatShelterSpeciesLabel(s),
+      capabilities: profile?.capabilities
+        ? [...profile.capabilities]
+        : undefined,
+    };
+  });
 
   let fieldCases: Array<{
     id: string;

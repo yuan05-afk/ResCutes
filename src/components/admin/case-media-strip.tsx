@@ -94,6 +94,7 @@ export function CaseMediaStrip({
               urgencyLevel,
               address: locationLabel,
               color: markerColor(urgencyLevel),
+              photoUrl: photoSrc,
             },
           ]}
           interactive={mapInteractive}

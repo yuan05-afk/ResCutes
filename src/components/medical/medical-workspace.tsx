@@ -10,10 +10,10 @@ import {
   Stethoscope,
   Syringe,
   CalendarClock,
-  ArrowRight,
 } from "lucide-react";
 import { ModalTabs } from "@/components/admin/AdminModal";
 import { MedicalClearanceForm } from "@/app/(dashboard)/animals/[id]/medical-form";
+import { TransferToAdoptionPanel } from "@/components/medical/transfer-to-adoption-panel";
 import { AnimalImage } from "@/components/ui/animal-image";
 import { StatusBadge } from "@/components/status/status-badge";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,7 @@ const WORKFLOW_STEPS = [
   {
     id: "medically_cleared" as const,
     label: "Cleared",
-    hint: "Then behavior → adoption",
+    hint: "Then transfer to adoption",
     icon: CheckCircle2,
   },
 ];
@@ -143,9 +143,14 @@ function checklistFor(
 interface MedicalWorkspaceProps {
   items: MedicalQueueItem[];
   canEdit: boolean;
+  canTransfer: boolean;
 }
 
-export function MedicalWorkspace({ items, canEdit }: MedicalWorkspaceProps) {
+export function MedicalWorkspace({
+  items,
+  canEdit,
+  canTransfer,
+}: MedicalWorkspaceProps) {
   const searchParams = useSearchParams();
   const animalFromUrl = searchParams.get("animal");
 
@@ -237,7 +242,7 @@ export function MedicalWorkspace({ items, canEdit }: MedicalWorkspaceProps) {
             </p>
             <p className="text-xs text-graphite/55">
               Click a stage to filter the queue. Intake exam → treatment → clear
-              → behavior → adoption.
+              → transfer to adoption or foster.
             </p>
           </div>
           <ol className="grid gap-2 sm:grid-cols-5">
@@ -440,21 +445,15 @@ export function MedicalWorkspace({ items, canEdit }: MedicalWorkspaceProps) {
                         Animal profile
                       </Link>
                     </Button>
-                    {selected.animal.clearanceStatus === "medically_cleared" ? (
-                      <Button size="sm" asChild>
-                        <Link href="/adoption">
-                          Adoption queue
-                          <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                        </Link>
-                      </Button>
-                    ) : null}
                   </div>
                 </div>
 
                 <div className="rounded-xl border border-sage/25 bg-white p-3.5 shadow-card">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-graphite/50">
-                      Before adoption-ready
+                      {selected.animal.clearanceStatus === "medically_cleared"
+                        ? "Next: adoption handoff"
+                        : "Before adoption-ready"}
                     </p>
                     <p className="text-[11px] text-graphite/45">
                       {checklistDone}/{checklist.length}
@@ -477,10 +476,21 @@ export function MedicalWorkspace({ items, canEdit }: MedicalWorkspaceProps) {
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-2 text-[11px] leading-relaxed text-graphite/45">
-                    After medical clearance, staff complete behavior assessment,
-                    then set pathway to Adoption ready or Foster ready.
-                  </p>
+                  {selected.animal.clearanceStatus === "medically_cleared" ? (
+                    <TransferToAdoptionPanel
+                      animalId={selected.animal.id}
+                      animalLabel={
+                        selected.animal.name ?? selected.animal.temporaryId
+                      }
+                      pathwayStage={selected.animal.pathwayStage}
+                      canTransfer={canTransfer}
+                    />
+                  ) : (
+                    <p className="mt-2 text-[11px] leading-relaxed text-graphite/45">
+                      After medical clearance, transfer the animal to Adoption
+                      ready from this panel so it appears for families.
+                    </p>
+                  )}
                 </div>
 
                 <div className="overflow-visible rounded-xl border border-sage/25 bg-white shadow-card">

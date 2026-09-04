@@ -66,7 +66,9 @@ export function AdoptionAnimalCard({
           </Button>
           {canApply ? (
             <Button size="sm" className="flex-1" onClick={() => onApply(animal)}>
-              Apply
+              {animal.pathwayStage === "ready_for_foster"
+                ? "Apply to foster"
+                : "Apply to adopt"}
             </Button>
           ) : null}
         </div>

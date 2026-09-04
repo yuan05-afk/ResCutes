@@ -229,6 +229,7 @@ export function MapView({
   const selectedMarkerIdRef = useRef(selectedMarkerId);
   const markersRef = useRef(markers);
   const flyGenerationRef = useRef(0);
+  const hadSelectedMarkerRef = useRef(Boolean(selectedMarkerId));
   const markerLayoutRef = useRef<Map<string, CaseMarkerLayoutMode>>(new Map());
   const photosEnabledRef = useRef(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -358,6 +359,47 @@ export function MapView({
       el.removeEventListener("touchmove", stopBubble);
     };
   }, [interactive, loading]);
+
+  // When a sibling panel opens/closes (e.g. dashboard case focus card), the
+  // map container height changes but Mapbox keeps the old canvas size until
+  // resize(). Observe the container so tiles refill after layout shifts.
+  useEffect(() => {
+    const el = containerRef.current;
+    const map = mapRef.current;
+    if (!el || !map || loading) return;
+
+    let raf = 0;
+    let lastWidth = 0;
+    let lastHeight = 0;
+
+    const scheduleResize = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        const liveMap = mapRef.current;
+        if (!liveMap) return;
+        const width = el.clientWidth;
+        const height = el.clientHeight;
+        if (width === lastWidth && height === lastHeight) return;
+        lastWidth = width;
+        lastHeight = height;
+        try {
+          liveMap.resize();
+        } catch {
+          // Ignore transient transform errors during concurrent camera moves.
+        }
+      });
+    };
+
+    const observer = new ResizeObserver(scheduleResize);
+    observer.observe(el);
+    scheduleResize();
+
+    return () => {
+      observer.disconnect();
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [loading]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -654,55 +696,100 @@ export function MapView({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || loading || !animateCamera || !flyToSelectedMarker || !selectedMarkerId) {
+    if (!map || loading || !animateCamera || !flyToSelectedMarker) {
       return;
     }
 
-    const marker = markersRef.current.find((item) => item.id === selectedMarkerId);
-    if (!marker) return;
+    if (selectedMarkerId) {
+      hadSelectedMarkerRef.current = true;
+      const marker = markersRef.current.find((item) => item.id === selectedMarkerId);
+      if (!marker) return;
 
-    // Generation supersedes older flights. Do NOT cancelAnimationFrame on cleanup -
-    // that was the root cause of "map stuck on previous shelter" during rapid clicks:
-    // cleanup cancelled the newest pending fly before it ran.
+      // Generation supersedes older flights. Do NOT cancelAnimationFrame on cleanup -
+      // that was the root cause of "map stuck on previous shelter" during rapid clicks:
+      // cleanup cancelled the newest pending fly before it ran.
+      const generation = ++flyGenerationRef.current;
+      const target = {
+        latitude: marker.latitude,
+        longitude: marker.longitude,
+      };
+
+      const fly = () => {
+        if (generation !== flyGenerationRef.current) return;
+        const liveMap = mapRef.current;
+        if (!liveMap || !liveMap.isStyleLoaded()) return;
+        // resize() can leave the camera transform briefly invalid; flying in the
+        // same turn caused Mapbox: Cannot read properties of undefined (reading 'x').
+        try {
+          liveMap.resize();
+        } catch {
+          return;
+        }
+        window.requestAnimationFrame(() => {
+          if (generation !== flyGenerationRef.current) return;
+          const mapAfterResize = mapRef.current;
+          if (!mapAfterResize || !mapAfterResize.isStyleLoaded()) return;
+          flyMapToCenter(mapAfterResize, target, selectedMarkerZoom);
+        });
+      };
+
+      if (map.isStyleLoaded()) {
+        // Immediate schedule so the latest click always wins.
+        fly();
+        return;
+      }
+
+      map.once("load", fly);
+      return () => {
+        map.off("load", fly);
+      };
+    }
+
+    // Selection closed: ease back to the overview instead of staying zoomed in.
+    if (!hadSelectedMarkerRef.current || !fitVisibleMarkers) {
+      return;
+    }
+
     const generation = ++flyGenerationRef.current;
-    const target = {
-      latitude: marker.latitude,
-      longitude: marker.longitude,
-    };
-
-    const fly = () => {
+    const restoreOverview = () => {
       if (generation !== flyGenerationRef.current) return;
       const liveMap = mapRef.current;
       if (!liveMap || !liveMap.isStyleLoaded()) return;
-      // resize() can leave the camera transform briefly invalid; flying in the
-      // same turn caused Mapbox: Cannot read properties of undefined (reading 'x').
+
       try {
         liveMap.resize();
       } catch {
         return;
       }
+
       window.requestAnimationFrame(() => {
         if (generation !== flyGenerationRef.current) return;
         const mapAfterResize = mapRef.current;
         if (!mapAfterResize || !mapAfterResize.isStyleLoaded()) return;
-        flyMapToCenter(mapAfterResize, target, selectedMarkerZoom);
+
+        const visible = markersRef.current.filter((marker) => {
+          const layerId = resolveMarkerLayerId(marker);
+          return !hiddenLegendLayersRef.current.has(layerId);
+        });
+        if (visible.length === 0) return;
+        fitMapToMarkers(mapAfterResize, visible);
       });
     };
 
     if (map.isStyleLoaded()) {
-      // Immediate schedule so the latest click always wins.
-      fly();
+      restoreOverview();
       return;
     }
 
-    map.once("load", fly);
+    map.once("load", restoreOverview);
     return () => {
-      map.off("load", fly);
+      map.off("load", restoreOverview);
     };
   }, [
     selectedMarkerId,
     cameraRequestId,
     flyToSelectedMarker,
+    fitVisibleMarkers,
     selectedMarkerZoom,
     animateCamera,
     loading,

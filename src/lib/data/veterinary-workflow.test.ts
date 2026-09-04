@@ -78,6 +78,7 @@ describe("veterinary workflow", () => {
 
     const animal = await getAnimalById(intake.animalId);
     expect(animal?.clearanceStatus).toBe("medically_cleared");
+    expect(animal?.pathwayStage).toBe("medical_clearance");
   });
 
   it("requires general condition when completing exam", async () => {
@@ -152,7 +153,7 @@ describe("veterinary workflow", () => {
     expect(clearance?.followUpDate).toBeUndefined();
   });
 
-  it("allows reopening cleared animals still on behavior pathway", async () => {
+  it("allows reopening cleared animals still on medical pathway", async () => {
     await seedClearedAnimalFixture();
 
     const reopened = await updateMedicalClearance(TEST_IDS.animal001, users.anita, {

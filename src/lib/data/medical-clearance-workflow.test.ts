@@ -55,10 +55,10 @@ describe("medical clearance workflow", () => {
     expect(options[1].confirmLabel).toBe("Under exam");
   });
 
-  it("lists reopen options for medically cleared on behavior pathway", () => {
+  it("lists reopen options for medically cleared on medical pathway", () => {
     const options = getClearanceRollbackOptions(
       "medically_cleared",
-      "behavior_assessment",
+      "medical_clearance",
     );
     expect(options.length).toBe(3);
   });

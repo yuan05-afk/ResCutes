@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { AttentionQueueItem } from "@/components/dashboard/attention-queue-item";
 import { CaseDetailModal } from "@/components/admin/CaseDetailModal";
 import { DashboardMapClient } from "@/app/(dashboard)/dashboard/dashboard-map";
@@ -13,6 +14,8 @@ import { getCasePhotoUrl } from "@/lib/demo-images";
 import { resolveCurrentUrgency } from "@/lib/data/urgency";
 import type { RescueCaseRecord } from "@/lib/data/types";
 import { formatStatus, cn } from "@/lib/utils";
+
+const FOCUS_CARD_EASE = [0.22, 1, 0.36, 1] as const;
 
 interface QueueItem {
   id: string;
@@ -36,6 +39,7 @@ interface MapCaseItem {
   species: string;
   status: string;
   urgencyLevel: string;
+  photoUrl?: string;
 }
 
 interface DashboardInteractiveSectionsProps {
@@ -66,12 +70,22 @@ function mergeMapCases(
 ): MapCaseItem[] {
   const byId = new Map(base.map((item) => [item.id, item]));
 
-  for (const item of criticalCases) {
-    if (byId.has(item.id)) continue;
-    if (!Number.isFinite(item.latitude) || !Number.isFinite(item.longitude)) {
-      continue;
+  function upsert(item: MapCaseItem) {
+    const existing = byId.get(item.id);
+    if (existing) {
+      if (!existing.photoUrl && item.photoUrl) {
+        byId.set(item.id, { ...existing, photoUrl: item.photoUrl });
+      }
+      return;
     }
-    byId.set(item.id, {
+    if (!Number.isFinite(item.latitude) || !Number.isFinite(item.longitude)) {
+      return;
+    }
+    byId.set(item.id, item);
+  }
+
+  for (const item of criticalCases) {
+    upsert({
       id: item.id,
       latitude: item.latitude,
       longitude: item.longitude,
@@ -79,15 +93,12 @@ function mergeMapCases(
       species: item.species,
       status: item.status,
       urgencyLevel: item.urgencyLevel,
+      photoUrl: item.photoUrl,
     });
   }
 
   for (const item of waitingForRescuer) {
-    if (byId.has(item.id)) continue;
-    if (!Number.isFinite(item.latitude) || !Number.isFinite(item.longitude)) {
-      continue;
-    }
-    byId.set(item.id, {
+    upsert({
       id: item.id,
       latitude: item.latitude,
       longitude: item.longitude,
@@ -95,6 +106,7 @@ function mergeMapCases(
       species: item.species,
       status: item.status,
       urgencyLevel: resolveCurrentUrgency(item).level,
+      photoUrl: item.photoUrl,
     });
   }
 
@@ -111,6 +123,11 @@ export function DashboardInteractiveSections({
   const [cameraRequestId, setCameraRequestId] = useState(0);
   const [modalId, setModalId] = useState<string | null>(null);
   const [panel, setPanel] = useState<"queue" | "waiting">("queue");
+  const reduceMotion = useReducedMotion();
+
+  function clearFocus() {
+    setFocusId(null);
+  }
 
   const mapPins = useMemo(
     () => mergeMapCases(mapCases, criticalCases, waitingForRescuer),
@@ -150,6 +167,7 @@ export function DashboardInteractiveSections({
         urgencyLevel: item.urgencyLevel,
         urgencyScore: 0,
         description: "",
+        photoUrl: item.photoUrl,
       });
     }
     return byId;
@@ -180,85 +198,128 @@ export function DashboardInteractiveSections({
             </span>
           </div>
 
-          {focused ? (
-            <div className="shrink-0 px-3 pb-2 pt-2">
-              <div
-                data-testid="dashboard-case-focus-card"
-                className="rounded-xl border border-sage/25 bg-white p-3 shadow-sm"
+          <AnimatePresence initial={false}>
+            {focused ? (
+              <motion.div
+                key="dashboard-case-focus"
+                initial={
+                  reduceMotion
+                    ? false
+                    : { height: 0, opacity: 0 }
+                }
+                animate={{ height: "auto", opacity: 1 }}
+                exit={
+                  reduceMotion
+                    ? undefined
+                    : { height: 0, opacity: 0 }
+                }
+                transition={{
+                  height: {
+                    duration: reduceMotion ? 0 : 0.34,
+                    ease: FOCUS_CARD_EASE,
+                  },
+                  opacity: {
+                    duration: reduceMotion ? 0 : 0.22,
+                    ease: FOCUS_CARD_EASE,
+                  },
+                }}
+                className="shrink-0 overflow-hidden"
               >
-              <div className="flex items-start gap-2.5">
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">
-                  <AnimalImage
-                    src={getCasePhotoUrl(
-                      focused.species,
-                      focused.photoUrl,
-                      focused.id,
-                    )}
-                    species={focused.species}
-                    alt={focused.animalName ?? focused.caseNumber}
-                    containerClassName="absolute inset-0 h-full w-full rounded-lg"
-                    sizes="48px"
-                    objectPosition="center top"
-                    expandable
-                    showExpandHint={false}
-                    lightboxCaption={focused.caseNumber}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="mb-1 flex flex-wrap items-center gap-1">
-                        <StatusBadge status={focused.status} size="sm" />
-                        <UrgencyBadge
-                          level={focused.urgencyLevel}
-                          score={focused.urgencyScore || undefined}
+                <div className="px-3 pb-2 pt-2">
+                  <div
+                    data-testid="dashboard-case-focus-card"
+                    className="rounded-xl border border-sage/25 bg-white p-3 shadow-sm"
+                  >
+                    <motion.div
+                      key={focused.id}
+                      initial={
+                        reduceMotion ? false : { opacity: 0, y: 6 }
+                      }
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: reduceMotion ? 0 : 0.22,
+                        ease: FOCUS_CARD_EASE,
+                      }}
+                      className="flex items-start gap-2.5"
+                    >
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">
+                        <AnimalImage
+                          src={getCasePhotoUrl(
+                            focused.species,
+                            focused.photoUrl,
+                            focused.id,
+                          )}
+                          species={focused.species}
+                          alt={focused.animalName ?? focused.caseNumber}
+                          containerClassName="absolute inset-0 h-full w-full rounded-lg"
+                          sizes="48px"
+                          objectPosition="center top"
+                          expandable
+                          showExpandHint={false}
+                          lightboxCaption={focused.caseNumber}
                         />
                       </div>
-                      <h3 className="truncate text-sm font-bold text-graphite">
-                        {focused.animalName ?? formatStatus(focused.species)}
-                      </h3>
-                      <p className="text-[11px] text-graphite/50">
-                        {focused.caseNumber} · {formatStatus(focused.species)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFocusId(null)}
-                      className="rounded-lg px-2 py-1 text-xs font-medium text-graphite/50 hover:bg-bone hover:text-graphite"
-                      aria-label="Close case preview"
-                    >
-                      Close
-                    </button>
-                  </div>
-                  {focused.description ? (
-                    <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-graphite/65">
-                      {focused.description}
-                    </p>
-                  ) : null}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => setModalId(focused.id)}
-                    >
-                      Open case
-                    </Button>
-                    <Button
-                      asChild
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs"
-                    >
-                      <Link href={`/rescue-cases/${focused.id}`}>Full page</Link>
-                    </Button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="mb-1 flex flex-wrap items-center gap-1">
+                              <StatusBadge status={focused.status} size="sm" />
+                              <UrgencyBadge
+                                level={focused.urgencyLevel}
+                                score={focused.urgencyScore || undefined}
+                              />
+                            </div>
+                            <h3 className="truncate text-sm font-bold text-graphite">
+                              {focused.animalName ??
+                                formatStatus(focused.species)}
+                            </h3>
+                            <p className="text-[11px] text-graphite/50">
+                              {focused.caseNumber} ·{" "}
+                              {formatStatus(focused.species)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={clearFocus}
+                            className="rounded-lg px-2 py-1 text-xs font-medium text-graphite/50 hover:bg-bone hover:text-graphite"
+                            aria-label="Close case preview"
+                          >
+                            Close
+                          </button>
+                        </div>
+                        {focused.description ? (
+                          <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-graphite/65">
+                            {focused.description}
+                          </p>
+                        ) : null}
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setModalId(focused.id)}
+                          >
+                            Open case
+                          </Button>
+                          <Button
+                            asChild
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                          >
+                            <Link href={`/rescue-cases/${focused.id}`}>
+                              Full page
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
                   </div>
                 </div>
-              </div>
-              </div>
-            </div>
-          ) : null}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
 
           <div className="relative min-h-0 flex-1 p-2">
             <DashboardMapClient

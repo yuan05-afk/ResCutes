@@ -218,6 +218,7 @@ export async function getMedicalQueue(): Promise<
     .filter(
       (a) =>
         a.clearanceStatus !== "medically_cleared" ||
+        // Still on medical pathway (includes legacy "behavior_assessment" rows).
         a.pathwayStage === "medical_clearance" ||
         a.pathwayStage === "behavior_assessment",
     )
@@ -898,7 +899,7 @@ function recommendedActionForClearance(status: ClearanceStatus): string {
     case "follow_up_required":
       return "Schedule follow-up veterinary examination";
     case "medically_cleared":
-      return "Complete behavioral assessment";
+      return "Transfer to adoption or foster";
     default:
       return "Review animal status";
   }
@@ -1014,8 +1015,19 @@ export async function updateMedicalClearance(
     veterinarianId: vetId,
   });
 
-  const pathwayStage =
-    targetStatus === "medically_cleared" ? "behavior_assessment" : "medical_clearance";
+  // Cleared animals stay on Medical until staff transfer to adoption/foster.
+  // Do not clobber placement pathways if medical notes are edited after listing.
+  const preservePlacement =
+    targetStatus === "medically_cleared" &&
+    (animal.pathwayStage === "ready_for_adoption" ||
+      animal.pathwayStage === "ready_for_foster" ||
+      animal.pathwayStage === "transferred");
+  const pathwayStage = preservePlacement
+    ? (animal.pathwayStage as
+        | "ready_for_adoption"
+        | "ready_for_foster"
+        | "transferred")
+    : "medical_clearance";
 
   await (await dataRepo()).updateAnimalFields(animalId, {
     pathwayStage,
@@ -1044,7 +1056,7 @@ export async function updateMedicalClearance(
         userId: staff.id,
         type: "system",
         title: "Animal medically cleared",
-        message: `${animal.temporaryId}${animal.name ? ` (${animal.name})` : ""} is medically cleared and ready for behavioral assessment.`,
+        message: `${animal.temporaryId}${animal.name ? ` (${animal.name})` : ""} is medically cleared and ready to transfer to adoption or foster.`,
         caseId: animal.rescueCaseId,
       });
     }
@@ -1314,6 +1326,38 @@ export async function updateAnimalProfile(
   });
 
   return { ok: true as const };
+}
+
+/**
+ * After medical clearance, move the animal onto the adoption (or foster) listing pathway.
+ */
+export async function transferClearedAnimalToAdoption(
+  animalId: string,
+  destination: "ready_for_adoption" | "ready_for_foster" = "ready_for_adoption",
+) {
+  const animal = await getAnimalById(animalId);
+  if (!animal) {
+    return { ok: false as const, error: "Animal not found" };
+  }
+  if (animal.clearanceStatus !== "medically_cleared") {
+    return {
+      ok: false as const,
+      error: "Animal must be medically cleared before transfer to adoption",
+    };
+  }
+  if (animal.pathwayStage === destination) {
+    return { ok: true as const, alreadyReady: true as const };
+  }
+
+  await (await dataRepo()).updateAnimalFields(animalId, {
+    pathwayStage: destination,
+    recommendedNextAction:
+      destination === "ready_for_foster"
+        ? "List for foster placement"
+        : "List for adoption",
+  });
+
+  return { ok: true as const, alreadyReady: false as const };
 }
 
 export async function deleteAnimal(id: string) {

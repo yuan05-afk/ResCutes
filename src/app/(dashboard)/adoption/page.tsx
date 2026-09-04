@@ -18,12 +18,19 @@ export default async function AdoptionPage() {
     canManageCases(session.user.roles) ||
     canManageSettings(session.user.roles);
 
+  const adoptionReady = animals.filter(
+    (a) => a.pathwayStage === "ready_for_adoption",
+  ).length;
+  const fosterReady = animals.filter(
+    (a) => a.pathwayStage === "ready_for_foster",
+  ).length;
+
   return (
     <PageShell
       header={
         <DashboardHeader
           title="Adoption"
-          subtitle={`${animals.length} ready · ${applications.length} applications`}
+          subtitle={`${adoptionReady} adoption ready · ${fosterReady} foster ready · ${applications.length} applications`}
         />
       }
       fitViewport

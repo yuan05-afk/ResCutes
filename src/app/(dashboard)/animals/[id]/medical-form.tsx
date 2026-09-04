@@ -578,8 +578,8 @@ export function MedicalClearanceForm({
       <div className="space-y-2 text-sm">
         <StatusBadge status="medically_cleared" size="sm" />
         <p className="text-xs leading-relaxed text-graphite/70">
-          Medical clearance is complete. Pathway moves to behavior assessment;
-          staff can then set Adoption ready or Foster ready.
+          Medical clearance is complete. Use Transfer to adoption on the Medical
+          workspace, or set Adoption ready / Foster ready on the animal profile.
         </p>
         {clearance?.generalCondition ? (
           <p className="text-xs text-graphite/65">

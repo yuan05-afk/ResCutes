@@ -15,7 +15,7 @@ import {
   tableThClass,
 } from "@/components/admin/ClickableTable";
 import { getCasePhotoUrl } from "@/lib/demo-images";
-import { formatDateTime, formatStatus } from "@/lib/utils";
+import { formatDateTime, formatStatus, cn } from "@/lib/utils";
 import type {
   AdoptionApplicationRecord,
   AnimalRecord,
@@ -28,6 +28,7 @@ interface AdoptionWorkspaceProps {
 }
 
 type TabId = "animals" | "applications";
+type PathwayFilter = "all" | "ready_for_adoption" | "ready_for_foster";
 
 export function AdoptionWorkspace({
   animals,
@@ -35,6 +36,7 @@ export function AdoptionWorkspace({
   canManage,
 }: AdoptionWorkspaceProps) {
   const [tab, setTab] = useState<TabId>("animals");
+  const [pathwayFilter, setPathwayFilter] = useState<PathwayFilter>("all");
   const [applyAnimal, setApplyAnimal] = useState<AnimalRecord | null>(null);
   const [openAppId, setOpenAppId] = useState<string | null>(null);
 
@@ -46,8 +48,29 @@ export function AdoptionWorkspace({
     [applications],
   );
 
+  const adoptionReadyCount = useMemo(
+    () => animals.filter((a) => a.pathwayStage === "ready_for_adoption").length,
+    [animals],
+  );
+  const fosterReadyCount = useMemo(
+    () => animals.filter((a) => a.pathwayStage === "ready_for_foster").length,
+    [animals],
+  );
+
+  const filteredAnimals = useMemo(() => {
+    if (pathwayFilter === "all") return animals;
+    return animals.filter((a) => a.pathwayStage === pathwayFilter);
+  }, [animals, pathwayFilter]);
+
   const openApplication =
     applications.find((a) => a.id === openAppId) ?? null;
+
+  const emptyAnimalsCopy =
+    pathwayFilter === "ready_for_adoption"
+      ? "No animals are currently adoption ready."
+      : pathwayFilter === "ready_for_foster"
+        ? "No animals are currently foster ready."
+        : "No animals are currently ready for adoption or foster.";
 
   return (
     <>
@@ -65,22 +88,63 @@ export function AdoptionWorkspace({
         />
 
         {tab === "animals" ? (
-          animals.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-sage/35 bg-white px-4 py-10 text-center text-sm text-graphite/55">
-              No animals are currently ready for adoption or foster.
-            </div>
-          ) : (
-            <div className="rc-scroll grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-              {animals.map((animal) => (
-                <AdoptionAnimalCard
-                  key={animal.id}
-                  animal={animal}
-                  canApply={canManage}
-                  onApply={setApplyAnimal}
-                />
+          <>
+            <div
+              className="flex shrink-0 flex-wrap gap-1.5"
+              role="group"
+              aria-label="Filter by placement pathway"
+            >
+              {(
+                [
+                  {
+                    id: "all" as const,
+                    label: `All (${animals.length})`,
+                  },
+                  {
+                    id: "ready_for_adoption" as const,
+                    label: `Adoption ready (${adoptionReadyCount})`,
+                  },
+                  {
+                    id: "ready_for_foster" as const,
+                    label: `Foster ready (${fosterReadyCount})`,
+                  },
+                ] as const
+              ).map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setPathwayFilter(filter.id)}
+                  aria-pressed={pathwayFilter === filter.id}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-evergreen/40",
+                    pathwayFilter === filter.id
+                      ? "bg-evergreen text-white"
+                      : "border border-sage/25 bg-white text-graphite/60 hover:border-sage/40 hover:text-graphite",
+                  )}
+                >
+                  {filter.label}
+                </button>
               ))}
             </div>
-          )
+
+            {filteredAnimals.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-sage/35 bg-white px-4 py-10 text-center text-sm text-graphite/55">
+                {emptyAnimalsCopy}
+              </div>
+            ) : (
+              <div className="rc-scroll grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+                {filteredAnimals.map((animal) => (
+                  <AdoptionAnimalCard
+                    key={animal.id}
+                    animal={animal}
+                    canApply={canManage}
+                    onApply={setApplyAnimal}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : applications.length === 0 ? (
           <div className="rounded-xl border border-dashed border-sage/35 bg-white px-4 py-10 text-center text-sm text-graphite/55">
             No adoption applications yet.

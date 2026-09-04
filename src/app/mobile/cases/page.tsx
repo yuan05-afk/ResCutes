@@ -86,28 +86,46 @@ export default async function MobileCasesPage() {
     }
   }
 
+  const subtitle = isAdmin
+    ? "Active workflows"
+    : isRescuer
+      ? "Your assignments"
+      : "Your reports";
+
+  const listCases = pendingAssignment
+    ? cases.filter((c) => c.caseNumber !== pendingAssignment.caseNumber)
+    : cases;
+
   return (
     <div>
-      <header className="border-b border-sage/20 bg-white px-4 py-4">
-        <h1 className="text-xl font-bold text-graphite">Cases</h1>
-        <p className="mt-0.5 text-sm text-graphite/50">
-          {isAdmin
-            ? "Active workflows"
-            : isRescuer
-              ? "Your assignments"
-              : "Your reports"}
-        </p>
+      <header className="border-b border-sage/20 bg-white px-4 py-3.5">
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-graphite">Cases</h1>
+            <p className="mt-0.5 text-sm text-graphite/50">{subtitle}</p>
+          </div>
+          {cases.length > 0 ? (
+            <p className="shrink-0 pb-0.5 text-xs font-semibold tabular-nums text-graphite/40">
+              {cases.length} active
+            </p>
+          ) : null}
+        </div>
       </header>
 
-      <div className="space-y-4 px-4 py-4">
+      <div className="space-y-5 px-4 py-4">
         {pendingAssignment ? (
-          <PendingAssignmentBanner
-            assignmentId={pendingAssignment.id}
-            caseNumber={pendingAssignment.caseNumber}
-            urgencyLevel={pendingAssignment.urgencyLevel}
-            urgencyScore={pendingAssignment.urgencyScore}
-            summary={formatStatus(pendingAssignment.species)}
-          />
+          <section aria-labelledby="pending-assignment-heading">
+            <h2 id="pending-assignment-heading" className="sr-only">
+              Needs your response
+            </h2>
+            <PendingAssignmentBanner
+              assignmentId={pendingAssignment.id}
+              caseNumber={pendingAssignment.caseNumber}
+              urgencyLevel={pendingAssignment.urgencyLevel}
+              urgencyScore={pendingAssignment.urgencyScore}
+              summary={formatStatus(pendingAssignment.species)}
+            />
+          </section>
         ) : null}
 
         {cases.length === 0 ? (
@@ -120,50 +138,60 @@ export default async function MobileCasesPage() {
                 : "Reports you submit will appear here."
             }
           />
-        ) : (
-          <ul className="space-y-2.5">
-            {cases.map((c) => {
-              const assignments = assignmentMap.get(c.id) ?? [];
-              const pendingForUser = isRescuer
-                ? isAdmin
-                  ? assignments.find((a) => a.status === "pending")
-                  : assignments.find(
-                      (a) =>
-                        a.rescuerId === session.user.id &&
-                        a.status === "pending",
-                    )
-                : undefined;
-              const urgency = resolveCurrentUrgency(c);
+        ) : listCases.length === 0 ? null : (
+          <section aria-labelledby="active-cases-heading">
+            <div className="mb-2.5 flex items-baseline justify-between gap-2">
+              <h2
+                id="active-cases-heading"
+                className="text-[11px] font-semibold uppercase tracking-wide text-graphite/45"
+              >
+                {pendingAssignment ? "Other cases" : "Active"}
+              </h2>
+            </div>
+            <ul className="space-y-2.5">
+              {listCases.map((c) => {
+                const assignments = assignmentMap.get(c.id) ?? [];
+                const pendingForUser = isRescuer
+                  ? isAdmin
+                    ? assignments.find((a) => a.status === "pending")
+                    : assignments.find(
+                        (a) =>
+                          a.rescuerId === session.user.id &&
+                          a.status === "pending",
+                      )
+                  : undefined;
+                const urgency = resolveCurrentUrgency(c);
 
-              return (
-                <li key={c.id}>
-                  <MobileCaseCard
-                    id={c.id}
-                    caseNumber={c.caseNumber}
-                    species={c.species}
-                    status={c.status}
-                    urgencyLevel={urgency.level}
-                    urgencyScore={urgency.score}
-                    description={c.description}
-                    photoUrl={c.photoUrl}
-                    href={
-                      pendingForUser
-                        ? `/mobile/assignments/${pendingForUser.id}`
-                        : `/mobile/cases/${c.id}`
-                    }
-                  />
-                </li>
-              );
-            })}
-          </ul>
+                return (
+                  <li key={c.id}>
+                    <MobileCaseCard
+                      id={c.id}
+                      caseNumber={c.caseNumber}
+                      species={c.species}
+                      status={c.status}
+                      urgencyLevel={urgency.level}
+                      urgencyScore={urgency.score}
+                      description={c.description}
+                      photoUrl={c.photoUrl}
+                      href={
+                        pendingForUser
+                          ? `/mobile/assignments/${pendingForUser.id}`
+                          : `/mobile/cases/${c.id}`
+                      }
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )}
 
         {updates.length > 0 ? (
-          <section id="updates" className="scroll-mt-4 border-t border-sage/20 pt-4">
-            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-graphite/45">
+          <section id="updates" className="scroll-mt-4">
+            <h2 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-graphite/45">
               Updates
             </h2>
-            <ul className="divide-y divide-sage/15 overflow-hidden rounded-2xl border border-sage/20 bg-white">
+            <ul className="overflow-hidden rounded-2xl border border-sage/20 bg-white divide-y divide-sage/15">
               {updates.map((n) => {
                 const href = mobileHrefForNotification(n);
                 const body = (

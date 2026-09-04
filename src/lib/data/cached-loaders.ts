@@ -30,7 +30,7 @@ export const getDashboardMapCasesCached = cache(function getDashboardMapCasesCac
         )
         .slice(0, 10);
     },
-    ["dashboard-map-cases-v3"],
+    ["dashboard-map-cases-v4"],
     { revalidate: 120, tags: ["dashboard-metrics", "rescue-cases"] },
   )();
 });

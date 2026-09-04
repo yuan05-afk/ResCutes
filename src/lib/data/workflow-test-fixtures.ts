@@ -276,8 +276,8 @@ export async function seedClearedAnimalFixture() {
     rescueCaseId: stableUuid("test-case-001"),
     shelterId: TEST_SHELTERS.paws,
     intakeDate: hoursAgo(36),
-    pathwayStage: "behavior_assessment",
-    recommendedNextAction: "Complete behavioral assessment",
+    pathwayStage: "medical_clearance",
+    recommendedNextAction: "Transfer to adoption or foster",
   });
 
   await db.insert(medicalClearances).values({

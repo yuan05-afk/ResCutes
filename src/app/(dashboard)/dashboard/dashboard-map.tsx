@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { MapView } from "@/components/map/map-view-dynamic";
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
 import { markerColorForUrgency } from "@/components/map/map-constants";
+import { getCasePhotoUrl } from "@/lib/demo-images";
 import { cn } from "@/lib/utils";
 
 interface CaseMapItem {
@@ -14,6 +15,7 @@ interface CaseMapItem {
   species: string;
   status: string;
   urgencyLevel: string;
+  photoUrl?: string;
 }
 
 export function DashboardMapClient({
@@ -40,6 +42,7 @@ export function DashboardMapClient({
         status: c.status,
         urgencyLevel: c.urgencyLevel,
         color: markerColorForUrgency(c.urgencyLevel),
+        photoUrl: getCasePhotoUrl(c.species, c.photoUrl, c.id),
         legendLayerId:
           c.urgencyLevel === "critical"
             ? "critical"

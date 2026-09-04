@@ -191,6 +191,7 @@ export default async function DashboardPage() {
             species: c.species,
             status: c.status,
             urgencyLevel: resolveCurrentUrgency(c).level,
+            photoUrl: c.photoUrl,
           }))}
           criticalCases={criticalCases}
           waitingForRescuer={metrics.waitingForRescuer}

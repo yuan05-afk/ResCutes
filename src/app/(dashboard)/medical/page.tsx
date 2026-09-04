@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { getMedicalQueue } from "@/lib/data/service";
 import {
   canEditMedical,
+  canManageCases,
   canViewMedicalNotes,
 } from "@/lib/auth/permissions";
 import { redirect } from "next/navigation";
@@ -18,6 +19,8 @@ export default async function MedicalPage() {
 
   const items = await getMedicalQueue();
   const canEdit = canEditMedical(session.user.roles);
+  const canTransfer =
+    canManageCases(session.user.roles) || canEditMedical(session.user.roles);
   const activeCount = items.filter(
     (i) => i.animal.clearanceStatus !== "medically_cleared",
   ).length;
@@ -33,7 +36,11 @@ export default async function MedicalPage() {
       fitViewport
     >
       <Suspense fallback={<PageSkeleton />}>
-        <MedicalWorkspace items={items} canEdit={canEdit} />
+        <MedicalWorkspace
+          items={items}
+          canEdit={canEdit}
+          canTransfer={canTransfer}
+        />
       </Suspense>
     </PageShell>
   );

@@ -7,10 +7,15 @@ import {
   recordAdoptionInterest,
   clearAdoptionInterests,
   reviewAdoptionApplication,
+  transferClearedAnimalToAdoption,
   updateAnimalProfile,
   deleteAnimal,
 } from "@/lib/data/service";
-import { canManageCases, canManageSettings } from "@/lib/auth/permissions";
+import {
+  canEditMedical,
+  canManageCases,
+  canManageSettings,
+} from "@/lib/auth/permissions";
 import {
   HOME_TYPE_OPTIONS,
   isAllowedCatalogOrOther,
@@ -28,9 +33,38 @@ function revalidateAdoptionViews(animalId?: string) {
   revalidatePath("/adoption");
   revalidatePath("/mobile/adoption");
   revalidatePath("/animals");
+  revalidatePath("/medical");
   revalidatePath("/dashboard");
   revalidateTag("animals");
   if (animalId) revalidatePath(`/animals/${animalId}`);
+}
+
+function canTransferClearedAnimal(
+  roles: Parameters<typeof canManageCases>[0],
+) {
+  return canManageAdoption(roles) || canEditMedical(roles);
+}
+
+/** Medical → adoption handoff from the Medical Clearance workspace. */
+export async function transferAnimalToAdoptionAction(
+  animalId: string,
+  destination: "ready_for_adoption" | "ready_for_foster" = "ready_for_adoption",
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+  if (!canTransferClearedAnimal(session.user.roles)) {
+    return { error: "Forbidden" };
+  }
+
+  const result = await transferClearedAnimalToAdoption(animalId, destination);
+  if (!result.ok) return { error: result.error };
+
+  revalidateAdoptionViews(animalId);
+  return {
+    success: true as const,
+    alreadyReady: result.alreadyReady,
+    destination,
+  };
 }
 
 export async function passAdoptionAnimalAction(animalId: string) {

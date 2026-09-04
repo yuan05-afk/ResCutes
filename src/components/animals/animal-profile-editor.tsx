@@ -34,6 +34,7 @@ import {
   validateOptionalText,
   validateSelectOther,
 } from "@/lib/forms/animal-field-options";
+import { formatStatus } from "@/lib/utils";
 
 interface AnimalProfileEditorProps {
   animal: {
@@ -219,6 +220,11 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
             onChange={(e) => setPathwayStage(e.target.value)}
             className="h-9"
           >
+            {!isPathwayStage(pathwayStage) ? (
+              <option value={pathwayStage}>
+                {formatStatus(pathwayStage)} (legacy)
+              </option>
+            ) : null}
             {PATHWAY_STAGE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}

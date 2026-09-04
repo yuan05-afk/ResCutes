@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { UrgencyBadge } from "@/components/status/urgency-badge";
+import { getUrgencyLevelLabel } from "@/lib/urgency/scoring";
 import { useNavigationPending } from "@/components/layout/NavigationPending";
+import { cn } from "@/lib/utils";
 
 interface PendingAssignmentBannerProps {
   assignmentId: string;
@@ -14,7 +15,7 @@ interface PendingAssignmentBannerProps {
   summary?: string;
 }
 
-/** Slim one-tap banner for a pending rescuer assignment. */
+/** Quiet primary CTA for a pending rescuer assignment. */
 export function PendingAssignmentBanner({
   assignmentId,
   caseNumber,
@@ -24,27 +25,56 @@ export function PendingAssignmentBanner({
 }: PendingAssignmentBannerProps) {
   const { startPending } = useNavigationPending();
   const href = `/mobile/assignments/${assignmentId}`;
+  const urgencyLabel = getUrgencyLevelLabel(
+    urgencyLevel as "critical" | "high" | "medium" | "low",
+  );
+  const isCritical = urgencyLevel === "critical";
 
   return (
     <Link
       href={href}
       prefetch
       onClick={() => startPending(href)}
-      className="flex items-center gap-3 rounded-2xl border border-ochre/30 bg-ochre/8 px-3.5 py-3 transition-colors active:bg-ochre/15"
+      aria-label={`New assignment ${caseNumber}. Review now.`}
+      className={cn(
+        "flex items-center gap-3 rounded-2xl border bg-white px-3.5 py-3.5 shadow-card transition-colors active:bg-bone/70",
+        isCritical ? "border-rescue/25" : "border-ochre/30",
+      )}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-ochre">
+        <p
+          className={cn(
+            "text-[11px] font-semibold uppercase tracking-wide",
+            isCritical ? "text-rescue" : "text-ochre",
+          )}
+        >
           New assignment
         </p>
-        <p className="truncate text-sm font-bold text-graphite">
+        <p className="mt-0.5 truncate text-base font-bold leading-tight text-graphite">
           {caseNumber}
           {summary ? (
             <span className="font-normal text-graphite/55"> · {summary}</span>
           ) : null}
         </p>
+        <p className="mt-1 text-xs text-graphite/55">
+          {urgencyLabel}
+          {urgencyScore > 0 ? ` · ${urgencyScore}` : ""}
+          {" · "}
+          Tap to respond
+        </p>
       </div>
-      <UrgencyBadge level={urgencyLevel} score={urgencyScore} size="sm" />
-      <ChevronRight className="h-4 w-4 shrink-0 text-ochre/70" aria-hidden />
+
+      <span
+        className={cn(
+          "flex min-h-11 shrink-0 items-center gap-0.5 rounded-full px-3 text-xs font-semibold",
+          isCritical
+            ? "bg-rescue/10 text-rescue"
+            : "bg-ochre/10 text-ochre",
+        )}
+      >
+        Respond
+        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+      </span>
     </Link>
   );
 }

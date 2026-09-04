@@ -44,10 +44,8 @@ type SeedAnimal = {
   pathwayStage:
     | "intake"
     | "medical_clearance"
-    | "behavior_assessment"
     | "ready_for_foster"
     | "ready_for_adoption"
-    | "long_stay"
     | "transferred";
   intakeDaysAgo: number;
   shelterSlug: string;
@@ -263,13 +261,13 @@ const SEED_ANIMALS: SeedAnimal[] = [
     estimatedAge: "adult",
     breed: "Domestic shorthair",
     color: "black with white chest",
-    bio: "Black cat with a white chest marking. Medically cleared and currently in behavior assessment for multi-cat homes.",
+    bio: "Black cat with a white chest marking. Medically cleared and waiting for adoption or foster transfer.",
     temperament: "Independent, watchful, gentle with familiar handlers",
     clearanceStatus: "medically_cleared",
-    pathwayStage: "behavior_assessment",
+    pathwayStage: "medical_clearance",
     intakeDaysAgo: 21,
     shelterSlug: "verified-paws-parc",
-    recommendedNextAction: "Finish behavior notes and socialization sessions",
+    recommendedNextAction: "Transfer to adoption or foster",
     injurySeverity: "none_visible",
     environmentalDanger: "none",
     vulnerability: "adult_healthy",

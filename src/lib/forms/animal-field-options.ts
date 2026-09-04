@@ -99,10 +99,8 @@ export const TEMPERAMENT_PILL_OPTIONS: FieldOption[] = [
 export const PATHWAY_STAGE_OPTIONS: FieldOption[] = [
   { value: "intake", label: "Intake" },
   { value: "medical_clearance", label: "Medical" },
-  { value: "behavior_assessment", label: "Behavior" },
   { value: "ready_for_foster", label: "Foster ready" },
   { value: "ready_for_adoption", label: "Adoption ready" },
-  { value: "long_stay", label: "Long stay" },
   { value: "transferred", label: "Transferred" },
 ];
 
