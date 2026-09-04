@@ -72,8 +72,20 @@ export async function uploadReportPhotoAction(formData: FormData): Promise<
     }
   }
 
-  const dir = path.join(process.cwd(), "public", "uploads", "reports");
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), bytes);
-  return { url: `/uploads/reports/${filename}` };
+  // Vercel serverless has a read-only filesystem outside /tmp.
+  if (process.env.VERCEL) {
+    return {
+      error:
+        "Photo storage is not configured. Ask an admin to set BLOB_READ_WRITE_TOKEN.",
+    };
+  }
+
+  try {
+    const dir = path.join(process.cwd(), "public", "uploads", "reports");
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, filename), bytes);
+    return { url: `/uploads/reports/${filename}` };
+  } catch {
+    return { error: "Could not save photo locally. Try again." };
+  }
 }

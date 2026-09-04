@@ -30,6 +30,10 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    serverActions: {
+      // Phone camera photos often exceed the default 1 MB Server Action limit.
+      bodySizeLimit: "5mb",
+    },
     optimizePackageImports: [
       "lucide-react",
       "mapbox-gl",

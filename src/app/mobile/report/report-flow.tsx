@@ -226,8 +226,14 @@ export function ReportFlow() {
       }
       setPhotoUrl(result.url);
       setPhotoPreview(result.url);
-    } catch {
-      setError("Could not upload photo. Try again.");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message.toLowerCase() : "";
+      setError(
+        message.includes("1 mb") || message.includes("body exceeded")
+          ? "Photo is too large. Try a smaller image (under 4.5 MB)."
+          : "Could not upload photo. Try again.",
+      );
       setPhotoPreview(null);
       setPhotoUrl(null);
     } finally {
