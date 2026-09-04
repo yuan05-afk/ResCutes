@@ -201,6 +201,16 @@ export function ReportFlow() {
   async function handlePhotoSelected(file: File | undefined) {
     if (!file) return;
     setError("");
+    const declared = (file.type || "").toLowerCase();
+    if (
+      declared &&
+      !["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"].includes(
+        declared,
+      )
+    ) {
+      setError("Only JPEG, PNG, WebP, or HEIC photos are supported.");
+      return;
+    }
     setPhotoUploading(true);
     const localPreview = URL.createObjectURL(file);
     setPhotoPreview(localPreview);
@@ -356,7 +366,7 @@ export function ReportFlow() {
             <input
               ref={cameraInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
               capture="environment"
               className="sr-only"
               onChange={(e) => void handlePhotoSelected(e.target.files?.[0])}
@@ -364,7 +374,7 @@ export function ReportFlow() {
             <input
               ref={galleryInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
               className="sr-only"
               onChange={(e) => void handlePhotoSelected(e.target.files?.[0])}
             />

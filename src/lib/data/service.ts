@@ -3,7 +3,6 @@ import "server-only";
 import {
   calculateUrgencyScore,
   classifyUrgencyLevel,
-  type UrgencyResult,
 } from "@/lib/urgency/scoring";
 import { calculateShelterRecommendations } from "@/lib/routing/shelter-routing";
 import { approximateLocation, type Role } from "@/lib/auth/permissions";
@@ -22,7 +21,7 @@ import {
   formatClearanceStatusLabel,
   isClearanceRollback,
 } from "@/lib/data/medical-clearance-workflow";
-import { resolveCurrentUrgency } from "@/lib/data/urgency";
+import { resolveCurrentUrgency, urgencyInputFromCase } from "@/lib/data/urgency";
 import { revalidateNotifications } from "@/lib/cache-revalidate";
 import { reverseGeocodeLabel } from "@/lib/maps/reverse-geocode";
 import { stripEmDashes, stripEmDashesOptional } from "@/lib/text/sanitize-copy";
@@ -71,25 +70,6 @@ const STATUSES_WITH_SHELTER_RECOMMENDATIONS = new Set([
   "animal_secured",
   "awaiting_shelter", // legacy
 ]);
-
-function urgencyInputFromCase(
-  caseItem: RescueCaseRecord,
-  verifiedAt?: Date | null,
-) {
-  return {
-    injurySeverity: caseItem.injurySeverity,
-    environmentalDanger: caseItem.environmentalDanger,
-    vulnerability: caseItem.vulnerability,
-    verifiedAt:
-      verifiedAt ??
-      (caseItem.verifiedAt ? new Date(caseItem.verifiedAt) : null),
-  } as {
-    injurySeverity: "none_visible";
-    environmentalDanger: "none";
-    vulnerability: "adult_healthy";
-    verifiedAt?: Date | null;
-  };
-}
 
 export async function getCases(filters?: {
   status?: string;
