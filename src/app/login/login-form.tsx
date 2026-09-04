@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -30,6 +30,10 @@ const WEB_DEMO = DEMO_ACCOUNTS.filter(
     account.role === ROLES.ADMINISTRATOR,
 );
 
+const DEMO_BY_EMAIL = new Map(
+  DEMO_ACCOUNTS.map((account) => [account.email.toLowerCase(), account]),
+);
+
 function DemoRoleButton({
   account,
   callbackUrl,
@@ -48,7 +52,7 @@ function DemoRoleButton({
     <form action={formAction}>
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <input type="hidden" name="email" value={account.email} />
-      <input type="hidden" name="password" value="demo1234" />
+      <input type="hidden" name="password" value={account.password} />
       <button
         type="submit"
         disabled={pending}
@@ -91,8 +95,23 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl =
     searchParams.get("callbackUrl") ?? searchParams.get("after") ?? "";
+  const emailFromQuery = searchParams.get("email")?.trim() ?? "";
   const [state, formAction, isPending] = useActionState(signInAction, null);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const prefillAccount = useMemo(() => {
+    if (!emailFromQuery) return null;
+    return DEMO_BY_EMAIL.get(emailFromQuery.toLowerCase()) ?? null;
+  }, [emailFromQuery]);
+
+  // Landing Demo Access: fill credentials only. Do not auto-submit.
+  useEffect(() => {
+    if (!emailFromQuery) return;
+    setEmail(emailFromQuery);
+    setPassword(prefillAccount?.password ?? "demo1234");
+  }, [emailFromQuery, prefillAccount]);
 
   return (
     <div className="relative min-h-[100svh] overflow-hidden">
@@ -141,6 +160,8 @@ export default function LoginForm() {
                   autoComplete="email"
                   placeholder="citizen@rescutes.demo"
                   className="h-9"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -155,6 +176,8 @@ export default function LoginForm() {
                   autoComplete="current-password"
                   placeholder="demo1234"
                   className="h-9"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
@@ -163,6 +186,11 @@ export default function LoginForm() {
                   {state.error}
                 </p>
               )}
+              {prefillAccount ? (
+                <p className="text-[0.7rem] text-graphite/60">
+                  Filled {prefillAccount.name}. Click Sign In to continue.
+                </p>
+              ) : null}
               <Button type="submit" className="h-9 w-full" disabled={isPending}>
                 {isPending ? "Signing in..." : "Sign In"}
               </Button>

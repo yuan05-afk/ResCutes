@@ -228,7 +228,7 @@ export function LandingPage() {
                   className="mt-9 flex flex-wrap gap-3"
                 >
                   <Link
-                    href="/login"
+                    href="#demo"
                     className="inline-flex min-h-12 items-center justify-center rounded-md bg-white px-6 text-sm font-semibold text-evergreen transition hover:bg-bone"
                   >
                     Try Demo Access
@@ -383,7 +383,7 @@ export function LandingPage() {
               {DEMO_ACCOUNTS.map((account) => (
                 <motion.li key={account.email} variants={fadeUp}>
                   <Link
-                    href="/login"
+                    href={`/login?email=${encodeURIComponent(account.email)}`}
                     className="group flex flex-col gap-2 py-5 transition hover:bg-bone/70 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-3"
                   >
                     <div>
