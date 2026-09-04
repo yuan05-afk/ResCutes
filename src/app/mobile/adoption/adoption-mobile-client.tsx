@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   expressAdoptionInterestAction,
   passAdoptionAnimalAction,
+  cancelAdoptionInterestAction,
   resetAdoptionPassesAction,
   resetAllAdoptionSwipesAction,
   submitAdoptionApplicationAction,
@@ -169,6 +170,28 @@ export function AdoptionMobileClient({
     setDragX(0);
   }
 
+  function queueFromBrowse(options: {
+    excludeInterested: boolean;
+    clearInterested: boolean;
+  }) {
+    const interestedIds = options.clearInterested
+      ? new Set<string>()
+      : new Set(interested.map((a) => a.id));
+    const nextCards = browse.filter(
+      (animal) =>
+        !appliedIds.has(animal.id) &&
+        (!options.excludeInterested || !interestedIds.has(animal.id)),
+    );
+    if (options.clearInterested) setInterested([]);
+    setPassedCount(0);
+    setCards(nextCards);
+    setMatched(null);
+    setApplyAnimal(null);
+    setDragX(0);
+    setMode("swipe");
+    setPhase(nextCards.length === 0 ? "empty" : "queue");
+  }
+
   function resetPasses() {
     startReset(async () => {
       setError(null);
@@ -177,6 +200,8 @@ export function AdoptionMobileClient({
         setError(result.error);
         return;
       }
+      // Local state must update immediately; router.refresh alone does not.
+      queueFromBrowse({ excludeInterested: true, clearInterested: false });
       router.refresh();
     });
   }
@@ -189,6 +214,7 @@ export function AdoptionMobileClient({
         setError(result.error);
         return;
       }
+      queueFromBrowse({ excludeInterested: false, clearInterested: true });
       router.refresh();
     });
   }
@@ -276,6 +302,27 @@ export function AdoptionMobileClient({
           interestedIds={new Set(interested.map((a) => a.id))}
           appliedIds={appliedIds}
           onApply={openApply}
+          onCancelInterest={async (animal) => {
+            setPending(true);
+            setError(null);
+            const result = await cancelAdoptionInterestAction(animal.id);
+            setPending(false);
+            if (result.error) {
+              setError(result.error);
+              return;
+            }
+            setInterested((prev) => prev.filter((a) => a.id !== animal.id));
+            setCards((prev) => {
+              const next = prev.some((c) => c.id === animal.id)
+                ? prev
+                : [...prev, animal];
+              if (matched?.id === animal.id) {
+                setMatched(null);
+                setApplyAnimal(null);
+              }
+              return next;
+            });
+          }}
           onInterest={async (animal) => {
             setPending(true);
             const result = await expressAdoptionInterestAction(animal.id);
@@ -488,6 +535,7 @@ function BrowseList({
   interestedIds,
   appliedIds,
   onApply,
+  onCancelInterest,
   onInterest,
   pending,
 }: {
@@ -495,6 +543,7 @@ function BrowseList({
   interestedIds: Set<string>;
   appliedIds: Set<string>;
   onApply: (animal: AdoptionCardData) => void;
+  onCancelInterest: (animal: AdoptionCardData) => void | Promise<void>;
   onInterest: (animal: AdoptionCardData) => void | Promise<void>;
   pending: boolean;
 }) {
@@ -547,13 +596,24 @@ function BrowseList({
                     Application submitted
                   </span>
                 ) : liked ? (
-                  <Button
-                    size="sm"
-                    className="min-h-9 rounded-full"
-                    onClick={() => onApply(animal)}
-                  >
-                    Finish application
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      className="h-8 min-h-8 rounded-full px-2.5 text-xs"
+                      onClick={() => onApply(animal)}
+                    >
+                      Finish application
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 min-h-8 rounded-full px-2.5 text-xs"
+                      disabled={pending}
+                      onClick={() => void onCancelInterest(animal)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     size="sm"

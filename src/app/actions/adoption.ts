@@ -6,6 +6,7 @@ import {
   createAdoptionApplication,
   recordAdoptionInterest,
   clearAdoptionInterests,
+  clearAdoptionInterestForAnimal,
   reviewAdoptionApplication,
   transferClearedAnimalToAdoption,
   updateAnimalProfile,
@@ -93,6 +94,16 @@ export async function expressAdoptionInterestAction(animalId: string) {
   );
   if (!result.ok) return { error: result.error };
 
+  revalidatePath("/mobile/adoption");
+  return { success: true as const };
+}
+
+/** Cancel a liked (or passed) decision for one animal. Does not withdraw applications. */
+export async function cancelAdoptionInterestAction(animalId: string) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+
+  await clearAdoptionInterestForAnimal(session.user.id, animalId);
   revalidatePath("/mobile/adoption");
   return { success: true as const };
 }

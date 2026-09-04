@@ -1169,6 +1169,18 @@ export async function clearAdoptionInterests(
   return { ok: true as const, removed };
 }
 
+/** Remove one swipe decision (like or pass) for a single animal. */
+export async function clearAdoptionInterestForAnimal(
+  userId: string,
+  animalId: string,
+) {
+  const removed = await (await dataRepo()).deleteAdoptionInterestForAnimal(
+    userId,
+    animalId,
+  );
+  return { ok: true as const, removed };
+}
+
 export async function getAdoptionApplications(filters?: {
   status?: string;
   animalId?: string;

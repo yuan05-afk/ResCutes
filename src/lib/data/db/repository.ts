@@ -1218,6 +1218,23 @@ export async function deleteAdoptionInterestsForUser(
   return removed.length;
 }
 
+export async function deleteAdoptionInterestForAnimal(
+  userId: string,
+  animalId: string,
+): Promise<boolean> {
+  const db = getDb();
+  const removed = await db
+    .delete(adoptionInterests)
+    .where(
+      and(
+        eq(adoptionInterests.userId, userId),
+        eq(adoptionInterests.animalId, animalId),
+      ),
+    )
+    .returning({ id: adoptionInterests.id });
+  return removed.length > 0;
+}
+
 export async function upsertAdoptionInterest(input: {
   userId: string;
   animalId: string;
