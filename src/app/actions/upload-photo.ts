@@ -5,13 +5,21 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { put } from "@vercel/blob";
 import { auth } from "@/lib/auth";
+import {
+  ALLOWED_REPORT_PHOTO_MIME,
+  declaredMimeMatchesSniffed,
+  normalizeDeclaredImageMime,
+  REPORT_PHOTO_EXT_BY_MIME,
+  sniffAllowedImageMime,
+} from "@/lib/uploads/report-photo";
 
 const MAX_BYTES = 4.5 * 1024 * 1024; // ~4.5MB
-const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
 /**
  * Upload a report photo. Uses Vercel Blob when BLOB_READ_WRITE_TOKEN is set;
  * otherwise writes to public/uploads/reports for local demo.
+ *
+ * Accepts JPEG/PNG/WebP/HEIC only. SVG and other image/* types are rejected.
  */
 export async function uploadReportPhotoAction(formData: FormData): Promise<
   { url: string } | { error: string }
@@ -26,28 +34,36 @@ export async function uploadReportPhotoAction(formData: FormData): Promise<
   if (file.size > MAX_BYTES) {
     return { error: "Photo must be under 4.5 MB." };
   }
-  const type = file.type || "image/jpeg";
-  if (!ALLOWED.has(type) && !type.startsWith("image/")) {
-    return { error: "Only image files are supported." };
+
+  const declared = normalizeDeclaredImageMime(file.type || "");
+  if (declared && !ALLOWED_REPORT_PHOTO_MIME.has(declared)) {
+    return {
+      error: "Only JPEG, PNG, WebP, or HEIC photos are supported.",
+    };
   }
 
-  const ext =
-    type === "image/png"
-      ? "png"
-      : type === "image/webp"
-        ? "webp"
-        : type === "image/heic" || type === "image/heif"
-          ? "heic"
-          : "jpg";
-  const filename = `report-${session.user.id.slice(0, 8)}-${randomUUID()}.${ext}`;
   const bytes = Buffer.from(await file.arrayBuffer());
+  const sniffed = sniffAllowedImageMime(bytes);
+  if (!sniffed) {
+    return {
+      error: "Only JPEG, PNG, WebP, or HEIC photos are supported.",
+    };
+  }
+
+  if (!declaredMimeMatchesSniffed(declared, sniffed)) {
+    return { error: "Photo type did not match file contents." };
+  }
+
+  const contentType = sniffed;
+  const ext = REPORT_PHOTO_EXT_BY_MIME[contentType];
+  const filename = `report-${session.user.id.slice(0, 8)}-${randomUUID()}.${ext}`;
 
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   if (token) {
     try {
       const blob = await put(`reports/${filename}`, bytes, {
         access: "public",
-        contentType: type,
+        contentType,
         token,
       });
       return { url: blob.url };
