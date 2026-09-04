@@ -1,0 +1,13 @@
+# ResCutes
+
+> Philippine animal rescue coordination - from citizen report to shelter intake, medical clearance, and adoption.
+
+## Main
+
+- [Home](https://rescutes.vercel.app/): Product overview and demo access
+- [Sign In](https://rescutes.vercel.app/login): Demo login for citizen, rescuer, staff, veterinarian, and admin roles
+- [Terms of use](https://rescutes.vercel.app/terms): Demo terms and acceptable use
+
+## Product
+
+ResCutes is a coordinated rescue workflow for citizens, field rescuers, shelters, and veterinarians. Public pages describe the product; signed-in web and mobile apps handle live case operations.

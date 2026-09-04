@@ -5,9 +5,12 @@ import { TERMS_OF_USE } from "@/lib/legal/terms";
 import { PawPrint } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Terms of use | ResCutes",
+  title: "Terms of use",
   description:
     "Terms of use for the ResCutes animal rescue coordination demo.",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 export default function TermsPage() {

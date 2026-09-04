@@ -150,7 +150,7 @@ function WorkflowStep({
               src={step.image}
               alt={step.alt}
               fill
-              quality={92}
+              quality={95}
               sizes="(max-width: 768px) 100vw, 58vw"
               className="object-cover"
               style={{

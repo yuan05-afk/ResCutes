@@ -70,7 +70,7 @@ export function ParallaxMedia({
           alt={alt}
           fill
           priority={priority}
-          quality={92}
+          quality={95}
           sizes={sizes}
           className="object-cover"
           style={{ objectPosition }}
@@ -132,7 +132,7 @@ export function ParallaxBackground({
           src={src}
           alt={alt}
           fill
-          quality={92}
+          quality={95}
           sizes="100vw"
           className="object-cover object-center"
         />

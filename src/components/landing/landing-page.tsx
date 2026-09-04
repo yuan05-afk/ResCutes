@@ -165,7 +165,7 @@ export function LandingPage() {
         </div>
       </header>
 
-      <main>
+      <main id="main-content">
         <section
           ref={heroRef}
           className="relative isolate min-h-[100svh] overflow-hidden"
@@ -179,7 +179,7 @@ export function LandingPage() {
               alt="Filipino woman helping an aspin on a barangay street with a jeepney nearby"
               fill
               priority
-              quality={92}
+              quality={95}
               sizes="100vw"
               className="object-cover object-[center_30%]"
             />
@@ -199,7 +199,7 @@ export function LandingPage() {
               >
                 <motion.p
                   variants={fadeUp}
-                  className="mb-5 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-white/70"
+                  className="mb-5 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-white/80"
                 >
                   Philippine animal rescue coordination
                 </motion.p>
@@ -211,13 +211,13 @@ export function LandingPage() {
                 </motion.p>
                 <motion.h1
                   variants={fadeUp}
-                  className="landing-display mt-5 max-w-xl text-balance text-[clamp(1.55rem,3.4vw,2.35rem)] font-medium leading-[1.2] text-white/92"
+                  className="landing-display mt-5 max-w-xl text-balance text-[clamp(1.55rem,3.4vw,2.35rem)] font-medium leading-[1.2] text-white"
                 >
                   From report to safe shelter intake
                 </motion.h1>
                 <motion.p
                   variants={fadeUp}
-                  className="mt-5 max-w-lg text-[0.98rem] leading-relaxed text-white/78 sm:text-lg"
+                  className="mt-5 max-w-lg text-[0.98rem] leading-relaxed text-white/90 sm:text-lg"
                 >
                   One coordinated workflow for citizens, rescuers, shelters, and
                   veterinarians, from a street report through medical clearance
@@ -286,7 +286,7 @@ export function LandingPage() {
             >
               <motion.p
                 variants={fadeUp}
-                className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-white/65"
+                className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-white/80"
               >
                 Built for the Philippines
               </motion.p>
@@ -298,7 +298,7 @@ export function LandingPage() {
               </motion.h2>
               <motion.p
                 variants={fadeUp}
-                className="mt-5 text-base leading-relaxed text-white/78 md:text-lg"
+                className="mt-5 text-base leading-relaxed text-white/90 md:text-lg"
               >
                 Citizens and rescuers work from the street. Shelter staff and
                 veterinarians run verification, intake, medical clearance, and
@@ -315,7 +315,7 @@ export function LandingPage() {
                   <p className="landing-display text-lg text-white">
                     Web dashboard
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-white/75">
+                  <p className="mt-2 text-sm leading-relaxed text-white/85">
                     Cases, shelters, medical clearance, and adoption operations.
                   </p>
                   <span className="mt-4 inline-flex text-sm font-medium text-white/90 group-hover:underline">
@@ -329,7 +329,7 @@ export function LandingPage() {
                   <p className="landing-display text-lg text-white">
                     Mobile app
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-white/75">
+                  <p className="mt-2 text-sm leading-relaxed text-white/85">
                     Report, rescue, and discover animals ready for adoption.
                   </p>
                   <span className="mt-4 inline-flex text-sm font-medium text-white/90 group-hover:underline">
@@ -390,7 +390,7 @@ export function LandingPage() {
                       <p className="landing-display text-lg text-evergreen">
                         {account.name}
                       </p>
-                      <p className="mt-0.5 text-sm text-graphite/55">
+                      <p className="mt-0.5 text-sm text-graphite/70">
                         {ROLE_LABELS[account.role as Role] ??
                           account.role.replace("_", " ")}
                       </p>
@@ -424,7 +424,7 @@ export function LandingPage() {
         </section>
 
         <footer className="border-t border-sage/25 bg-bone py-8">
-          <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 text-center text-sm leading-relaxed text-graphite/60 md:px-6">
+          <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 text-center text-sm leading-relaxed text-graphite/75 md:px-6">
             <p>
               No sample rescue cases are loaded. Submit a report from the mobile
               app to start testing the workflow. Not connected to live rescue

@@ -46,3 +46,8 @@ drizzle/
 # vercel
 .vercel
 .env*
+
+# local audit artifacts
+psi-*.json
+lh-*.json
+
