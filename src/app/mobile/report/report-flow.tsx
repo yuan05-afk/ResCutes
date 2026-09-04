@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,9 +16,12 @@ import {
   Shield,
   ImageIcon,
   CheckCircle2,
+  Images,
+  X,
 } from "lucide-react";
 import { submitReportAction } from "@/app/actions/report";
-import { getSpeciesImage } from "@/lib/demo-images";
+import { uploadReportPhotoAction } from "@/app/actions/upload-photo";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   REPORT_CONTACT,
   REPORT_DANGER,
@@ -29,6 +31,7 @@ import {
 } from "@/lib/forms/animal-field-options";
 
 const STEPS = ["Photo", "Location", "Animal", "Condition", "Contact", "Review"];
+const DRAFT_KEY = "rescutes-report-draft-v1";
 
 type ReportSpecies = (typeof REPORT_SPECIES)[number];
 type ReportInjury = (typeof REPORT_INJURY)[number];
@@ -42,11 +45,48 @@ const DANGER: ReportDanger[] = [...REPORT_DANGER];
 const VULNERABILITY: ReportVulnerability[] = [...REPORT_VULNERABILITY];
 const CONTACT: ReportContact[] = [...REPORT_CONTACT];
 
+interface ReportDraft {
+  step: number;
+  species: ReportSpecies;
+  injurySeverity: ReportInjury;
+  environmentalDanger: ReportDanger;
+  vulnerability: ReportVulnerability;
+  description: string;
+  contactPreference: ReportContact;
+  latitude: number | null;
+  longitude: number | null;
+  locationNote: string;
+  locationStatus: "idle" | "loading" | "denied" | "ok";
+  photoUrl: string | null;
+  photoPreview: string | null;
+}
+
+function readDraft(): ReportDraft | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as ReportDraft;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft() {
+  try {
+    sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function ReportFlow() {
   const router = useRouter();
+  const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [locationExplainOpen, setLocationExplainOpen] = useState(false);
 
   const [species, setSpecies] = useState<ReportSpecies>("dog");
   const [injurySeverity, setInjurySeverity] =
@@ -61,8 +101,85 @@ export function ReportFlow() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationNote, setLocationNote] = useState("");
-  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "denied" | "ok">("idle");
+  const [locationStatus, setLocationStatus] = useState<
+    "idle" | "loading" | "denied" | "ok"
+  >("idle");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const draft = readDraft();
+    if (draft) {
+      setStep(draft.step);
+      setSpecies(draft.species);
+      setInjurySeverity(draft.injurySeverity);
+      setEnvironmentalDanger(draft.environmentalDanger);
+      setVulnerability(draft.vulnerability);
+      setDescription(draft.description);
+      setContactPreference(draft.contactPreference);
+      setLatitude(draft.latitude);
+      setLongitude(draft.longitude);
+      setLocationNote(draft.locationNote);
+      setLocationStatus(
+        draft.locationStatus === "loading" ? "idle" : draft.locationStatus,
+      );
+      setPhotoUrl(draft.photoUrl);
+      setPhotoPreview(draft.photoPreview ?? draft.photoUrl);
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const draft: ReportDraft = {
+      step,
+      species,
+      injurySeverity,
+      environmentalDanger,
+      vulnerability,
+      description,
+      contactPreference,
+      latitude,
+      longitude,
+      locationNote,
+      locationStatus: locationStatus === "loading" ? "idle" : locationStatus,
+      photoUrl,
+      photoPreview:
+        photoPreview && !photoPreview.startsWith("blob:")
+          ? photoPreview
+          : photoUrl,
+    };
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      /* quota / private mode */
+    }
+  }, [
+    hydrated,
+    step,
+    species,
+    injurySeverity,
+    environmentalDanger,
+    vulnerability,
+    description,
+    contactPreference,
+    latitude,
+    longitude,
+    locationNote,
+    locationStatus,
+    photoUrl,
+    photoPreview,
+  ]);
+
+  const hasProgress =
+    step > 0 ||
+    Boolean(description.trim()) ||
+    Boolean(photoUrl) ||
+    Boolean(latitude) ||
+    locationNote.trim().length > 0;
 
   function requestLocation() {
     setLocationStatus("loading");
@@ -81,9 +198,38 @@ export function ReportFlow() {
     );
   }
 
-  function useDemoPhoto() {
-    const url = getSpeciesImage(species);
-    setPhotoPreview(url);
+  async function handlePhotoSelected(file: File | undefined) {
+    if (!file) return;
+    setError("");
+    setPhotoUploading(true);
+    const localPreview = URL.createObjectURL(file);
+    setPhotoPreview(localPreview);
+    try {
+      const formData = new FormData();
+      formData.set("photo", file);
+      const result = await uploadReportPhotoAction(formData);
+      if ("error" in result) {
+        setError(result.error);
+        setPhotoPreview(null);
+        setPhotoUrl(null);
+        return;
+      }
+      setPhotoUrl(result.url);
+      setPhotoPreview(result.url);
+    } catch {
+      setError("Could not upload photo. Try again.");
+      setPhotoPreview(null);
+      setPhotoUrl(null);
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
+  function clearPhoto() {
+    setPhotoPreview(null);
+    setPhotoUrl(null);
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
   }
 
   async function handleSubmit() {
@@ -106,7 +252,7 @@ export function ReportFlow() {
         locationNote: locationNote.trim() || undefined,
         latitude,
         longitude,
-        photoUrl: photoPreview ?? undefined,
+        photoUrl: photoUrl ?? undefined,
       });
 
       if (result.error) {
@@ -115,6 +261,7 @@ export function ReportFlow() {
         return;
       }
 
+      clearDraft();
       router.push(`/mobile/cases/${result.caseId}`);
     } catch {
       setError("Submission failed. Check your connection and try again.");
@@ -123,6 +270,10 @@ export function ReportFlow() {
   }
 
   function next() {
+    if (photoUploading) {
+      setError("Please wait for the photo to finish uploading.");
+      return;
+    }
     if (step === 1 && !latitude) {
       setError("Please capture location before continuing.");
       return;
@@ -139,22 +290,45 @@ export function ReportFlow() {
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
 
-  function back() {
+  function backStep() {
     setError("");
     setStep((s) => Math.max(s - 1, 0));
   }
 
+  function handleHeaderBack() {
+    if (step > 0) {
+      backStep();
+      return;
+    }
+    if (hasProgress) {
+      setLeaveOpen(true);
+      return;
+    }
+    clearDraft();
+    router.push("/mobile");
+  }
+
+  function leaveKeepingDraft() {
+    router.push("/mobile");
+  }
+
+  function discardAndLeave() {
+    clearDraft();
+    router.push("/mobile");
+  }
+
   return (
     <div>
-      <header className="flex items-center gap-3 border-b border-sage/20 bg-white px-4 py-4">
-        <Link
-          href="/mobile"
-          className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-bone"
-          aria-label="Back"
+      <header className="flex items-center gap-2 border-b border-sage/20 bg-white px-2 py-3">
+        <button
+          type="button"
+          onClick={handleHeaderBack}
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-graphite/70 active:bg-bone"
+          aria-label={step > 0 ? "Previous step" : "Leave report"}
         >
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-        <div className="flex-1">
+          <ChevronLeft className="h-5 w-5" aria-hidden />
+        </button>
+        <div className="min-w-0 flex-1 pr-3">
           <h1 className="text-lg font-bold text-graphite">Report an Animal</h1>
           <p className="text-xs text-graphite/55">
             Step {step + 1} of {STEPS.length}: {STEPS[step]}
@@ -163,7 +337,7 @@ export function ReportFlow() {
       </header>
 
       <div className="px-4 pt-4">
-        <div className="flex gap-1">
+        <div className="flex gap-1" aria-hidden>
           {STEPS.map((_, i) => (
             <div
               key={i}
@@ -176,115 +350,165 @@ export function ReportFlow() {
         </div>
       </div>
 
-      <main className="px-4 py-6 space-y-5">
+      <main className="space-y-5 px-4 py-6">
         {step === 0 && (
           <div className="space-y-4">
-            <button
-              type="button"
-              onClick={useDemoPhoto}
-              className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sage/40 bg-white p-8 shadow-card min-h-[200px] hover:border-evergreen/40 transition-colors"
-            >
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={(e) => void handlePhotoSelected(e.target.files?.[0])}
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => void handlePhotoSelected(e.target.files?.[0])}
+            />
+
+            <div className="relative overflow-hidden rounded-2xl border border-sage/25 bg-white shadow-card">
               {photoPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photoPreview}
-                  alt="Selected photo"
-                  className="h-40 w-full object-cover rounded-xl"
-                />
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photoPreview}
+                    alt="Selected photo"
+                    className="h-52 w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={clearPhoto}
+                    className="absolute right-3 top-3 flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 text-white"
+                    aria-label="Remove photo"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  {photoUploading ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/35">
+                      <Loader2 className="h-7 w-7 animate-spin text-white" />
+                    </div>
+                  ) : null}
+                </div>
               ) : (
-                <>
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-evergreen/10">
-                    <Camera className="h-8 w-8 text-evergreen" />
+                <div className="flex min-h-[200px] flex-col items-center justify-center px-6 py-10 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-evergreen/10">
+                    <Camera className="h-7 w-7 text-evergreen" />
                   </div>
-                  <p className="mt-4 font-semibold text-graphite">Take a Photo</p>
-                  <p className="text-sm text-graphite/55 mt-1">or choose from gallery</p>
-                </>
+                  <p className="mt-3 font-semibold text-graphite">Add a photo</p>
+                  <p className="mt-1 text-sm text-graphite/55">
+                    Optional, but helps rescuers find the animal faster
+                  </p>
+                </div>
               )}
-            </button>
-            <p className="text-xs text-center text-graphite/50">
-              Tip: tap the area above to use a sample photo for the selected species.
-            </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                className="min-h-11 rounded-full"
+                disabled={photoUploading}
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                Camera
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 rounded-full"
+                disabled={photoUploading}
+                onClick={() => galleryInputRef.current?.click()}
+              >
+                <Images className="mr-2 h-4 w-4" />
+                Gallery
+              </Button>
+            </div>
           </div>
         )}
 
         {step === 1 && (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-sage/25 bg-white p-6 shadow-card text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-evergreen/10">
-                <MapPin className="h-7 w-7 text-evergreen" />
+            <div className="rounded-2xl border border-sage/25 bg-white p-5 text-center shadow-card">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-evergreen/10">
+                <MapPin className="h-6 w-6 text-evergreen" />
               </div>
-              <p className="mt-4 font-semibold text-graphite">Animal location</p>
-              <p className="mt-2 text-sm text-graphite/60">
-                We use your location to route rescuers. Exact coordinates are only
-                shared with authorized staff and assigned rescuers.
+              <p className="mt-3 font-semibold text-graphite">Pin the location</p>
+              <p className="mt-1 text-sm text-graphite/55">
+                Shared only with authorized rescue staff. We ask for location
+                only when you choose to capture it here.
               </p>
               {locationStatus === "ok" ? (
                 <div
-                  className="mt-5 rounded-xl border border-evergreen/25 bg-evergreen/5 p-4 text-left"
+                  className="mt-4 rounded-xl border border-evergreen/25 bg-evergreen/5 px-3 py-2.5 text-left"
                   role="status"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-center gap-2">
                     <CheckCircle2
-                      className="h-5 w-5 shrink-0 text-evergreen mt-0.5"
+                      className="h-4 w-4 shrink-0 text-evergreen"
                       aria-hidden
                     />
-                    <div>
-                      <p className="text-sm font-semibold text-evergreen">
-                        Location captured
-                      </p>
-                      <p className="mt-1 text-xs text-graphite/65 leading-relaxed">
-                        Exact coordinates are securely saved and will only be shared
-                        with authorized rescue staff and the assigned rescuer.
-                      </p>
-                    </div>
+                    <p className="text-sm font-semibold text-evergreen">
+                      Location captured
+                    </p>
                   </div>
                 </div>
               ) : (
                 <Button
                   type="button"
-                  className="mt-5 w-full rounded-full"
-                  onClick={requestLocation}
+                  className="mt-4 min-h-11 w-full rounded-full"
+                  onClick={() => setLocationExplainOpen(true)}
                   disabled={locationStatus === "loading"}
                 >
                   {locationStatus === "loading" ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <MapPin className="h-4 w-4 mr-2" />
+                    <MapPin className="mr-2 h-4 w-4" />
                   )}
                   Use Current Location
                 </Button>
               )}
               {locationStatus === "denied" && (
-                <div className="mt-4 grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
+                <div className="mt-3 grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
+                  <p className="col-span-full text-left text-xs text-graphite/60">
+                    Location access was denied. Enter coordinates manually, or
+                    enable location in browser settings and try again.
+                  </p>
                   <Input
                     type="number"
                     step="any"
+                    inputMode="decimal"
                     placeholder="Latitude"
+                    aria-label="Latitude"
                     onChange={(e) => setLatitude(parseFloat(e.target.value))}
                   />
                   <Input
                     type="number"
                     step="any"
+                    inputMode="decimal"
                     placeholder="Longitude"
+                    aria-label="Longitude"
                     onChange={(e) => setLongitude(parseFloat(e.target.value))}
                   />
-                  <p className="col-span-2 text-xs text-graphite/50">
-                    Enter coordinates manually if location is blocked.
-                  </p>
                 </div>
               )}
-              <div className="mt-4 text-left">
-                <Label htmlFor="location-note" className="text-xs text-graphite/60">
-                  Landmark or directions (optional)
+              <div className="mt-3 text-left">
+                <Label
+                  htmlFor="location-note"
+                  className="text-xs text-graphite/55"
+                >
+                  Landmark (optional)
                 </Label>
                 <Textarea
                   id="location-note"
                   value={locationNote}
                   onChange={(e) => setLocationNote(e.target.value)}
-                  placeholder='e.g. "Behind the 7-Eleven on EDSA" or "Gate 2 of the barangay hall"'
+                  placeholder='e.g. "Behind the 7-Eleven on EDSA"'
                   rows={2}
                   maxLength={300}
-                  className="mt-1.5 resize-none text-sm"
+                  className="mt-1 resize-none text-sm"
                 />
               </div>
             </div>
@@ -347,60 +571,125 @@ export function ReportFlow() {
         )}
 
         {step === 5 && (
-          <div className="rounded-2xl border border-sage/25 bg-white p-5 shadow-card space-y-3 text-sm">
+          <div className="space-y-3 rounded-2xl border border-sage/25 bg-white p-5 text-sm shadow-card">
             <h3 className="font-semibold text-graphite">Review your report</h3>
             <ReviewRow label="Species" value={formatStatus(species)} />
             <ReviewRow label="Condition" value={formatStatus(injurySeverity)} />
-            <ReviewRow label="Danger" value={formatStatus(environmentalDanger)} />
-            <ReviewRow label="Vulnerability" value={formatStatus(vulnerability)} />
-            <ReviewRow label="Contact" value={formatStatus(contactPreference)} />
+            <ReviewRow
+              label="Danger"
+              value={formatStatus(environmentalDanger)}
+            />
+            <ReviewRow
+              label="Vulnerability"
+              value={formatStatus(vulnerability)}
+            />
+            <ReviewRow
+              label="Contact"
+              value={formatStatus(contactPreference)}
+            />
             <ReviewRow label="Description" value={description} />
-            {photoPreview && (
+            {photoPreview ? (
               <div className="flex items-center gap-2 text-graphite/70">
                 <ImageIcon className="h-4 w-4" /> Photo attached
               </div>
-            )}
-            <div className="flex gap-2 rounded-xl bg-bone p-3 mt-2">
-              <Shield className="h-4 w-4 text-ochre shrink-0" />
+            ) : null}
+            <div className="mt-2 flex gap-2 rounded-xl bg-bone p-3">
+              <Shield className="h-4 w-4 shrink-0 text-ochre" />
               <p className="text-xs text-graphite/65">
-                Do not approach the animal. Rescuers will handle the situation safely.
+                Do not approach the animal. Rescuers will handle the situation
+                safely.
               </p>
             </div>
           </div>
         )}
 
-        {error && (
-          <p className="text-sm text-rescue" role="alert">{error}</p>
-        )}
+        {error ? (
+          <p className="text-sm text-rescue" role="alert">
+            {error}
+          </p>
+        ) : null}
 
         <div className="flex gap-3 pt-2">
-          {step > 0 && (
-            <Button type="button" variant="outline" onClick={back} className="rounded-full flex-1">
-              <ChevronLeft className="h-4 w-4 mr-1" />
+          {step > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={backStep}
+              className="min-h-11 flex-1 rounded-full"
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
               Back
             </Button>
-          )}
+          ) : null}
           {step < STEPS.length - 1 ? (
-            <Button type="button" onClick={next} className="rounded-full flex-1">
-              Continue
-              <ChevronRight className="h-4 w-4 ml-1" />
+            <Button
+              type="button"
+              onClick={next}
+              disabled={photoUploading}
+              className="min-h-11 flex-1 rounded-full"
+            >
+              {photoUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading…
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </>
+              )}
             </Button>
           ) : (
             <Button
               type="button"
               variant="rescue"
               onClick={handleSubmit}
-              disabled={loading}
-              className="rounded-full flex-1"
+              disabled={loading || photoUploading}
+              className="min-h-11 flex-1 rounded-full"
             >
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
               Submit Report
             </Button>
           )}
         </div>
       </main>
+
+      <ConfirmDialog
+        open={leaveOpen}
+        title="Leave this report?"
+        message="Your progress stays on this device so you can continue later. Choose Discard only if you want to clear the draft."
+        confirmLabel="Keep draft and leave"
+        cancelLabel="Keep editing"
+        variant="primary"
+        onConfirm={leaveKeepingDraft}
+        onClose={() => setLeaveOpen(false)}
+      />
+      {leaveOpen ? (
+        <button
+          type="button"
+          className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-1/2 z-[70] min-h-11 -translate-x-1/2 rounded-full bg-white px-4 text-sm font-semibold text-rescue shadow-elevated"
+          onClick={discardAndLeave}
+        >
+          Discard draft
+        </button>
+      ) : null}
+
+      <ConfirmDialog
+        open={locationExplainOpen}
+        title="Share your location?"
+        message="ResCutes uses your location only to pin this report for authorized rescuers. You can deny access and enter coordinates manually instead."
+        confirmLabel="Continue"
+        cancelLabel="Not now"
+        variant="primary"
+        onConfirm={() => {
+          setLocationExplainOpen(false);
+          requestLocation();
+        }}
+        onClose={() => setLocationExplainOpen(false)}
+      />
     </div>
   );
 }
@@ -426,10 +715,10 @@ function OptionGrid<T extends string>({
             type="button"
             onClick={() => onChange(opt)}
             className={cn(
-              "rounded-xl border px-3 py-3 text-left text-sm font-medium transition-colors min-h-[44px]",
+              "min-h-11 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-colors",
               value === opt
                 ? "border-evergreen bg-evergreen/8 text-evergreen"
-                : "border-sage/30 bg-white text-graphite/70 hover:border-sage/50",
+                : "border-sage/30 bg-white text-graphite/70",
             )}
           >
             {formatStatus(opt)}
@@ -444,7 +733,9 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 border-b border-sage/15 pb-2 last:border-0">
       <span className="text-graphite/55">{label}</span>
-      <span className="font-medium text-graphite text-right capitalize">{value}</span>
+      <span className="text-right font-medium capitalize text-graphite">
+        {value}
+      </span>
     </div>
   );
 }

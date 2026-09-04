@@ -30,7 +30,8 @@ function measureLegendPlacement(
   const mapRect = mapRoot.getBoundingClientRect();
   const logoRect = logo.getBoundingClientRect();
   const gap = compact ? 6 : 8;
-  const rightReserve = compact ? 44 : 52;
+  // Bottom-right is clear of attribution (moved top-left); keep a small edge inset only.
+  const rightReserve = compact ? 12 : 16;
 
   const left = Math.ceil(logoRect.right - mapRect.left + gap);
   const bottom = Math.max(6, Math.round(mapRect.bottom - logoRect.bottom));

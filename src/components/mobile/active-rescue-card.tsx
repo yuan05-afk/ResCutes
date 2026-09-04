@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Navigation } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { RescueProgress } from "@/components/mobile/rescue-progress";
-import { MapView } from "@/components/map/map-view-dynamic";
-import { MAP_MARKER_COLORS } from "@/components/map/map-constants";
 import { getCitizenProgressIndex, getCitizenStatusLabel } from "@/lib/rescue-progress";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { formatStatus } from "@/lib/utils";
@@ -21,13 +19,10 @@ interface ActiveRescueCardProps {
   urgencyLevel: string;
   urgencyScore: number;
   photoUrl?: string;
-  approximateLat: number;
-  approximateLon: number;
   rescuerName?: string;
-  shelterName?: string;
-  shelterLat?: number;
-  shelterLon?: number;
   detailHref?: string;
+  /** Compact home variant: no long description, no map. */
+  compact?: boolean;
 }
 
 export function ActiveRescueCard({
@@ -39,126 +34,64 @@ export function ActiveRescueCard({
   urgencyLevel,
   urgencyScore,
   photoUrl,
-  approximateLat,
-  approximateLon,
   rescuerName,
-  shelterName,
-  shelterLat,
-  shelterLon,
   detailHref,
+  compact = false,
 }: ActiveRescueCardProps) {
   const { startPending } = useNavigationPending();
   const progressIndex = getCitizenProgressIndex(status);
   const imageUrl = getCasePhotoUrl(species, photoUrl, caseId);
   const linkHref = detailHref ?? `/mobile/cases/${caseId}`;
 
-  const markers = [
-    {
-      id: "animal",
-      latitude: approximateLat,
-      longitude: approximateLon,
-      label: "Approximate location",
-      color: MAP_MARKER_COLORS.critical,
-    },
-  ];
-
-  if (shelterLat && shelterLon) {
-    markers.push({
-      id: "shelter",
-      latitude: shelterLat,
-      longitude: shelterLon,
-      label: shelterName ?? "Shelter",
-      color: MAP_MARKER_COLORS.standard,
-    });
-  }
-
-  const mapLegendItems = [
-    {
-      id: "animal",
-      label: "Animal",
-      description: "Approximate rescue location",
-      color: MAP_MARKER_COLORS.critical,
-    },
-    ...(shelterLat && shelterLon
-      ? [
-          {
-            id: "shelter",
-            label: "Shelter",
-            description: shelterName ?? "Assigned destination",
-            color: MAP_MARKER_COLORS.standard,
-          },
-        ]
-      : []),
-  ];
-
   return (
-    <article className="rounded-2xl border border-sage/25 bg-white shadow-card overflow-hidden">
-      <Link
-        href={linkHref}
-        prefetch
-        onClick={() => startPending(linkHref)}
-        className="block group transition-shadow hover:shadow-card-hover"
-      >
-        <div className="p-4 pb-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-graphite/50">
-            Active Rescue Case
-          </p>
-          <div className="mt-2 flex items-start justify-between gap-2">
-            <h2 className="text-lg font-bold text-graphite">{caseNumber}</h2>
-            {urgencyScore > 0 && (
-              <UrgencyBadge level={urgencyLevel} score={urgencyScore} size="md" />
-            )}
-          </div>
-          <p className="mt-1 text-sm font-semibold text-graphite">
-            {getCitizenStatusLabel(status)}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-3 text-xs text-graphite/60">
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5" aria-hidden />
-              Approximate location
-            </span>
-            {rescuerName && (
-              <span className="flex items-center gap-1">
-                <Navigation className="h-3.5 w-3.5" aria-hidden />
-                {rescuerName} is responding
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="relative mt-3 h-44 w-full bg-sage/15">
+    <Link
+      href={linkHref}
+      prefetch
+      onClick={() => startPending(linkHref)}
+      className="block overflow-hidden rounded-2xl border border-sage/25 bg-white shadow-card transition-shadow active:bg-bone/40"
+    >
+      <div className="flex gap-3 p-3">
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-sage/15">
           <Image
             src={imageUrl}
-            alt={`${formatStatus(species)} rescue case`}
+            alt={`${formatStatus(species)} rescue`}
             fill
-            className="object-cover object-center"
+            className="object-cover"
             unoptimized
-            sizes="(max-width: 480px) 100vw, 480px"
+            sizes="64px"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-          <div className="absolute bottom-3 left-4 right-4">
-            <p className="text-sm text-white/90 line-clamp-2 drop-shadow">{description}</p>
-          </div>
         </div>
-
-        {progressIndex >= 0 && (
-          <div className="px-4 py-4 border-t border-sage/15">
-            <RescueProgress currentIndex={progressIndex} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+                Active rescue
+              </p>
+              <p className="truncate text-base font-bold text-graphite">{caseNumber}</p>
+            </div>
+            {urgencyScore > 0 ? (
+              <UrgencyBadge level={urgencyLevel} score={urgencyScore} size="sm" />
+            ) : null}
           </div>
-        )}
-      </Link>
-
-      <div className="px-4 pb-4 pointer-events-none">
-        <MapView
-          className="h-32 rounded-xl overflow-hidden border border-sage/20"
-          center={{ latitude: approximateLat, longitude: approximateLon }}
-          zoom={12}
-          markers={markers}
-          legendItems={mapLegendItems}
-          compactLegend
-          interactive={false}
-        />
+          <p className="mt-0.5 truncate text-sm text-graphite/70">
+            {getCitizenStatusLabel(status)}
+          </p>
+          {!compact && rescuerName ? (
+            <p className="mt-0.5 truncate text-xs text-graphite/50">
+              {rescuerName} responding
+            </p>
+          ) : null}
+          {!compact ? (
+            <p className="mt-1 line-clamp-1 text-xs text-graphite/55">{description}</p>
+          ) : null}
+        </div>
+        <ChevronRight className="mt-5 h-4 w-4 shrink-0 text-graphite/30" aria-hidden />
       </div>
-    </article>
+      {progressIndex >= 0 ? (
+        <div className="border-t border-sage/15 px-3 py-2.5">
+          <RescueProgress currentIndex={progressIndex} compact />
+        </div>
+      ) : null}
+    </Link>
   );
 }

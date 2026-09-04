@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2 } from "lucide-react";
 import { useActionPending } from "@/components/shared/useActionPending";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   acceptAssignmentAction,
   declineAssignmentAction,
@@ -35,6 +36,7 @@ export function CaseActionsClient({
     useActionPending();
   const [declineReason, setDeclineReason] = useState("");
   const [showDecline, setShowDecline] = useState(false);
+  const [confirmSecure, setConfirmSecure] = useState(false);
 
   async function runAction(fn: () => Promise<ActionResult>) {
     setActionError(null);
@@ -65,7 +67,7 @@ export function CaseActionsClient({
           <Button
             onClick={() => runAction(() => acceptAssignmentAction(assignmentId))}
             disabled={loading}
-            className="flex-1"
+            className="min-h-11 flex-1"
           >
             Accept Assignment
           </Button>
@@ -73,6 +75,7 @@ export function CaseActionsClient({
             variant="outline"
             onClick={() => setShowDecline(!showDecline)}
             disabled={loading}
+            className="min-h-11"
           >
             Decline
           </Button>
@@ -105,15 +108,28 @@ export function CaseActionsClient({
       )}
 
       {canMarkSecured && (
-        <Button
-          onClick={() =>
-            runAction(() => updateCaseStatusAction(caseId, "animal_secured"))
-          }
-          disabled={loading}
-          className="w-full"
-        >
-          {loading ? "Updating..." : "Mark Animal Secured"}
-        </Button>
+        <>
+          <Button
+            onClick={() => setConfirmSecure(true)}
+            disabled={loading}
+            className="min-h-11 w-full"
+          >
+            {loading ? "Updating..." : "Mark Animal Secured"}
+          </Button>
+          <ConfirmDialog
+            open={confirmSecure}
+            title="Mark animal secured?"
+            message="Confirm only when the animal is safely in your care. Shelter staff will handle the next handoff step."
+            confirmLabel="Mark secured"
+            cancelLabel="Cancel"
+            variant="primary"
+            pending={loading}
+            onConfirm={() =>
+              runAction(() => updateCaseStatusAction(caseId, "animal_secured"))
+            }
+            onClose={() => setConfirmSecure(false)}
+          />
+        </>
       )}
 
       {waitingForStaff && (

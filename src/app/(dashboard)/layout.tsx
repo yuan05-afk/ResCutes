@@ -5,6 +5,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { NotificationBellServer } from "@/components/notifications/NotificationBellServer";
 import { NotificationBellFallback } from "@/components/notifications/NotificationBellClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {

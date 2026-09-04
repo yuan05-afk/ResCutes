@@ -841,16 +841,17 @@ async function seedDemo() {
       ),
     );
 
-  const readyNames = SEED_ANIMALS.filter(
+  const readyAnimals = SEED_ANIMALS.filter(
     (a) => a.pathwayStage === "ready_for_adoption",
-  ).map((a) => a.name);
+  ).slice(0, 2);
 
   await db.insert(notifications).values([
-    ...readyNames.slice(0, 2).map((name) => ({
+    ...readyAnimals.map((animal) => ({
       userId: admin.id,
       type: "adoption" as const,
       title: "Animal ready for adoption",
-      message: `${name} is medically cleared and listed as ready for adoption.`,
+      message: `${animal.name} is medically cleared and listed as ready for adoption.`,
+      caseId: stableUuid(`seed-case-${animal.slug}`),
       read: false,
     })),
     {

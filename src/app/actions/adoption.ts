@@ -4,6 +4,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { auth } from "@/lib/auth";
 import {
   createAdoptionApplication,
+  recordAdoptionInterest,
+  clearAdoptionInterests,
   reviewAdoptionApplication,
   updateAnimalProfile,
   deleteAnimal,
@@ -24,10 +26,61 @@ function canManageAdoption(roles: Parameters<typeof canManageCases>[0]) {
 
 function revalidateAdoptionViews(animalId?: string) {
   revalidatePath("/adoption");
+  revalidatePath("/mobile/adoption");
   revalidatePath("/animals");
   revalidatePath("/dashboard");
   revalidateTag("animals");
   if (animalId) revalidatePath(`/animals/${animalId}`);
+}
+
+export async function passAdoptionAnimalAction(animalId: string) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+
+  const result = await recordAdoptionInterest(
+    session.user.id,
+    animalId,
+    "pass",
+  );
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath("/mobile/adoption");
+  return { success: true as const };
+}
+
+export async function expressAdoptionInterestAction(animalId: string) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+
+  const result = await recordAdoptionInterest(
+    session.user.id,
+    animalId,
+    "interested",
+  );
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath("/mobile/adoption");
+  return { success: true as const };
+}
+
+/** Put passed animals back into the swipe queue. */
+export async function resetAdoptionPassesAction() {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+
+  const result = await clearAdoptionInterests(session.user.id, "pass");
+  revalidatePath("/mobile/adoption");
+  return { success: true as const, removed: result.removed };
+}
+
+/** Clear all swipe decisions (pass + interest). Does not withdraw applications. */
+export async function resetAllAdoptionSwipesAction() {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+
+  const result = await clearAdoptionInterests(session.user.id, "all");
+  revalidatePath("/mobile/adoption");
+  return { success: true as const, removed: result.removed };
 }
 
 export async function submitAdoptionApplicationAction(input: {
@@ -44,9 +97,6 @@ export async function submitAdoptionApplicationAction(input: {
 }) {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
-  if (!canManageAdoption(session.user.roles)) {
-    return { error: "Forbidden" };
-  }
 
   const name = input.applicantName.trim();
   if (!name) return { error: "Applicant name is required" };
@@ -108,6 +158,8 @@ export async function submitAdoptionApplicationAction(input: {
   });
 
   if (!result.ok) return { error: result.error };
+
+  await recordAdoptionInterest(session.user.id, input.animalId, "interested");
 
   revalidateAdoptionViews(input.animalId);
   return { success: true, applicationId: result.application.id };

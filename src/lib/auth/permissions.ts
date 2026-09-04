@@ -98,6 +98,29 @@ export function shouldUseRescuerMobileExperience(userRoles: Role[]): boolean {
   return canActAsRescuer(userRoles);
 }
 
+/**
+ * Mobile case detail access: reporter of the case, assigned rescuer,
+ * or staff/admin who manage cases. Enforced on the server.
+ */
+export function canAccessMobileCase(opts: {
+  userId: string;
+  userRoles: Role[];
+  reporterId: string;
+  assignedRescuerIds?: string[];
+}): boolean {
+  if (isAdministrator(opts.userRoles) || canManageCases(opts.userRoles)) {
+    return true;
+  }
+  if (opts.reporterId === opts.userId) return true;
+  if (
+    canActAsRescuer(opts.userRoles) &&
+    opts.assignedRescuerIds?.includes(opts.userId)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function getPrimaryMobileRole(userRoles: Role[]): Role {
   if (shouldUseRescuerMobileExperience(userRoles)) return ROLES.RESCUER;
   return ROLES.CITIZEN;

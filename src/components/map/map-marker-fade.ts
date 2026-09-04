@@ -40,6 +40,7 @@ export function markerDataSignature(marker: {
   urgencyLevel?: string;
   legendLayerId?: string;
   label?: string;
+  photoUrl?: string;
 }): string {
   return [
     marker.id,
@@ -49,6 +50,7 @@ export function markerDataSignature(marker: {
     marker.urgencyLevel ?? "",
     marker.legendLayerId ?? "",
     marker.label ?? "",
+    marker.photoUrl ?? "",
   ].join(":");
 }
 

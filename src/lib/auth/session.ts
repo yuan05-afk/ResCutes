@@ -3,10 +3,20 @@ import type { Role } from "@/lib/auth/permissions";
 import { getAppSession } from "@/lib/auth/stack-session";
 import type { AppSession } from "@/lib/auth/types";
 
-export async function requireAuth(): Promise<AppSession> {
+export async function requireAuth(callbackUrl?: string): Promise<AppSession> {
   const session = await getAppSession();
   if (!session?.user) {
-    redirect("/login");
+    const safe =
+      callbackUrl &&
+      callbackUrl.startsWith("/") &&
+      !callbackUrl.startsWith("//")
+        ? callbackUrl
+        : undefined;
+    redirect(
+      safe
+        ? `/login?callbackUrl=${encodeURIComponent(safe)}`
+        : "/login",
+    );
   }
   return session;
 }

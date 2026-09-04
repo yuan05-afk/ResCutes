@@ -33,6 +33,9 @@ yarn-error.log*
 .env
 .env*.local
 
+# local report photo uploads (demo fallback without Blob token)
+/public/uploads/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -9,6 +9,7 @@ import {
   canActAsRescuer,
   canUseCitizenMobileFeatures,
   canAccessDashboard,
+  canAccessMobileCase,
   shouldUseRescuerMobileExperience,
   getDisplayRoleLabel,
   isAdministrator,
@@ -50,5 +51,52 @@ describe("Authorization helpers", () => {
     expect(canUseCitizenMobileFeatures(admin)).toBe(true);
     expect(shouldUseRescuerMobileExperience(admin)).toBe(true);
     expect(getDisplayRoleLabel(admin)).toBe("Administrator");
+  });
+
+  it("gates mobile case detail to reporter, assigned rescuer, or staff", () => {
+    const caseOpts = {
+      reporterId: "citizen-1",
+      assignedRescuerIds: ["rescuer-1"],
+    };
+
+    expect(
+      canAccessMobileCase({
+        userId: "citizen-1",
+        userRoles: [ROLES.CITIZEN],
+        ...caseOpts,
+      }),
+    ).toBe(true);
+
+    expect(
+      canAccessMobileCase({
+        userId: "other-citizen",
+        userRoles: [ROLES.CITIZEN],
+        ...caseOpts,
+      }),
+    ).toBe(false);
+
+    expect(
+      canAccessMobileCase({
+        userId: "rescuer-1",
+        userRoles: [ROLES.RESCUER],
+        ...caseOpts,
+      }),
+    ).toBe(true);
+
+    expect(
+      canAccessMobileCase({
+        userId: "rescuer-2",
+        userRoles: [ROLES.RESCUER],
+        ...caseOpts,
+      }),
+    ).toBe(false);
+
+    expect(
+      canAccessMobileCase({
+        userId: "staff-1",
+        userRoles: [ROLES.SHELTER_STAFF],
+        ...caseOpts,
+      }),
+    ).toBe(true);
   });
 });

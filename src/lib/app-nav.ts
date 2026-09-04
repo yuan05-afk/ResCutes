@@ -12,10 +12,10 @@ export const DASHBOARD_PREFETCH_RANK: { href: string; weight: number }[] = [
 
 export const DASHBOARD_ROUTE_HREFS = DASHBOARD_PREFETCH_RANK.map((r) => r.href);
 
-/** Mobile PWA routes. Nearby/map is heaviest. */
+/** Mobile PWA routes. Home map is heaviest. */
 export const MOBILE_PREFETCH_RANK: { href: string; weight: number }[] = [
-  { href: "/mobile/nearby", weight: 10 },
-  { href: "/mobile", weight: 8 },
+  { href: "/mobile", weight: 10 },
+  { href: "/mobile/adoption", weight: 8 },
   { href: "/mobile/cases", weight: 7 },
   { href: "/mobile/report", weight: 5 },
   { href: "/mobile/profile", weight: 3 },

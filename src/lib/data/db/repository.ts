@@ -13,6 +13,7 @@ import {
 import { getDb } from "@/db";
 import {
   adoptionApplications,
+  adoptionInterests,
   animalNotes,
   animals,
   casePhotos,
@@ -1169,6 +1170,84 @@ export async function insertAdoptionApplication(input: {
     where: eq(animals.id, row.animalId),
   });
   return mapAdoptionApplicationRow(row, animal);
+}
+
+export async function fetchAdoptionInterestAnimalIds(
+  userId: string,
+): Promise<string[]> {
+  const db = getDb();
+  const rows = await db
+    .select({ animalId: adoptionInterests.animalId })
+    .from(adoptionInterests)
+    .where(eq(adoptionInterests.userId, userId));
+  return rows.map((r) => r.animalId);
+}
+
+export async function fetchAdoptionInterestsForUser(
+  userId: string,
+): Promise<Array<{ animalId: string; decision: "pass" | "interested" }>> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      animalId: adoptionInterests.animalId,
+      decision: adoptionInterests.decision,
+    })
+    .from(adoptionInterests)
+    .where(eq(adoptionInterests.userId, userId));
+  return rows.map((r) => ({
+    animalId: r.animalId,
+    decision: r.decision as "pass" | "interested",
+  }));
+}
+
+export async function deleteAdoptionInterestsForUser(
+  userId: string,
+  decision?: "pass" | "interested",
+): Promise<number> {
+  const db = getDb();
+  const condition = decision
+    ? and(
+        eq(adoptionInterests.userId, userId),
+        eq(adoptionInterests.decision, decision),
+      )
+    : eq(adoptionInterests.userId, userId);
+  const removed = await db
+    .delete(adoptionInterests)
+    .where(condition)
+    .returning({ id: adoptionInterests.id });
+  return removed.length;
+}
+
+export async function upsertAdoptionInterest(input: {
+  userId: string;
+  animalId: string;
+  decision: "pass" | "interested";
+}): Promise<void> {
+  const db = getDb();
+  const existing = await db
+    .select({ id: adoptionInterests.id })
+    .from(adoptionInterests)
+    .where(
+      and(
+        eq(adoptionInterests.userId, input.userId),
+        eq(adoptionInterests.animalId, input.animalId),
+      ),
+    )
+    .limit(1);
+
+  if (existing[0]) {
+    await db
+      .update(adoptionInterests)
+      .set({ decision: input.decision })
+      .where(eq(adoptionInterests.id, existing[0].id));
+    return;
+  }
+
+  await db.insert(adoptionInterests).values({
+    userId: input.userId,
+    animalId: input.animalId,
+    decision: input.decision,
+  });
 }
 
 export async function updateAdoptionApplication(

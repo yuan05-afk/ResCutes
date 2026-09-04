@@ -28,7 +28,7 @@ test.describe("Mobile device frame", () => {
 
     await page.getByRole("link", { name: "Cases", exact: true }).click();
     await page.waitForURL("/mobile/cases");
-    await expect(page.getByRole("heading", { name: "My Cases" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cases" })).toBeVisible();
 
     await page.getByRole("link", { name: "Home", exact: true }).click();
     await page.waitForURL("/mobile");

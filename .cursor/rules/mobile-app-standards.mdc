@@ -1,0 +1,61 @@
+---
+description: Non-negotiable mobile app UX, privacy, security, and platform standards for ResCutes
+alwaysApply: true
+---
+
+# Mobile app standards (ResCutes)
+
+## Core principle
+
+The mobile app is **not** a compressed website. Optimize for quick, frequent, personalized, time-sensitive, on-the-go tasks. Every mobile feature must earn its place.
+
+**Web-primary (do not port densely to mobile):** administration, large tables, detailed reports, bulk ops, complex config, long-form entry, public/SEO content, staff adoption review.
+
+**Shared across platforms:** backend, database, auth, authorization rules, business logic, terminology, synchronized data. Interfaces and workflows may differ.
+
+## Mobile vs web ownership
+
+| Mobile | Web |
+|--------|-----|
+| Report animal (camera, location) | Verify / reject / duplicate / dispatch at scale |
+| Track own report; accept/decline assignment | Medical, intake, shelter settings, animals registry |
+| Field status (e.g. mark secured); open navigation | Adoption applications table / staff review |
+| Map home (shelters + open field cases for rescuers) | Dense dashboards, bulk tools, staff case tables |
+| Adoption discover (swipe pass / interest + short apply) | Full adoption admin pipeline |
+
+## UX rules (must follow)
+
+1. One clear purpose per screen; one obvious primary action.
+2. Primary nav: 3–5 destinations only.
+3. Familiar navigation; respect OS Back (in-app back on detail screens).
+4. No desktop sidebars, dense dashboards, or large tables on mobile.
+5. Progressive disclosure: essentials first; details on demand (sheets/expand).
+6. Tap targets ≥ ~44×44 pt (use `min-h-11 min-w-11` for icon buttons).
+7. Never depend on hover, right-click, or hidden gestures.
+8. Readable text; support scalable text; sufficient contrast; never color alone for meaning.
+9. Meaningful accessibility labels on icons/controls.
+10. Short forms; correct keyboards, autofill, pickers; minimize typing.
+11. Preserve user-entered data across navigation, errors, and interruptions (drafts).
+12. Immediate visual feedback after every action; disable repeat submit while pending.
+13. Handle loading, empty, success, error, offline, stale, and retry states.
+14. Confirm irreversible actions or provide Undo.
+15. Human-readable errors with recovery steps; no blank screens, endless spinners, raw/technical silent failures.
+
+## Permissions and privacy
+
+- Request camera/location/etc. only when the user activates that feature (not on launch).
+- Explain why before the OS prompt; deny gracefully with a fallback.
+- Minimum data; never leak secrets or PII via logs, notification previews, URLs, or errors.
+- Enforce authorization on the **server** (not only by hiding UI). Case/assignment access must be gated.
+
+## Security
+
+- No secrets in the client; treat mobile as untrusted.
+- AuthZ, validation, and sensitive decisions on the server.
+- HTTPS; validate client and server; safe expired-session handling.
+
+## When changing mobile code
+
+1. Prefer incremental fixes that preserve working flows and the existing design system (evergreen/bone/sage).
+2. Do not claim something works unless verified (lint/tests/manual).
+3. Prefer sheets/compact cards over multi-panel desktop layouts.

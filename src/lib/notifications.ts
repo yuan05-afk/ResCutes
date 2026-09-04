@@ -91,6 +91,16 @@ export function mapNotificationRecord(n: NotificationRecord): AppNotification {
   };
 }
 
+/** Mobile deep link for an inbox item. Case-linked updates open the case; adoption opens the swipe deck. */
+export function mobileHrefForNotification(n: {
+  type?: string;
+  caseId?: string | null;
+}): string | null {
+  if (n.caseId) return `/mobile/cases/${n.caseId}`;
+  if (n.type === "adoption") return "/mobile/adoption";
+  return null;
+}
+
 /** Request-scoped + tagged cache for the notification bell/panel. */
 export const getAppNotificationsCached = cache(function getAppNotificationsCached(
   userId: string,

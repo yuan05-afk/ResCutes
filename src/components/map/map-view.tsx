@@ -5,7 +5,12 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { cn } from "@/lib/utils";
 import { StateMessage } from "@/components/status/state-message";
-import { createMapMarkerElement } from "@/components/map/create-map-marker";
+import { createMapMarkerElement, applyMarkerPhotoVisibility } from "@/components/map/create-map-marker";
+import {
+  resolveCaseMarkerLayout,
+  CASE_MARKER_PHOTO_MIN_ZOOM,
+  type CaseMarkerLayoutMode,
+} from "@/components/map/case-marker-photos";
 import { MapLegend } from "@/components/map/map-legend";
 import {
   buildMapPopupHtml,
@@ -41,6 +46,8 @@ export interface MapMarker {
   notes?: string;
   capacityLabel?: string;
   sourceLabel?: string;
+  /** Case animal photo; shown on the pin only when zoomed in enough. */
+  photoUrl?: string;
 }
 
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
@@ -123,6 +130,7 @@ function updateMarkerElement(
   marker: MapMarker,
   selected: boolean,
   clickable: boolean,
+  showPhoto: boolean,
 ) {
   const color = marker.color ?? markerColorForUrgency(marker.urgencyLevel);
   element.classList.toggle("rescutes-map-marker-shell--selected", selected);
@@ -134,8 +142,57 @@ function updateMarkerElement(
     fade.style.setProperty("--marker-color", color);
   }
 
+  if (marker.photoUrl) {
+    element.dataset.photoUrl = marker.photoUrl;
+    let img = element.querySelector<HTMLImageElement>(
+      ":scope > .rescutes-map-marker-fade > .rescutes-map-marker-photo",
+    );
+    if (!img && fade) {
+      img = document.createElement("img");
+      img.className = "rescutes-map-marker-photo";
+      img.alt = "";
+      img.decoding = "async";
+      img.loading = "lazy";
+      img.draggable = false;
+      fade.appendChild(img);
+    }
+    if (img) img.src = marker.photoUrl;
+  } else {
+    delete element.dataset.photoUrl;
+    element
+      .querySelector(":scope > .rescutes-map-marker-fade > .rescutes-map-marker-photo")
+      ?.remove();
+  }
+
   const layerId = resolveMarkerLayerId(marker);
   element.dataset.legendLayer = layerId;
+  applyMarkerPhotoVisibility(element, showPhoto);
+}
+
+function syncMarkerPopupOffset(
+  mapMarker: mapboxgl.Marker,
+  element: HTMLElement,
+  showPhoto: boolean,
+) {
+  const popup = mapMarker.getPopup();
+  if (!popup) return;
+  const offset =
+    showPhoto && element.dataset.photoUrl ? 36 : 14;
+  popup.setOffset(offset);
+}
+
+function projectMarkerToScreen(
+  map: mapboxgl.Map,
+  longitude: number,
+  latitude: number,
+) {
+  try {
+    const point = map.project([longitude, latitude]);
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
+    return { x: point.x, y: point.y };
+  } catch {
+    return null;
+  }
 }
 
 export function MapView({
@@ -172,6 +229,8 @@ export function MapView({
   const selectedMarkerIdRef = useRef(selectedMarkerId);
   const markersRef = useRef(markers);
   const flyGenerationRef = useRef(0);
+  const markerLayoutRef = useRef<Map<string, CaseMarkerLayoutMode>>(new Map());
+  const photosEnabledRef = useRef(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [internalHiddenLayers, setInternalHiddenLayers] = useState<Set<string>>(
@@ -250,9 +309,10 @@ export function MapView({
     setMapInteractivity(map, interactive);
 
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+    // Keep attribution off the bottom edge so it never covers the legend labels.
     map.addControl(
       new mapboxgl.AttributionControl({ compact: true }),
-      "bottom-right",
+      "top-left",
     );
     mapRef.current = map;
 
@@ -306,6 +366,25 @@ export function MapView({
     const registry = registryRef.current;
     const nextIds = new Set(markers.map((marker) => marker.id));
     const clickable = Boolean(onMarkerClickRef.current);
+    const photosEnabled = map.getZoom() >= CASE_MARKER_PHOTO_MIN_ZOOM;
+    const layout = resolveCaseMarkerLayout(
+      markers
+        .filter((marker) => {
+          const layerId = resolveMarkerLayerId(marker);
+          return !hiddenLegendLayersRef.current.has(layerId);
+        })
+        .map((marker) => ({
+          id: marker.id,
+          longitude: marker.longitude,
+          latitude: marker.latitude,
+          urgencyLevel: marker.urgencyLevel,
+          selected: selectedMarkerId === marker.id,
+          hasPhoto: Boolean(marker.photoUrl),
+        })),
+      (longitude, latitude) => projectMarkerToScreen(map, longitude, latitude),
+      { photosEnabled },
+    );
+    markerLayoutRef.current = layout;
 
     for (const [id, entry] of [...registry.entries()]) {
       if (nextIds.has(id)) continue;
@@ -327,7 +406,10 @@ export function MapView({
       const selected = selectedMarkerId === marker.id;
       const color = marker.color ?? markerColorForUrgency(marker.urgencyLevel);
       const layerId = resolveMarkerLayerId(marker);
-      const hidden = hiddenLegendLayersRef.current.has(layerId);
+      const legendHidden = hiddenLegendLayersRef.current.has(layerId);
+      const mode = layout.get(marker.id) ?? "dot";
+      const showPhoto = mode === "photo";
+      const suppressed = mode === "hidden" || legendHidden;
       const existing = registry.get(marker.id);
 
       if (existing) {
@@ -339,13 +421,26 @@ export function MapView({
 
         if (existing.signature !== signature) {
           existing.marker.setLngLat([marker.longitude, marker.latitude]);
-          updateMarkerElement(existing.element, marker, selected, clickable);
+          updateMarkerElement(
+            existing.element,
+            marker,
+            selected,
+            clickable,
+            showPhoto,
+          );
           existing.signature = signature;
         } else {
-          updateMarkerElement(existing.element, marker, selected, clickable);
+          updateMarkerElement(
+            existing.element,
+            marker,
+            selected,
+            clickable,
+            showPhoto,
+          );
         }
 
-        applyMarkerHidden(existing.element, hidden, true);
+        syncMarkerPopupOffset(existing.marker, existing.element, showPhoto);
+        applyMarkerHidden(existing.element, suppressed, true);
         continue;
       }
 
@@ -353,9 +448,12 @@ export function MapView({
         color,
         selected,
         clickable,
-        label: marker.label,
+        label: marker.label ?? marker.caseNumber,
         legendLayerId: layerId,
+        photoUrl: marker.photoUrl,
+        showPhoto,
       });
+      el.dataset.markerId = marker.id;
 
       if (clickable) {
         el.addEventListener("click", (e) => {
@@ -369,9 +467,11 @@ export function MapView({
         .setLngLat([marker.longitude, marker.latitude])
         .addTo(map);
 
+      applyMarkerPhotoVisibility(el, showPhoto);
+
       if (hasMapPopupContent(marker)) {
         const popup = new mapboxgl.Popup({
-          offset: 14,
+          offset: showPhoto ? 36 : 14,
           closeButton: false,
           className: "rescutes-map-popup",
         }).setHTML(buildMapPopupHtml(marker));
@@ -400,7 +500,7 @@ export function MapView({
 
       applyMarkerHidden(el, true, false);
       requestAnimationFrame(() => {
-        applyMarkerHidden(el, hidden, true);
+        applyMarkerHidden(el, suppressed, true);
       });
 
       registry.set(marker.id, {
@@ -412,12 +512,107 @@ export function MapView({
   }, [markerOverlaySignature, selectedMarkerId, loading]);
 
   useEffect(() => {
+    const map = mapRef.current;
+    if (!map || loading) return;
+
+    let raf = 0;
+
+    function layoutsEqual(
+      a: Map<string, CaseMarkerLayoutMode>,
+      b: Map<string, CaseMarkerLayoutMode>,
+    ) {
+      if (a.size !== b.size) return false;
+      for (const [id, mode] of a) {
+        if (b.get(id) !== mode) return false;
+      }
+      return true;
+    }
+
+    function applyMarkerLayout() {
+      const current = mapRef.current;
+      if (!current) return;
+
+      const photosEnabled = current.getZoom() >= CASE_MARKER_PHOTO_MIN_ZOOM;
+      const candidates = markersRef.current
+        .filter((marker) => {
+          const layerId = resolveMarkerLayerId(marker);
+          return !hiddenLegendLayersRef.current.has(layerId);
+        })
+        .map((marker) => ({
+          id: marker.id,
+          longitude: marker.longitude,
+          latitude: marker.latitude,
+          urgencyLevel: marker.urgencyLevel,
+          selected: selectedMarkerIdRef.current === marker.id,
+          hasPhoto: Boolean(marker.photoUrl),
+        }));
+
+      const layout = resolveCaseMarkerLayout(
+        candidates,
+        (longitude, latitude) =>
+          projectMarkerToScreen(current, longitude, latitude),
+        { photosEnabled },
+      );
+
+      if (
+        layoutsEqual(layout, markerLayoutRef.current) &&
+        photosEnabled === photosEnabledRef.current
+      ) {
+        return;
+      }
+      markerLayoutRef.current = layout;
+      photosEnabledRef.current = photosEnabled;
+
+      for (const [id, entry] of registryRef.current.entries()) {
+        const mode = layout.get(id) ?? "dot";
+        const showPhoto = mode === "photo";
+        const legendHidden = hiddenLegendLayersRef.current.has(
+          entry.element.dataset.legendLayer ?? "",
+        );
+        applyMarkerPhotoVisibility(entry.element, showPhoto);
+        syncMarkerPopupOffset(entry.marker, entry.element, showPhoto);
+        applyMarkerHidden(
+          entry.element,
+          mode === "hidden" || legendHidden,
+          true,
+        );
+      }
+    }
+
+    function scheduleMarkerLayout() {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        applyMarkerLayout();
+      });
+    }
+
+    applyMarkerLayout();
+    map.on("zoom", scheduleMarkerLayout);
+    map.on("zoomend", applyMarkerLayout);
+    map.on("move", scheduleMarkerLayout);
+    map.on("moveend", applyMarkerLayout);
+    map.on("resize", scheduleMarkerLayout);
+
+    return () => {
+      if (raf) window.cancelAnimationFrame(raf);
+      map.off("zoom", scheduleMarkerLayout);
+      map.off("zoomend", applyMarkerLayout);
+      map.off("move", scheduleMarkerLayout);
+      map.off("moveend", applyMarkerLayout);
+      map.off("resize", scheduleMarkerLayout);
+    };
+  }, [loading]);
+
+  useEffect(() => {
     for (const entry of registryRef.current.values()) {
       const layerId = entry.element.dataset.legendLayer;
       if (!layerId) continue;
+      const markerId = entry.element.dataset.markerId ?? "";
+      const mode = markerLayoutRef.current.get(markerId) ?? "dot";
       applyMarkerHidden(
         entry.element,
-        hiddenLegendLayers.has(layerId),
+        mode === "hidden" || hiddenLegendLayers.has(layerId),
         true,
       );
     }

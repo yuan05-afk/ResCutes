@@ -24,12 +24,19 @@ export function AdminExperienceSwitcher({
   const buttonText = variant === "web" ? "Mobile app" : "Dashboard";
   const Icon = variant === "web" ? Smartphone : Monitor;
 
+  const openInNewTab = variant === "web";
+
   return (
     <Link
       href={href}
-      prefetch
-      onMouseEnter={() => prefetchRouteNow(router, href)}
-      onClick={() => startPending(href)}
+      prefetch={!openInNewTab}
+      {...(openInNewTab
+        ? { target: "_blank", rel: "noopener noreferrer" }
+        : {})}
+      onMouseEnter={
+        openInNewTab ? undefined : () => prefetchRouteNow(router, href)
+      }
+      onClick={openInNewTab ? undefined : () => startPending(href)}
       className={cn(
         "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
         "border-evergreen/30 bg-evergreen text-white hover:bg-evergreen/90",

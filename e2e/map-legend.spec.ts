@@ -68,12 +68,12 @@ test.describe("Map legend layout", () => {
     });
   });
 
-  test("mobile nearby - compact horizontal legend beside Mapbox logo", async ({
+  test("mobile home map - compact horizontal legend beside Mapbox logo", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loginAsRescuer(page);
-    await page.goto("/mobile/nearby");
+    await page.goto("/mobile");
     await page.waitForSelector(".rescutes-map", { timeout: 30_000 });
 
     const legend = page.getByRole("region", { name: "Map legend" });

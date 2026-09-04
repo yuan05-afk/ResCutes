@@ -1,203 +1,79 @@
-import Link from "next/link";
 import { requireAuth } from "@/lib/auth/session";
+import { getCases, getCaseLocation, resolveCurrentUrgency } from "@/lib/data/service";
 import {
-  getAssignmentsForCase,
-  getAssignmentsForCases,
-  getCaseById,
-  getFirstPendingAssignment,
-  getShelterById,
-  resolveCurrentUrgency,
-} from "@/lib/data/service";
-import { getMobileHomeDataCached } from "@/lib/data/cached-loaders";
-import {
-  isAdministrator,
+  canViewExactLocation,
   shouldUseRescuerMobileExperience,
-  canUseCitizenMobileFeatures,
 } from "@/lib/auth/permissions";
-import { MobileHeader } from "@/components/mobile/mobile-header";
-import { ReportCtaCard } from "@/components/mobile/report-cta-card";
-import { ActiveRescueCard } from "@/components/mobile/active-rescue-card";
-import { Button } from "@/components/ui/button";
-import { UrgencyBadge } from "@/components/status/urgency-badge";
-import { CheckCircle2 } from "lucide-react";
-import { isActiveCaseStatus } from "@/lib/rescue-stages";
+import { getCuratedShelterRecords } from "@/lib/data/philippines-shelters-directory";
+import { isActiveCaseStatus, statusToStage } from "@/lib/rescue-stages";
+import { HomeMapClient } from "./home-map-client";
 
 export default async function MobileHomePage() {
   const session = await requireAuth();
-  const userId = session.user.id;
-  const roles = session.user.roles;
-  const isAdmin = isAdministrator(roles);
-  const isRescuer = shouldUseRescuerMobileExperience(roles);
-  const showCitizenFeatures = canUseCitizenMobileFeatures(roles);
+  const isRescuer = shouldUseRescuerMobileExperience(session.user.roles);
+  const canExact = canViewExactLocation(session.user.roles);
 
-  const { notifications, myCases } = await getMobileHomeDataCached(userId, {
-    isRescuer,
-    isAdministrator: isAdmin,
-  });
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const recentNotifications = notifications.slice(0, 3);
+  const shelters = getCuratedShelterRecords().map((s) => ({
+    id: s.id,
+    name: s.name,
+    address: s.address,
+    city: s.city,
+    region: s.region,
+    latitude: s.latitude,
+    longitude: s.longitude,
+    phone: s.phone,
+    email: s.email,
+    website: s.website,
+  }));
 
-  const activeCases = myCases.filter((c) => isActiveCaseStatus(c.status));
-
-  const activeCase = activeCases.sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  )[0];
-
-  let pendingAssignment: {
+  let fieldCases: Array<{
     id: string;
-    caseId: string;
-    case: NonNullable<Awaited<ReturnType<typeof getCaseById>>>;
-  } | null = null;
+    caseNumber: string;
+    species: string;
+    urgencyLevel: string;
+    urgencyScore: number;
+    status: string;
+    latitude: number;
+    longitude: number;
+    description: string;
+    photoUrl?: string;
+  }> = [];
 
   if (isRescuer) {
-    if (isAdmin) {
-      const assignment = await getFirstPendingAssignment();
-      if (assignment) {
-        const caseItem = await getCaseById(assignment.caseId);
-        if (caseItem) {
-          pendingAssignment = { ...assignment, case: caseItem };
-        }
-      }
-    } else {
-      const assignmentMap = await getAssignmentsForCases(myCases.map((c) => c.id));
-      for (const c of myCases) {
-        const pending = assignmentMap
-          .get(c.id)
-          ?.find((a) => a.rescuerId === userId && a.status === "pending");
-        if (pending) {
-          pendingAssignment = { ...pending, case: c };
-          break;
-        }
-      }
-    }
-  }
+    const allCases = await getCases();
+    const verifiedCases = allCases.filter((c) => {
+      if (!isActiveCaseStatus(c.status)) return false;
+      const stage = statusToStage(c.status);
+      return (
+        stage === "verified" ||
+        stage === "with_rescuer" ||
+        stage === "animal_secured"
+      );
+    });
 
-  let rescuerName: string | undefined;
-  let shelterLat: number | undefined;
-  let shelterLon: number | undefined;
-  let shelterName: string | undefined;
-
-  if (activeCase) {
-    const assignments = await getAssignmentsForCase(activeCase.id);
-    const accepted = assignments.find(
-      (a) => a.status === "accepted" || a.status === "completed",
-    );
-    rescuerName = accepted?.rescuerName;
-    if (activeCase.assignedShelterId) {
-      const shelter = await getShelterById(activeCase.assignedShelterId);
-      if (shelter) {
-        shelterLat = shelter.latitude;
-        shelterLon = shelter.longitude;
-        shelterName = shelter.name;
-      }
-    }
+    fieldCases = verifiedCases.map((c) => {
+      const loc = getCaseLocation(c, session.user.roles, canExact);
+      const urgency = resolveCurrentUrgency(c);
+      return {
+        id: c.id,
+        caseNumber: c.caseNumber,
+        species: c.species,
+        urgencyLevel: urgency.level,
+        urgencyScore: urgency.score,
+        status: c.status,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        description: c.description,
+        photoUrl: c.photoUrl,
+      };
+    });
   }
 
   return (
-    <div>
-      <MobileHeader
-        userName={session.user.name}
-        notificationCount={unreadCount}
-      />
-
-      <main className="px-4 py-5 space-y-5">
-        {showCitizenFeatures && <ReportCtaCard />}
-
-        {pendingAssignment && (
-          <div className="rounded-2xl border border-ochre/30 bg-ochre/5 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ochre">
-              New Assignment
-            </p>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="font-bold text-graphite">
-                {pendingAssignment.case.caseNumber}
-              </span>
-              <UrgencyBadge
-                level={resolveCurrentUrgency(pendingAssignment.case).level}
-                score={resolveCurrentUrgency(pendingAssignment.case).score}
-              />
-            </div>
-            <p className="mt-2 text-sm text-graphite/65 line-clamp-2">
-              {pendingAssignment.case.description}
-            </p>
-            <Button asChild className="mt-3 w-full rounded-full">
-              <Link href={`/mobile/assignments/${pendingAssignment.id}`}>
-                View Assignment
-              </Link>
-            </Button>
-          </div>
-        )}
-
-        {activeCase && showCitizenFeatures && !isRescuer && (
-          <ActiveRescueCard
-            caseId={activeCase.id}
-            caseNumber={activeCase.caseNumber}
-            status={activeCase.status}
-            species={activeCase.species}
-            description={activeCase.description}
-            urgencyLevel={resolveCurrentUrgency(activeCase).level}
-            urgencyScore={resolveCurrentUrgency(activeCase).score}
-            photoUrl={activeCase.photoUrl}
-            approximateLat={activeCase.approximateLatitude}
-            approximateLon={activeCase.approximateLongitude}
-            rescuerName={rescuerName}
-            shelterName={shelterName}
-            shelterLat={shelterLat}
-            shelterLon={shelterLon}
-          />
-        )}
-
-        {isRescuer && activeCase && (
-          <ActiveRescueCard
-            caseId={activeCase.id}
-            caseNumber={activeCase.caseNumber}
-            status={activeCase.status}
-            species={activeCase.species}
-            description={activeCase.description}
-            urgencyLevel={resolveCurrentUrgency(activeCase).level}
-            urgencyScore={resolveCurrentUrgency(activeCase).score}
-            photoUrl={activeCase.photoUrl}
-            approximateLat={activeCase.approximateLatitude}
-            approximateLon={activeCase.approximateLongitude}
-            rescuerName={rescuerName}
-            shelterName={shelterName}
-            shelterLat={shelterLat}
-            shelterLon={shelterLon}
-            detailHref={
-              pendingAssignment && pendingAssignment.caseId === activeCase.id
-                ? `/mobile/assignments/${pendingAssignment.id}`
-                : undefined
-            }
-          />
-        )}
-
-        {recentNotifications.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-graphite mb-3">
-              Recent Updates
-            </h2>
-            <ul className="space-y-3">
-              {recentNotifications.map((n) => (
-                <li
-                  key={n.id}
-                  className="flex gap-3 rounded-xl border border-sage/20 bg-white p-3"
-                >
-                  <CheckCircle2
-                    className="h-5 w-5 shrink-0 text-evergreen mt-0.5"
-                    aria-hidden
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-graphite">{n.title}</p>
-                    <p className="text-xs text-graphite/60 mt-0.5 leading-relaxed">
-                      {n.message}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </main>
-    </div>
+    <HomeMapClient
+      shelters={shelters}
+      cases={fieldCases}
+      showCasesLayer={isRescuer}
+    />
   );
 }

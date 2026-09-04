@@ -40,9 +40,7 @@ async function submitMobileReport(page: import("@playwright/test").Page) {
 
   await page.goto("/mobile/report");
 
-  await page
-    .getByRole("button", { name: /Take a Photo|choose from gallery/i })
-    .click();
+  // Photo is optional; continue without attaching one
   await page.getByRole("button", { name: "Continue" }).click();
 
   await page.getByRole("button", { name: "Use Current Location" }).click();

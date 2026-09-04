@@ -150,6 +150,11 @@ export const adoptionApplicationStatusEnum = pgEnum("adoption_application_status
   "completed",
 ]);
 
+export const adoptionInterestDecisionEnum = pgEnum("adoption_interest_decision", [
+  "pass",
+  "interested",
+]);
+
 // Users
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -442,6 +447,29 @@ export const adoptionApplications = pgTable(
   ],
 );
 
+export const adoptionInterests = pgTable(
+  "adoption_interests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    animalId: uuid("animal_id")
+      .notNull()
+      .references(() => animals.id, { onDelete: "cascade" }),
+    decision: adoptionInterestDecisionEnum("decision").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("adoption_interests_user_animal_uidx").on(
+      table.userId,
+      table.animalId,
+    ),
+    index("adoption_interests_user_id_idx").on(table.userId),
+    index("adoption_interests_animal_id_idx").on(table.animalId),
+  ],
+);
+
 export const medicalClearances = pgTable(
   "medical_clearances",
   {
@@ -619,7 +647,22 @@ export const animalsRelations = relations(animals, ({ one, many }) => ({
   medicalClearance: one(medicalClearances),
   notes: many(animalNotes),
   adoptionApplications: many(adoptionApplications),
+  adoptionInterests: many(adoptionInterests),
 }));
+
+export const adoptionInterestsRelations = relations(
+  adoptionInterests,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [adoptionInterests.userId],
+      references: [users.id],
+    }),
+    animal: one(animals, {
+      fields: [adoptionInterests.animalId],
+      references: [animals.id],
+    }),
+  }),
+);
 
 export const adoptionApplicationsRelations = relations(
   adoptionApplications,

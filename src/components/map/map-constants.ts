@@ -4,6 +4,9 @@ export const MAP_MARKER_COLORS = {
   standard: "#183C35",
 } as const;
 
+/** Home-map shelter pins. Blue so they stay distinct from case greens. */
+export const SHELTER_PIN_COLOR = "#2F6F9E";
+
 export interface MapLegendItem {
   id: string;
   label: string;

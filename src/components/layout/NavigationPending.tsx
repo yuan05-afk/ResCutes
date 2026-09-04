@@ -45,8 +45,8 @@ const LOADING_MESSAGES: Record<string, string> = {
   "/animals": "Loading animals...",
   "/settings": "Loading settings...",
   "/profile": "Loading profile...",
-  "/mobile": "Loading home...",
-  "/mobile/nearby": "Loading nearby map...",
+  "/mobile": "Loading map...",
+  "/mobile/adoption": "Loading adoption...",
   "/mobile/cases": "Loading your cases...",
   "/mobile/report": "Loading report form...",
   "/mobile/profile": "Loading profile...",
@@ -162,7 +162,7 @@ export function PendingPageSlot({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        "relative flex min-h-0 flex-1 flex-col",
+        "relative flex h-full min-h-0 flex-1 flex-col",
         showSkeleton && "min-h-[50vh]",
       )}
     >

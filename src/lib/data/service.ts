@@ -1098,6 +1098,86 @@ export async function getAdoptionReadyAnimals() {
   return (await dataRepo()).fetchAdoptionReadyAnimals();
 }
 
+export async function getAdoptionQueueForUser(userId: string) {
+  const [ready, decidedIds] = await Promise.all([
+    getAdoptionReadyAnimals(),
+    (await dataRepo()).fetchAdoptionInterestAnimalIds(userId),
+  ]);
+  const decided = new Set(decidedIds);
+  return ready.filter((animal) => !decided.has(animal.id));
+}
+
+/** Mobile adoption: swipe queue, liked-but-not-applied, and full browse list. */
+export async function getAdoptionMobileDataForUser(
+  userId: string,
+  applicantEmail: string,
+) {
+  const [ready, interests, applications] = await Promise.all([
+    getAdoptionReadyAnimals(),
+    (await dataRepo()).fetchAdoptionInterestsForUser(userId),
+    getAdoptionApplications(),
+  ]);
+
+  const email = applicantEmail.trim().toLowerCase();
+  const appliedAnimalIds = new Set(
+    applications
+      .filter((a) => a.applicantEmail.trim().toLowerCase() === email)
+      .map((a) => a.animalId),
+  );
+
+  const interestByAnimal = new Map(
+    interests.map((i) => [i.animalId, i.decision] as const),
+  );
+
+  const queue = ready.filter((animal) => !interestByAnimal.has(animal.id));
+  const interested = ready.filter((animal) => {
+    if (interestByAnimal.get(animal.id) !== "interested") return false;
+    return !appliedAnimalIds.has(animal.id);
+  });
+
+  return {
+    queue,
+    interested,
+    browse: ready,
+    appliedAnimalIds: [...appliedAnimalIds],
+    passedCount: interests.filter((i) => i.decision === "pass").length,
+  };
+}
+
+export async function recordAdoptionInterest(
+  userId: string,
+  animalId: string,
+  decision: "pass" | "interested",
+) {
+  const animal = await getAnimalById(animalId);
+  if (!animal) {
+    return { ok: false as const, error: "Animal not found" };
+  }
+  if (
+    animal.pathwayStage !== "ready_for_adoption" &&
+    animal.pathwayStage !== "ready_for_foster"
+  ) {
+    return { ok: false as const, error: "Animal is not available for adoption" };
+  }
+  await (await dataRepo()).upsertAdoptionInterest({
+    userId,
+    animalId,
+    decision,
+  });
+  return { ok: true as const };
+}
+
+export async function clearAdoptionInterests(
+  userId: string,
+  scope: "pass" | "all" = "pass",
+) {
+  const removed = await (await dataRepo()).deleteAdoptionInterestsForUser(
+    userId,
+    scope === "pass" ? "pass" : undefined,
+  );
+  return { ok: true as const, removed };
+}
+
 export async function getAdoptionApplications(filters?: {
   status?: string;
   animalId?: string;

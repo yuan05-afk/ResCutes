@@ -36,7 +36,7 @@ export default async function MobileProfilePage() {
 
         {isAdmin ? (
           <Button variant="outline" asChild className="h-12 w-full rounded-full">
-            <Link href="/dashboard">
+            <Link href="/dashboard" target="_blank" rel="noopener noreferrer">
               <Monitor className="mr-2 h-4 w-4" aria-hidden />
               Open dashboard
             </Link>

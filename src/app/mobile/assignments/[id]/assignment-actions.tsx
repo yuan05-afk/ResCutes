@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Navigation, CheckCircle2 } from "lucide-react";
 import { useActionPending } from "@/components/shared/useActionPending";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   googleMapsCaseDirectionsUrl,
   type CaseMapsLocation,
@@ -53,6 +54,7 @@ export function AssignmentActionsClient({
     useActionPending();
   const [declineReason, setDeclineReason] = useState("");
   const [showDecline, setShowDecline] = useState(false);
+  const [confirmSecure, setConfirmSecure] = useState(false);
 
   function openNavigation() {
     const mapsLocation: CaseMapsLocation = {
@@ -146,15 +148,28 @@ export function AssignmentActionsClient({
       )}
 
       {canMarkSecured && (
-        <Button
-          onClick={() =>
-            runAction(() => updateCaseStatusAction(caseId, "animal_secured"))
-          }
-          disabled={loading}
-          className="w-full"
-        >
-          {loading ? "Updating..." : "Mark Animal Secured"}
-        </Button>
+        <>
+          <Button
+            onClick={() => setConfirmSecure(true)}
+            disabled={loading}
+            className="min-h-11 w-full"
+          >
+            {loading ? "Updating..." : "Mark Animal Secured"}
+          </Button>
+          <ConfirmDialog
+            open={confirmSecure}
+            title="Mark animal secured?"
+            message="Confirm only when the animal is safely in your care. Shelter staff will handle the next handoff step."
+            confirmLabel="Mark secured"
+            cancelLabel="Cancel"
+            variant="primary"
+            pending={loading}
+            onConfirm={() =>
+              runAction(() => updateCaseStatusAction(caseId, "animal_secured"))
+            }
+            onClose={() => setConfirmSecure(false)}
+          />
+        </>
       )}
 
       {waitingForStaff && (

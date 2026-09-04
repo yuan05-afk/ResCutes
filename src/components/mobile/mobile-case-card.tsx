@@ -44,38 +44,32 @@ export function MobileCaseCard({
       onMouseEnter={() => router.prefetch(linkHref)}
       onTouchStart={() => router.prefetch(linkHref)}
       onClick={() => startPending(linkHref)}
-      className="block group"
+      className="block"
     >
-      <article
-        className="flex gap-3 rounded-2xl border border-sage/25 bg-white p-4 shadow-card transition-shadow group-hover:shadow-card-hover"
-      >
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-sage/20">
+      <article className="flex items-center gap-3 rounded-2xl border border-sage/25 bg-white p-3 shadow-card transition-colors active:bg-bone/50">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sage/15">
           <Image
             src={imageUrl}
             alt=""
             fill
             className="object-cover"
             unoptimized
-            sizes="64px"
+            sizes="56px"
           />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <span className="font-semibold text-graphite">{caseNumber}</span>
-            {urgencyScore > 0 && (
-              <UrgencyBadge level={urgencyLevel} score={urgencyScore} />
-            )}
+            {urgencyScore > 0 ? (
+              <UrgencyBadge level={urgencyLevel} score={urgencyScore} size="sm" />
+            ) : null}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <div className="mt-1 flex items-center gap-2">
             <StatusBadge status={status} />
-            <span className="text-xs text-graphite/50 capitalize">{species}</span>
           </div>
-          <p className="mt-2 text-sm text-graphite/65 line-clamp-2">{description}</p>
+          <p className="mt-1 line-clamp-1 text-xs text-graphite/55">{description}</p>
         </div>
-        <ChevronRight
-          className="h-5 w-5 shrink-0 text-graphite/30 self-center"
-          aria-hidden
-        />
+        <ChevronRight className="h-4 w-4 shrink-0 text-graphite/30" aria-hidden />
       </article>
     </Link>
   );
