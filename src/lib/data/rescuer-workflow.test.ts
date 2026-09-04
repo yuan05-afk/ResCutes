@@ -21,7 +21,7 @@ describe("rescuer workflow", () => {
     await seedCase004Fixtures();
   });
 
-  it("accepts a pending assignment", async () => {
+  it("accepts a pending assignment without changing case status", async () => {
     const accepted = await acceptAssignment(
       TEST_IDS.assignment004,
       users.james,
@@ -29,7 +29,7 @@ describe("rescuer workflow", () => {
     expect(accepted).toBe(true);
 
     const caseItem = await getCaseById(TEST_IDS.case004);
-    expect(caseItem?.status).toBe("rescue_accepted");
+    expect(caseItem?.status).toBe("rescuer_assigned");
   });
 
   it("declines a pending assignment and reverts case to verified", async () => {
@@ -44,16 +44,8 @@ describe("rescuer workflow", () => {
     expect(caseItem?.status).toBe("verified");
   });
 
-  it("progresses case through rescue statuses", async () => {
+  it("marks animal secured in one step after accept", async () => {
     await acceptAssignment(TEST_IDS.assignment004, users.james);
-
-    const start = await updateCaseStatusAsRescuer(
-      TEST_IDS.case004,
-      users.james,
-      "rescue_in_progress",
-    );
-    expect(start.ok).toBe(true);
-    expect((await getCaseById(TEST_IDS.case004))?.status).toBe("rescue_in_progress");
 
     const secured = await updateCaseStatusAsRescuer(
       TEST_IDS.case004,
@@ -61,14 +53,7 @@ describe("rescuer workflow", () => {
       "animal_secured",
     );
     expect(secured.ok).toBe(true);
-
-    const awaiting = await updateCaseStatusAsRescuer(
-      TEST_IDS.case004,
-      users.james,
-      "awaiting_shelter",
-    );
-    expect(awaiting.ok).toBe(true);
-    expect((await getCaseById(TEST_IDS.case004))?.status).toBe("awaiting_shelter");
+    expect((await getCaseById(TEST_IDS.case004))?.status).toBe("animal_secured");
   });
 
   it("rejects invalid status transitions", async () => {
@@ -91,9 +76,10 @@ describe("rescuer workflow", () => {
     const progressed = await updateCaseStatusAsRescuer(
       TEST_IDS.case004,
       users.alex,
-      "rescue_in_progress",
+      "animal_secured",
       { adminOverride: true },
     );
     expect(progressed.ok).toBe(true);
+    expect((await getCaseById(TEST_IDS.case004))?.status).toBe("animal_secured");
   });
 });

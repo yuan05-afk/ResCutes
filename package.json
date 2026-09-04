@@ -14,6 +14,7 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts",
     "db:seed-animals": "tsx src/db/seed-animals.ts",
+    "db:migrate-rescue-stages": "tsx scripts/migrate-rescue-stages.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

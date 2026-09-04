@@ -20,6 +20,7 @@ import { ActiveRescueCard } from "@/components/mobile/active-rescue-card";
 import { Button } from "@/components/ui/button";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { CheckCircle2 } from "lucide-react";
+import { isActiveCaseStatus } from "@/lib/rescue-stages";
 
 export default async function MobileHomePage() {
   const session = await requireAuth();
@@ -36,9 +37,7 @@ export default async function MobileHomePage() {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const recentNotifications = notifications.slice(0, 3);
 
-  const activeCases = myCases.filter(
-    (c) => !["completed", "rejected", "duplicate", "cancelled"].includes(c.status),
-  );
+  const activeCases = myCases.filter((c) => isActiveCaseStatus(c.status));
 
   const activeCase = activeCases.sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),

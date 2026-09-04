@@ -58,7 +58,7 @@ describe("shelter handoff guards", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("rejects duplicate handoff", async () => {
+  it("allows idempotent handoff confirmation", async () => {
     const result = await confirmShelterHandoff(
       TEST_IDS.case008,
       TEST_SHELTERS.paws,
@@ -71,7 +71,10 @@ describe("shelter handoff guards", () => {
       TEST_SHELTERS.paws,
       users.sarah,
     );
-    expect(second.ok).toBe(false);
+    expect(second.ok).toBe(true);
+
+    const caseItem = await getCaseById(TEST_IDS.case008);
+    expect(caseItem?.status).toBe("shelter_handoff");
   });
 
   it("completes handoff and intake", async () => {
@@ -96,6 +99,9 @@ describe("shelter handoff guards", () => {
 
     const animal = await getAnimalById(first.animalId);
     expect(animal?.name).toBe("Buddy");
+
+    const afterIntake = await getCaseById(TEST_IDS.case008);
+    expect(afterIntake?.status).toBe("completed");
 
     const second = await completeShelterIntake(TEST_IDS.case008, users.sarah);
     expect(second.ok).toBe(true);

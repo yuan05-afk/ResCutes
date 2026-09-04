@@ -7,21 +7,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { AppUser } from "@/lib/data/types";
-
-const STATUSES = [
-  "report_submitted",
-  "under_verification",
-  "verified",
-  "rescuer_assigned",
-  "rescue_accepted",
-  "rescue_in_progress",
-  "animal_secured",
-  "awaiting_shelter",
-  "shelter_handoff",
-  "completed",
-  "rejected",
-  "duplicate",
-];
+import { CASE_STAGE_FILTER_OPTIONS } from "@/lib/rescue-stages";
 
 const URGENCY_LEVELS = ["critical", "high", "medium", "low"];
 
@@ -65,9 +51,11 @@ export function RescueCasesFilters({
         onChange={(e) => updateFilter("status", e.target.value)}
         className="w-[160px]"
       >
-        <option value="">All statuses</option>
-        {STATUSES.map((s) => (
-          <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+        <option value="">All stages</option>
+        {CASE_STAGE_FILTER_OPTIONS.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label}
+          </option>
         ))}
       </Select>
       <Select

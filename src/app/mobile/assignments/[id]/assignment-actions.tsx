@@ -14,6 +14,11 @@ import {
   declineAssignmentAction,
   updateCaseStatusAction,
 } from "@/app/actions/case";
+import {
+  isAnimalSecuredStatus,
+  isAtShelterStatus,
+  isWithRescuerStatus,
+} from "@/lib/rescue-stages";
 
 interface AssignmentActionsClientProps {
   assignmentId: string;
@@ -44,7 +49,8 @@ export function AssignmentActionsClient({
   shelterName,
   shelterAddress,
 }: AssignmentActionsClientProps) {
-  const { pending: loading, error: actionError, setError: setActionError, run } = useActionPending();
+  const { pending: loading, error: actionError, setError: setActionError, run } =
+    useActionPending();
   const [declineReason, setDeclineReason] = useState("");
   const [showDecline, setShowDecline] = useState(false);
 
@@ -62,9 +68,22 @@ export function AssignmentActionsClient({
   async function runAction(fn: () => Promise<ActionResult>) {
     setActionError(null);
     await run(fn, {
-      rewarm: [`/mobile/assignments/${assignmentId}`, `/mobile/cases/${caseId}`, "/mobile"],
+      rewarm: [
+        `/mobile/assignments/${assignmentId}`,
+        `/mobile/cases/${caseId}`,
+        "/mobile",
+      ],
     });
   }
+
+  const canMarkSecured =
+    assignmentStatus === "accepted" && isWithRescuerStatus(caseStatus);
+  const waitingForStaff =
+    assignmentStatus === "accepted" && isAnimalSecuredStatus(caseStatus);
+  const handoffDone =
+    assignmentStatus === "completed" ||
+    isAtShelterStatus(caseStatus) ||
+    caseStatus === "completed";
 
   return (
     <div className="space-y-3">
@@ -119,26 +138,14 @@ export function AssignmentActionsClient({
         </div>
       )}
 
-      {assignmentStatus === "accepted" && (
+      {assignmentStatus === "accepted" && !handoffDone && (
         <Button variant="outline" onClick={openNavigation} className="w-full">
           <Navigation className="h-4 w-4 mr-2" />
           Open Navigation
         </Button>
       )}
 
-      {assignmentStatus === "accepted" && caseStatus === "rescue_accepted" && (
-        <Button
-          onClick={() =>
-            runAction(() => updateCaseStatusAction(caseId, "rescue_in_progress"))
-          }
-          disabled={loading}
-          className="w-full"
-        >
-          Start Rescue
-        </Button>
-      )}
-
-      {assignmentStatus === "accepted" && caseStatus === "rescue_in_progress" && (
+      {canMarkSecured && (
         <Button
           onClick={() =>
             runAction(() => updateCaseStatusAction(caseId, "animal_secured"))
@@ -146,23 +153,11 @@ export function AssignmentActionsClient({
           disabled={loading}
           className="w-full"
         >
-          Mark Animal Secured
+          {loading ? "Updating..." : "Mark Animal Secured"}
         </Button>
       )}
 
-      {assignmentStatus === "accepted" && caseStatus === "animal_secured" && (
-        <Button
-          onClick={() =>
-            runAction(() => updateCaseStatusAction(caseId, "awaiting_shelter"))
-          }
-          disabled={loading}
-          className="w-full"
-        >
-          Request Shelter Placement
-        </Button>
-      )}
-
-      {assignmentStatus === "accepted" && caseStatus === "awaiting_shelter" && (
+      {waitingForStaff && (
         <div
           className="rounded-xl border border-evergreen/25 bg-evergreen/5 p-4"
           role="status"
@@ -174,19 +169,18 @@ export function AssignmentActionsClient({
             />
             <div>
               <p className="text-sm font-semibold text-evergreen">
-                Shelter placement requested
+                Animal secured
               </p>
               <p className="mt-1 text-xs text-graphite/65 leading-relaxed">
-                Shelter staff will review recommendations and confirm a
-                destination. You will be notified when a shelter is assigned.
+                Shelter staff will confirm the destination and complete handoff.
+                You will see an update when the animal is at the shelter.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {(assignmentStatus === "completed" ||
-        caseStatus === "shelter_handoff") && (
+      {handoffDone && (
         <div
           className="rounded-xl border border-evergreen/25 bg-evergreen/5 p-4"
           role="status"

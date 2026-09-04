@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth/session";
 import { getCases, getCaseLocation, resolveCurrentUrgency } from "@/lib/data/service";
 import { canViewExactLocation } from "@/lib/auth/permissions";
+import { isActiveCaseStatus, statusToStage } from "@/lib/rescue-stages";
 import { NearbyMapClient } from "./nearby-client";
 
 export default async function NearbyPage() {
@@ -8,9 +9,15 @@ export default async function NearbyPage() {
   const canExact = canViewExactLocation(session.user.roles);
 
   const allCases = await getCases();
-  const verifiedCases = allCases.filter((c) =>
-    ["verified", "rescuer_assigned", "rescue_accepted", "rescue_in_progress", "animal_secured", "awaiting_shelter"].includes(c.status),
-  );
+  const verifiedCases = allCases.filter((c) => {
+    if (!isActiveCaseStatus(c.status)) return false;
+    const stage = statusToStage(c.status);
+    return (
+      stage === "verified" ||
+      stage === "with_rescuer" ||
+      stage === "animal_secured"
+    );
+  });
 
   const casesWithLocation = verifiedCases.map((c) => {
     const loc = getCaseLocation(c, session.user.roles, canExact);

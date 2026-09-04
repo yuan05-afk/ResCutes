@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ActionFeedback } from "@/components/shared/action-feedback";
 import { useActionPending } from "@/components/shared/useActionPending";
 import {
   verifyCaseAction,
@@ -18,6 +19,10 @@ import {
 } from "@/app/actions/case";
 import { CaseIntakeForm } from "./case-intake-form";
 import { cn } from "@/lib/utils";
+import {
+  isAnimalSecuredStatus,
+  isNeedsReviewStatus,
+} from "@/lib/rescue-stages";
 
 interface CaseStaffActionsProps {
   caseId: string;
@@ -36,7 +41,17 @@ interface CaseStaffActionsProps {
   hasAnimal?: boolean;
   rescuerNote?: string;
   variant?: "default" | "compact" | "panel";
+  onActionComplete?: () => void;
 }
+
+type StaffActionId =
+  | "verify"
+  | "reject"
+  | "assign"
+  | "note"
+  | "override"
+  | "destination"
+  | "handoff";
 
 function ActionBlock({
   title,
@@ -75,9 +90,12 @@ export function CaseStaffActions({
   hasAnimal,
   rescuerNote = "",
   variant = "default",
+  onActionComplete,
 }: CaseStaffActionsProps) {
   const { pending: loading, error: actionError, setError: setActionError, run } =
     useActionPending();
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [activeAction, setActiveAction] = useState<StaffActionId | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [overrideScore, setOverrideScore] = useState(70);
   const [overrideReason, setOverrideReason] = useState("");
@@ -105,43 +123,64 @@ export function CaseStaffActions({
 
   async function runAction(
     fn: () => Promise<{ error?: string; success?: boolean } | void>,
+    successText: string,
+    actionId: StaffActionId,
   ) {
     setActionError(null);
-    await run(fn, {
-      rewarm: [`/rescue-cases/${caseId}`, "/rescue-cases", "/dashboard"],
-    });
+    setSuccessMessage(null);
+    setActiveAction(actionId);
+    try {
+      const ok = await run(fn, {
+        rewarm: [`/rescue-cases/${caseId}`, "/rescue-cases", "/dashboard"],
+      });
+      if (ok) {
+        setSuccessMessage(successText);
+        onActionComplete?.();
+      }
+    } finally {
+      setActiveAction(null);
+    }
+  }
+
+  function actionLoading(id: StaffActionId) {
+    return loading && activeAction === id;
   }
 
   const body = (
     <div className={cn(isPanel ? "space-y-2" : "space-y-4")}>
-      {actionError && (
-        <p className="rounded-lg border border-rescue/25 bg-rescue/8 px-2.5 py-2 text-xs text-rescue">
-          {actionError}
-        </p>
-      )}
+      <ActionFeedback error={actionError} success={successMessage} />
 
-      {(caseStatus === "report_submitted" ||
-        caseStatus === "under_verification") && (
+      {isNeedsReviewStatus(caseStatus) && (
         <ActionBlock title="Review report">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button
-              onClick={() => runAction(() => verifyCaseAction(caseId))}
+              onClick={() =>
+                runAction(
+                  () => verifyCaseAction(caseId),
+                  "Case verified. Assign a rescuer next.",
+                  "verify",
+                )
+              }
               disabled={loading}
               size={btnSize}
               className="w-full"
             >
-              Verify
+              {actionLoading("verify") ? "Verifying..." : "Verify"}
             </Button>
             <Button
               variant="destructive"
               onClick={() =>
-                runAction(() => rejectCaseAction(caseId, rejectReason))
+                runAction(
+                  () => rejectCaseAction(caseId, rejectReason),
+                  "Case rejected.",
+                  "reject",
+                )
               }
               disabled={loading || !rejectReason.trim()}
               size={btnSize}
               className="w-full"
             >
-              Reject
+              {actionLoading("reject") ? "Rejecting..." : "Reject"}
             </Button>
           </div>
           <Textarea
@@ -170,13 +209,17 @@ export function CaseStaffActions({
           </Select>
           <Button
             onClick={() =>
-              runAction(() => assignRescuerAction(caseId, selectedRescuer))
+              runAction(
+                () => assignRescuerAction(caseId, selectedRescuer),
+                "Rescuer assigned.",
+                "assign",
+              )
             }
             disabled={loading || !selectedRescuer}
             className="w-full"
             size={btnSize}
           >
-            Assign Rescuer
+            {actionLoading("assign") ? "Assigning..." : "Assign Rescuer"}
           </Button>
         </ActionBlock>
       )}
@@ -192,14 +235,18 @@ export function CaseStaffActions({
           />
           <Button
             onClick={() =>
-              runAction(() => updateRescuerNoteAction(caseId, rescuerNoteDraft))
+              runAction(
+                () => updateRescuerNoteAction(caseId, rescuerNoteDraft),
+                "Rescuer note saved.",
+                "note",
+              )
             }
             disabled={loading || rescuerNoteDraft === rescuerNote}
             className="w-full"
             size={btnSize}
             variant="outline"
           >
-            Save rescuer note
+            {actionLoading("note") ? "Saving..." : "Save rescuer note"}
           </Button>
         </ActionBlock>
       )}
@@ -231,15 +278,17 @@ export function CaseStaffActions({
           <Button
             variant={overrideReason.trim() ? "default" : "outline"}
             onClick={() =>
-              runAction(() =>
-                overrideUrgencyAction(caseId, overrideScore, overrideReason),
+              runAction(
+                () => overrideUrgencyAction(caseId, overrideScore, overrideReason),
+                "Urgency override applied.",
+                "override",
               )
             }
             disabled={loading || !overrideReason.trim()}
             className="w-full"
             size={btnSize}
           >
-            Apply Override
+            {actionLoading("override") ? "Applying..." : "Apply Override"}
           </Button>
         </ActionBlock>
       )}
@@ -273,12 +322,15 @@ export function CaseStaffActions({
               )}
             <Button
               onClick={() =>
-                runAction(() =>
-                  selectShelterAction(
-                    caseId,
-                    selectedShelter,
-                    shelterRejectReason || undefined,
-                  ),
+                runAction(
+                  () =>
+                    selectShelterAction(
+                      caseId,
+                      selectedShelter,
+                      shelterRejectReason || undefined,
+                    ),
+                  "Shelter destination confirmed.",
+                  "destination",
                 )
               }
               disabled={
@@ -291,13 +343,13 @@ export function CaseStaffActions({
               className="w-full"
               size={btnSize}
             >
-              Confirm Destination
+              {actionLoading("destination") ? "Confirming..." : "Confirm Destination"}
             </Button>
           </ActionBlock>
         )}
 
       {showRescueStageActions &&
-        caseStatus === "awaiting_shelter" &&
+        isAnimalSecuredStatus(caseStatus) &&
         assignedShelterId &&
         !hasHandoff && (
           <ActionBlock title="Shelter handoff">
@@ -310,15 +362,18 @@ export function CaseStaffActions({
             />
             <Button
               onClick={() =>
-                runAction(() =>
-                  confirmHandoffAction(caseId, assignedShelterId, handoffNotes),
+                runAction(
+                  () =>
+                    confirmHandoffAction(caseId, assignedShelterId, handoffNotes),
+                  "Shelter handoff confirmed. Complete intake below.",
+                  "handoff",
                 )
               }
               disabled={loading}
               className="w-full"
               size={btnSize}
             >
-              Confirm Handoff
+              {actionLoading("handoff") ? "Confirming..." : "Confirm Handoff"}
             </Button>
           </ActionBlock>
         )}
@@ -330,6 +385,7 @@ export function CaseStaffActions({
             species={species}
             temporaryId={temporaryId}
             injurySeverity={injurySeverity}
+            onComplete={onActionComplete}
           />
         </ActionBlock>
       )}

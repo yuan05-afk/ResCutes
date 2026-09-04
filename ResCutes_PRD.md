@@ -90,10 +90,8 @@ Define permissions and workflows for these roles:
 * Accept or decline assignments
 * Open case navigation
 * Contact the reporter through protected contact options
-* Update rescue status
+* Mark the animal as secured
 * Upload rescue photos
-* Request shelter placement
-* Confirm animal handoff
 
 ## Shelter Staff
 
@@ -103,6 +101,7 @@ Define permissions and workflows for these roles:
 * Assign rescuers
 * View destination recommendations
 * Select the final shelter destination
+* Confirm shelter handoff
 * Confirm intake
 * Manage animal records
 * Add staff and behavior notes
@@ -237,21 +236,17 @@ Citizens see cases they reported.
 
 Rescuers see cases assigned to them.
 
-Support these statuses:
+Support these case stages (stored statuses may be more detailed for history):
 
-* Report Submitted
-* Under Verification
+* Needs review (report submitted)
 * Verified
-* Rescuer Assigned
-* Rescue Accepted
-* Rescue in Progress
-* Animal Secured
-* Awaiting Shelter
-* Shelter Handoff
+* With rescuer
+* Animal secured
+* At shelter (handoff)
 * Completed
-* Rejected
-* Duplicate
-* Cancelled
+* Closed (rejected, duplicate, or cancelled)
+
+Legacy mid-statuses (under verification, rescue accepted, rescue in progress, awaiting shelter) remain readable for older records but are no longer written by the app.
 
 ## Rescuer Actions
 
@@ -260,11 +255,11 @@ Allow rescuers to:
 * Accept assignment
 * Decline assignment with reason
 * Open navigation
-* Update rescue status
+* Mark animal secured
 * Upload a rescue photo
 * Add a field note
-* Request shelter placement
-* Confirm handoff
+
+Shelter staff confirm destination and handoff after the animal is secured.
 
 # 8. Web Dashboard Requirements
 

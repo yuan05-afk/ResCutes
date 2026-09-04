@@ -10,22 +10,11 @@ import { Search } from "lucide-react";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { AppUser, RescueCaseRecord } from "@/lib/data/types";
 import { resolveCurrentUrgency } from "@/lib/data/urgency";
-import { formatStatus } from "@/lib/utils";
-
-const STATUSES = [
-  "report_submitted",
-  "under_verification",
-  "verified",
-  "rescuer_assigned",
-  "rescue_accepted",
-  "rescue_in_progress",
-  "animal_secured",
-  "awaiting_shelter",
-  "shelter_handoff",
-  "completed",
-  "rejected",
-  "duplicate",
-];
+import {
+  CASE_STAGE_FILTER_OPTIONS,
+  statusesForStage,
+  statusToStage,
+} from "@/lib/rescue-stages";
 
 const URGENCY_LEVELS = ["critical", "high", "medium", "low"];
 
@@ -42,7 +31,14 @@ export function useRescueCasesFilters(cases: RescueCaseRecord[]) {
     let result = [...cases];
 
     if (status) {
-      result = result.filter((c) => c.status === status);
+      const stageStatuses = statusesForStage(status);
+      if (stageStatuses.length > 0) {
+        result = result.filter((c) => stageStatuses.includes(c.status));
+      } else {
+        result = result.filter(
+          (c) => c.status === status || statusToStage(c.status) === status,
+        );
+      }
     }
     if (urgency) {
       result = result.filter((c) => {
@@ -151,12 +147,12 @@ export function RescueCasesFiltersBar({
         value={status}
         onChange={(e) => setStatus(e.target.value)}
         className="h-10 w-full min-w-0 rounded-lg sm:w-auto sm:min-w-[9rem]"
-        aria-label="Filter by status"
+        aria-label="Filter by stage"
       >
-        <option value="">All statuses</option>
-        {STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {formatStatus(s)}
+        <option value="">All stages</option>
+        {CASE_STAGE_FILTER_OPTIONS.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label}
           </option>
         ))}
       </Select>

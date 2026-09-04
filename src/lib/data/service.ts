@@ -66,10 +66,10 @@ export type DemoAnimal = AnimalRecord;
 const STATUSES_WITH_SHELTER_RECOMMENDATIONS = new Set([
   "verified",
   "rescuer_assigned",
-  "rescue_accepted",
-  "rescue_in_progress",
+  "rescue_accepted", // legacy
+  "rescue_in_progress", // legacy
   "animal_secured",
-  "awaiting_shelter",
+  "awaiting_shelter", // legacy
 ]);
 
 function urgencyInputFromCase(
@@ -273,7 +273,7 @@ export async function getDashboardMetrics() {
   const activeCases = cases.filter(
     (c) =>
       !["completed", "rejected", "duplicate", "cancelled"].includes(c.status),
-  );
+  ); // terminal / closed stages
   const criticalHigh = activeCases.filter((c) => {
     const level = resolveCurrentUrgency(c).level;
     return level === "critical" || level === "high";
@@ -503,12 +503,13 @@ export async function acceptAssignment(
   const caseItem = await getCaseById(assignment.caseId);
   if (!caseItem) return false;
 
-  await (await dataRepo()).updateRescueCase(assignment.caseId, { status: "rescue_accepted" });
+  // Hybrid flow: case stays rescuer_assigned; assignment acceptance is tracked on the assignment row.
   await (await dataRepo()).insertStatusHistory({
     caseId: assignment.caseId,
     fromStatus: caseItem.status,
-    toStatus: "rescue_accepted",
+    toStatus: caseItem.status,
     changedById: rescuerId,
+    note: "Assignment accepted",
   });
 
   return true;
@@ -532,7 +533,12 @@ export async function declineAssignment(
   });
 
   const caseItem = await getCaseById(assignment.caseId);
-  if (caseItem && caseItem.status === "rescuer_assigned") {
+  const withRescuer =
+    caseItem &&
+    ["rescuer_assigned", "rescue_accepted", "rescue_in_progress"].includes(
+      caseItem.status,
+    );
+  if (caseItem && withRescuer) {
     await (await dataRepo()).updateRescueCase(assignment.caseId, { status: "verified" });
     await (await dataRepo()).insertStatusHistory({
       caseId: assignment.caseId,
@@ -546,10 +552,11 @@ export async function declineAssignment(
   return true;
 }
 
+/** Hybrid: accepted assignment may mark animal secured in one step. Legacy mid-statuses still allow forward moves. */
 const RESCUER_CASE_TRANSITIONS: Record<string, string[]> = {
-  rescue_accepted: ["rescue_in_progress"],
+  rescuer_assigned: ["animal_secured"],
+  rescue_accepted: ["animal_secured"],
   rescue_in_progress: ["animal_secured"],
-  animal_secured: ["awaiting_shelter"],
 };
 
 export async function updateCaseStatusAsRescuer(
@@ -675,8 +682,8 @@ export async function selectShelter(
 }
 
 const HANDOFF_ELIGIBLE_STATUSES = new Set([
-  "awaiting_shelter",
   "animal_secured",
+  "awaiting_shelter", // legacy
 ]);
 
 export async function confirmShelterHandoff(
@@ -692,10 +699,17 @@ export async function confirmShelterHandoff(
     return { ok: false, error: "Cannot hand off a closed case" };
   }
   if (caseItem.status === "shelter_handoff") {
-    return { ok: false, error: "Handoff already completed" };
+    return { ok: true };
   }
-  if (await getHandoffForCase(caseId)) {
-    return { ok: false, error: "Handoff already completed" };
+  const existingHandoff = await getHandoffForCase(caseId);
+  if (existingHandoff) {
+    await updateCaseStatus(
+      caseId,
+      "shelter_handoff",
+      staffId,
+      "Shelter handoff confirmed",
+    );
+    return { ok: true };
   }
   if (!HANDOFF_ELIGIBLE_STATUSES.has(caseItem.status)) {
     return { ok: false, error: "Case is not ready for shelter handoff" };
@@ -712,6 +726,7 @@ export async function confirmShelterHandoff(
 
   const history = await getStatusHistoryForCase(caseId);
   const animalWasSecured =
+    caseItem.status === "animal_secured" ||
     caseItem.status === "awaiting_shelter" ||
     history.some((h) => h.toStatus === "animal_secured");
   if (!animalWasSecured) {
@@ -771,6 +786,19 @@ export async function completeShelterIntake(
 ): Promise<{ ok: true; animalId: string } | { ok: false; error: string }> {
   const caseItem = await getCaseById(caseId);
   if (!caseItem) return { ok: false, error: "Case not found" };
+
+  if (caseItem.animalId) {
+    if (caseItem.status === "shelter_handoff") {
+      await updateCaseStatus(
+        caseId,
+        "completed",
+        staffId,
+        "Shelter intake completed",
+      );
+    }
+    return { ok: true, animalId: caseItem.animalId };
+  }
+
   if (caseItem.status !== "shelter_handoff") {
     return { ok: false, error: "Shelter handoff must be completed before intake" };
   }
@@ -778,13 +806,17 @@ export async function completeShelterIntake(
   const handoff = await getHandoffForCase(caseId);
   if (!handoff) return { ok: false, error: "No handoff record found" };
 
-  if (caseItem.animalId) {
-    return { ok: true, animalId: caseItem.animalId };
-  }
-
   const existingAnimal = await (await dataRepo()).fetchAnimalByRescueCaseId(caseId);
   if (existingAnimal) {
     await (await dataRepo()).updateRescueCase(caseId, { animalId: existingAnimal.id });
+    if (caseItem.status === "shelter_handoff") {
+      await updateCaseStatus(
+        caseId,
+        "completed",
+        staffId,
+        "Shelter intake completed",
+      );
+    }
     return { ok: true, animalId: existingAnimal.id };
   }
 
@@ -833,13 +865,12 @@ export async function completeShelterIntake(
     await (await dataRepo()).markHandoffIntakeComplete(handoff.id);
   }
 
-  await (await dataRepo()).insertStatusHistory({
+  await updateCaseStatus(
     caseId,
-    fromStatus: "shelter_handoff",
-    toStatus: "shelter_handoff",
-    changedById: staffId,
-    note: "Shelter intake completed",
-  });
+    "completed",
+    staffId,
+    "Shelter intake completed",
+  );
 
   const vets = await (await dataRepo()).fetchStaffUsersByRole("veterinarian");
   const vet = vets[0];

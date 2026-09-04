@@ -152,7 +152,7 @@ export async function seedCase008Fixtures() {
     id: TEST_IDS.case008,
     reportId: report.id,
     caseNumber: "RC-2026-1008",
-    status: "awaiting_shelter",
+    status: "animal_secured",
     assignedShelterId: TEST_SHELTERS.paws,
     urgencyScore: 55,
     urgencyLevel: "medium",
@@ -299,5 +299,5 @@ export async function prepareCase008ForHandoff() {
   const users = await testUsers();
   await seedCase008Fixtures();
   await selectShelter(TEST_IDS.case008, TEST_SHELTERS.paws, users.sarah);
-  await updateCaseStatus(TEST_IDS.case008, "awaiting_shelter", users.rescuer4);
+  await updateCaseStatus(TEST_IDS.case008, "animal_secured", users.rescuer4);
 }

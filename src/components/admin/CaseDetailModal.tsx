@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   AdminModal,
@@ -24,27 +25,39 @@ interface CaseDetailModalProps {
 }
 
 export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const [payload, setPayload] = useState<Awaited<
     ReturnType<typeof fetchCaseModalData>
   > | null>(null);
 
+  const reloadModalData = useCallback(() => {
+    setReloadToken((n) => n + 1);
+    router.refresh();
+  }, [router]);
+
+  const loadedCaseIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!caseId) {
       setPayload(null);
+      loadedCaseIdRef.current = null;
       return;
     }
     let alive = true;
-    setLoading(true);
+    const isInitialLoad = loadedCaseIdRef.current !== caseId;
+    if (isInitialLoad) setLoading(true);
     void fetchCaseModalData(caseId).then((res) => {
       if (!alive) return;
       setPayload(res);
+      loadedCaseIdRef.current = caseId;
       setLoading(false);
     });
     return () => {
       alive = false;
     };
-  }, [caseId]);
+  }, [caseId, reloadToken]);
 
   const data = payload && "data" in payload ? payload.data : null;
   const caseItem = data?.caseItem;
@@ -204,6 +217,7 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
                 hasHandoff={!!data.handoff}
                 hasAnimal={!!data.animal}
                 rescuerNote={caseItem.rescuerNote}
+                onActionComplete={reloadModalData}
               />
             </aside>
           ) : null}

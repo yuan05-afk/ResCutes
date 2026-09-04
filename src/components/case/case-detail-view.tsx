@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CaseMediaStrip } from "@/components/admin/case-media-strip";
 import { CaseLocationBlock } from "@/components/case/case-location-block";
 import { ModalMeta, ModalSection } from "@/components/admin/AdminModal";
@@ -88,6 +89,7 @@ export function CaseDetailView({
   shelter,
   animal,
 }: CaseDetailViewProps) {
+  const router = useRouter();
   const photoSrc = getCasePhotoUrl(
     caseItem.species,
     caseItem.photoUrl,
@@ -273,6 +275,7 @@ export function CaseDetailView({
               hasHandoff={hasHandoff}
               hasAnimal={hasAnimal}
               rescuerNote={caseItem.rescuerNote}
+              onActionComplete={() => router.refresh()}
             />
           </aside>
         ) : (

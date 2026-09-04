@@ -83,13 +83,9 @@ type ActiveCaseSeed = {
   reporterEmail: string;
   status:
     | "report_submitted"
-    | "under_verification"
     | "verified"
     | "rescuer_assigned"
-    | "rescue_accepted"
-    | "rescue_in_progress"
     | "animal_secured"
-    | "awaiting_shelter"
     | "shelter_handoff";
   daysAgo: number;
   lat: number;
@@ -99,6 +95,8 @@ type ActiveCaseSeed = {
   rescuerNote?: string;
   shelterSlug?: string;
   assignRescuer?: boolean;
+  /** When assignRescuer is true, defaults to pending unless accepted. */
+  assignmentAccepted?: boolean;
 };
 
 const CITIZEN_REPORTER_EMAILS = [
@@ -401,7 +399,7 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     description:
       "Large tan aspin limping hard on the EDSA Cubao service road after a motorcycle hit. Right hind leg will not bear weight. Animal is conscious, panting, and staying near the curb while traffic passes.",
     reporterEmail: "jose.delacruz@rescutes.demo",
-    status: "rescue_in_progress",
+    status: "rescuer_assigned",
     daysAgo: 0,
     lat: 14.622,
     lng: 121.053,
@@ -411,6 +409,7 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
       "Heavy traffic. Approach from Aurora underpass service lane. Wear hi-vis vest.",
     shelterSlug: "verified-paws-parc",
     assignRescuer: true,
+    assignmentAccepted: true,
   },
   {
     slug: "active-kittens-drain",
@@ -456,7 +455,7 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     description:
       "Gray street cat stuck on a corrugated rooftop in Quezon City for about two days. Neighbors can hear it calling at night. Needs a ladder team - roof edge is steep and unsafe for untrained climbers.",
     reporterEmail: "camille.villanueva@rescutes.demo",
-    status: "under_verification",
+    status: "report_submitted",
     daysAgo: 0,
     lat: 14.641,
     lng: 121.021,
@@ -472,7 +471,7 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     description:
       "Three abandoned mixed puppies huddled under a wet-market stall near Divisoria. Vendor says the mother has not returned since yesterday morning. Puppies are thin, flea-covered, and approachable.",
     reporterEmail: "rafael.mendoza@rescutes.demo",
-    status: "awaiting_shelter",
+    status: "animal_secured",
     daysAgo: 1,
     lat: 14.612,
     lng: 120.998,
@@ -481,6 +480,7 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     rescuerNote: "Vendor will hold puppies until 7 PM. Ask for Mang Tony.",
     shelterSlug: "verified-paws-parc",
     assignRescuer: true,
+    assignmentAccepted: true,
   },
   {
     slug: "active-dog-highway",
@@ -491,7 +491,7 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     description:
       "Medium black-and-tan dog collapsed beside the C5 exit ramp with active bleeding on a front leg. Multiple callers within 10 minutes. Needs immediate roadside pickup and trauma intake.",
     reporterEmail: "sofia.garcia@rescutes.demo",
-    status: "rescue_accepted",
+    status: "rescuer_assigned",
     daysAgo: 0,
     lat: 14.548,
     lng: 121.05,
@@ -500,6 +500,7 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     rescuerNote:
       "Coordinate with traffic marshals on scene. Trauma kit and stretcher recommended.",
     assignRescuer: true,
+    assignmentAccepted: true,
   },
   {
     slug: "active-cat-construction",
@@ -519,6 +520,7 @@ const ACTIVE_CASES: ActiveCaseSeed[] = [
     rescuerNote: "Hard hat required on site. Contact foreman Enrique at the guard booth.",
     shelterSlug: "verified-pawssion-sjdm",
     assignRescuer: true,
+    assignmentAccepted: true,
   },
   {
     slug: "active-dog-park",
@@ -755,7 +757,7 @@ async function seedDemo() {
       reporters.get(item.reporterEmail) ?? citizen.id;
     const createdAt = new Date(now - item.daysAgo * 24 * 60 * 60 * 1000 - 2 * 60 * 60 * 1000);
     const verifiedAt =
-      item.status === "report_submitted" || item.status === "under_verification"
+      item.status === "report_submitted"
         ? null
         : new Date(createdAt.getTime() + 45 * 60 * 1000);
 
@@ -816,9 +818,7 @@ async function seedDemo() {
         caseId,
         rescuerId: rescuer.id,
         status:
-          item.status === "rescue_in_progress" ||
-          item.status === "animal_secured" ||
-          item.status === "awaiting_shelter"
+          item.assignmentAccepted || item.status === "animal_secured"
             ? "accepted"
             : "pending",
         assignedById: verifierId,

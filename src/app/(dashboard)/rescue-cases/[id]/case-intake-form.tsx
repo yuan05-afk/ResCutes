@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SelectWithOtherSplit } from "@/components/ui/select-with-other";
 import { useActionPending } from "@/components/shared/useActionPending";
+import { ActionFeedback } from "@/components/shared/action-feedback";
 import { completeShelterIntakeAction } from "@/app/actions/case";
 import { formatStatus } from "@/lib/utils";
 import {
@@ -24,6 +25,7 @@ interface CaseIntakeFormProps {
   species: string;
   temporaryId: string;
   injurySeverity: string;
+  onComplete?: () => void;
 }
 
 export function CaseIntakeForm({
@@ -31,6 +33,7 @@ export function CaseIntakeForm({
   species,
   temporaryId,
   injurySeverity,
+  onComplete,
 }: CaseIntakeFormProps) {
   const {
     pending: loading,
@@ -52,6 +55,7 @@ export function CaseIntakeForm({
     `Reported injury level: ${formatStatus(injurySeverity)}`,
   );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   function validate(): boolean {
     const next: Record<string, string> = {};
@@ -77,11 +81,12 @@ export function CaseIntakeForm({
 
   async function handleSubmit() {
     setActionError(null);
+    setSuccessMessage(null);
     if (!validate()) {
       setActionError("Fix the highlighted fields before completing intake.");
       return;
     }
-    await run(
+    const ok = await run(
       () =>
         completeShelterIntakeAction(caseId, {
           name: name.trim() || undefined,
@@ -92,18 +97,22 @@ export function CaseIntakeForm({
           color: resolveSelectOther(colorChoice, colorOther) ?? undefined,
           initialCondition: initialCondition.trim() || undefined,
         }),
-      { rewarm: [`/rescue-cases/${caseId}`, "/animals", "/dashboard"] },
+      {
+        rewarm: [`/rescue-cases/${caseId}`, "/animals", "/dashboard"],
+      },
     );
+    if (ok) {
+      setSuccessMessage(
+        `Intake complete for ${temporaryId}. Case is completed. Open Animals or Medical to continue.`,
+      );
+      onComplete?.();
+    }
   }
 
   return (
     <div className="space-y-3 border-t border-sage/30 pt-4">
       <p className="text-xs font-medium text-graphite/70">Shelter Intake</p>
-      {actionError && (
-        <p className="rounded-lg border border-rescue/20 bg-rescue/5 px-3 py-2 text-sm text-rescue">
-          {actionError}
-        </p>
-      )}
+      <ActionFeedback error={actionError} success={successMessage} size="md" />
       <div className="space-y-2 text-sm">
         <div>
           <Label className="text-graphite/60">Animal ID</Label>
@@ -185,7 +194,7 @@ export function CaseIntakeForm({
         </div>
       </div>
       <Button onClick={() => void handleSubmit()} disabled={loading} className="w-full">
-        Complete Intake
+        {loading ? "Completing intake..." : "Complete Intake"}
       </Button>
     </div>
   );

@@ -10,6 +10,11 @@ import {
   declineAssignmentAction,
   updateCaseStatusAction,
 } from "@/app/actions/case";
+import {
+  isAnimalSecuredStatus,
+  isAtShelterStatus,
+  isWithRescuerStatus,
+} from "@/lib/rescue-stages";
 
 interface CaseActionsClientProps {
   assignmentId: string;
@@ -26,14 +31,26 @@ export function CaseActionsClient({
   assignmentStatus,
   caseStatus,
 }: CaseActionsClientProps) {
-  const { pending: loading, error: actionError, setError: setActionError, run } = useActionPending();
+  const { pending: loading, error: actionError, setError: setActionError, run } =
+    useActionPending();
   const [declineReason, setDeclineReason] = useState("");
   const [showDecline, setShowDecline] = useState(false);
 
   async function runAction(fn: () => Promise<ActionResult>) {
     setActionError(null);
-    await run(fn, { rewarm: [`/mobile/cases/${caseId}`, "/mobile/cases", "/mobile"] });
+    await run(fn, {
+      rewarm: [`/mobile/cases/${caseId}`, "/mobile/cases", "/mobile"],
+    });
   }
+
+  const canMarkSecured =
+    assignmentStatus === "accepted" && isWithRescuerStatus(caseStatus);
+  const waitingForStaff =
+    assignmentStatus === "accepted" && isAnimalSecuredStatus(caseStatus);
+  const handoffDone =
+    assignmentStatus === "completed" ||
+    isAtShelterStatus(caseStatus) ||
+    caseStatus === "completed";
 
   return (
     <div className="space-y-3">
@@ -87,19 +104,7 @@ export function CaseActionsClient({
         </div>
       )}
 
-      {assignmentStatus === "accepted" && caseStatus === "rescue_accepted" && (
-        <Button
-          onClick={() =>
-            runAction(() => updateCaseStatusAction(caseId, "rescue_in_progress"))
-          }
-          disabled={loading}
-          className="w-full"
-        >
-          Start Rescue
-        </Button>
-      )}
-
-      {assignmentStatus === "accepted" && caseStatus === "rescue_in_progress" && (
+      {canMarkSecured && (
         <Button
           onClick={() =>
             runAction(() => updateCaseStatusAction(caseId, "animal_secured"))
@@ -107,23 +112,11 @@ export function CaseActionsClient({
           disabled={loading}
           className="w-full"
         >
-          Mark Animal Secured
+          {loading ? "Updating..." : "Mark Animal Secured"}
         </Button>
       )}
 
-      {assignmentStatus === "accepted" && caseStatus === "animal_secured" && (
-        <Button
-          onClick={() =>
-            runAction(() => updateCaseStatusAction(caseId, "awaiting_shelter"))
-          }
-          disabled={loading}
-          className="w-full"
-        >
-          Request Shelter Placement
-        </Button>
-      )}
-
-      {assignmentStatus === "accepted" && caseStatus === "awaiting_shelter" && (
+      {waitingForStaff && (
         <div
           className="rounded-xl border border-evergreen/25 bg-evergreen/5 p-4"
           role="status"
@@ -135,18 +128,17 @@ export function CaseActionsClient({
             />
             <div>
               <p className="text-sm font-semibold text-evergreen">
-                Shelter placement requested
+                Animal secured
               </p>
               <p className="mt-1 text-xs text-graphite/65 leading-relaxed">
-                Shelter staff will review recommendations and confirm a
-                destination.
+                Shelter staff will confirm the destination and complete handoff.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {(assignmentStatus === "completed" || caseStatus === "shelter_handoff") && (
+      {handoffDone && (
         <div
           className="rounded-xl border border-evergreen/25 bg-evergreen/5 p-4"
           role="status"
@@ -155,7 +147,7 @@ export function CaseActionsClient({
             Shelter Handoff Complete
           </p>
           <p className="mt-1 text-xs text-graphite/65">
-            Rescue operations are complete. Shelter staff will complete intake.
+            Rescue operations are complete. Shelter staff will finish intake.
           </p>
         </div>
       )}
