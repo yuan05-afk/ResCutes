@@ -74,6 +74,55 @@ export function canAccessDashboard(userRoles: Role[]): boolean {
   ]);
 }
 
+/**
+ * Primary post-login surface for a role set.
+ * Field roles (citizen, rescuer) use the mobile app.
+ * Operations roles (staff, vet, admin) use the web dashboard.
+ */
+export function getHomePathForRoles(
+  userRoles: Role[],
+): "/mobile" | "/dashboard" | "/" {
+  if (canAccessDashboard(userRoles)) return "/dashboard";
+  if (
+    hasRole(userRoles, ROLES.CITIZEN) ||
+    hasRole(userRoles, ROLES.RESCUER)
+  ) {
+    return "/mobile";
+  }
+  return "/";
+}
+
+/**
+ * Resolve where to send the user after sign-in.
+ * Honors a safe callbackUrl only when it matches that role's primary surface
+ * (so landing "Open Mobile App" does not send shelter staff into /mobile).
+ */
+export function getPostLoginPath(
+  userRoles: Role[],
+  callbackUrl?: string | null,
+): string {
+  const home = getHomePathForRoles(userRoles);
+  const raw = (callbackUrl ?? "").trim();
+
+  if (
+    !raw ||
+    raw === "/login" ||
+    !raw.startsWith("/") ||
+    raw.startsWith("//")
+  ) {
+    return home;
+  }
+
+  const callbackIsMobile = raw === "/mobile" || raw.startsWith("/mobile/");
+  const homeIsMobile = home === "/mobile";
+
+  if (callbackIsMobile === homeIsMobile) {
+    return raw;
+  }
+
+  return home;
+}
+
 export function canActAsRescuer(userRoles: Role[]): boolean {
   if (hasFullAccess(userRoles)) return true;
   return hasRole(userRoles, ROLES.RESCUER);
@@ -159,34 +208,34 @@ export const DEMO_ACCOUNTS = [
     password: "demo1234",
     name: "Maria Santos",
     role: ROLES.CITIZEN,
-    description: "Report animals and track your cases",
+    description: "Report and track cases",
   },
   {
     email: "rescuer@rescutes.demo",
     password: "demo1234",
     name: "James Chen",
     role: ROLES.RESCUER,
-    description: "Accept assignments and rescue animals",
+    description: "Accept field assignments",
   },
   {
     email: "staff@rescutes.demo",
     password: "demo1234",
     name: "Sarah Lim",
     role: ROLES.SHELTER_STAFF,
-    description: "Verify reports and manage operations",
+    description: "Verify and dispatch",
   },
   {
     email: "vet@rescutes.demo",
     password: "demo1234",
     name: "Dr. Anita Rao",
     role: ROLES.VETERINARIAN,
-    description: "Record examinations and medical clearance",
+    description: "Exams and clearance",
   },
   {
     email: "admin@rescutes.demo",
     password: "demo1234",
     name: "Alex Wong",
     role: ROLES.ADMINISTRATOR,
-    description: "Full access to web dashboard and mobile app",
+    description: "Full web operations",
   },
 ] as const;

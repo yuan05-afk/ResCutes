@@ -3,14 +3,7 @@
 import { redirect } from "next/navigation";
 import { neonAuth } from "@/lib/auth/server";
 import { getRolesByEmail } from "@/lib/auth/user-roles";
-import { ROLES, canAccessDashboard } from "@/lib/auth/permissions";
-import type { Role } from "@/lib/auth/permissions";
-
-function defaultPathForRoles(roles: Role[]): string {
-  if (canAccessDashboard(roles)) return "/dashboard";
-  if (roles.includes(ROLES.RESCUER) || roles.includes(ROLES.CITIZEN)) return "/mobile";
-  return "/";
-}
+import { getPostLoginPath } from "@/lib/auth/permissions";
 
 export async function signInAction(
   _prevState: { error: string } | null,
@@ -33,10 +26,5 @@ export async function signInAction(
   }
 
   const roles = await getRolesByEmail(email);
-  const destination =
-    callbackUrl && callbackUrl !== "/login"
-      ? callbackUrl
-      : defaultPathForRoles(roles);
-
-  redirect(destination);
+  redirect(getPostLoginPath(roles, callbackUrl));
 }

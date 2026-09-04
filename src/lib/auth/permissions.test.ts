@@ -12,6 +12,8 @@ import {
   canAccessMobileCase,
   shouldUseRescuerMobileExperience,
   getDisplayRoleLabel,
+  getHomePathForRoles,
+  getPostLoginPath,
   isAdministrator,
   ROLES,
 } from "@/lib/auth/permissions";
@@ -98,5 +100,27 @@ describe("Authorization helpers", () => {
         ...caseOpts,
       }),
     ).toBe(true);
+  });
+
+  it("routes field roles to mobile and operations roles to the web dashboard", () => {
+    expect(getHomePathForRoles([ROLES.CITIZEN])).toBe("/mobile");
+    expect(getHomePathForRoles([ROLES.RESCUER])).toBe("/mobile");
+    expect(getHomePathForRoles([ROLES.SHELTER_STAFF])).toBe("/dashboard");
+    expect(getHomePathForRoles([ROLES.VETERINARIAN])).toBe("/dashboard");
+    expect(getHomePathForRoles([ROLES.ADMINISTRATOR])).toBe("/dashboard");
+  });
+
+  it("ignores callback URLs that point at the wrong surface for the role", () => {
+    expect(getPostLoginPath([ROLES.CITIZEN], "/mobile/report")).toBe(
+      "/mobile/report",
+    );
+    expect(getPostLoginPath([ROLES.CITIZEN], "/dashboard")).toBe("/mobile");
+    expect(getPostLoginPath([ROLES.SHELTER_STAFF], "/mobile")).toBe(
+      "/dashboard",
+    );
+    expect(getPostLoginPath([ROLES.VETERINARIAN], "/medical")).toBe("/medical");
+    expect(getPostLoginPath([ROLES.ADMINISTRATOR], "/mobile/cases")).toBe(
+      "/dashboard",
+    );
   });
 });

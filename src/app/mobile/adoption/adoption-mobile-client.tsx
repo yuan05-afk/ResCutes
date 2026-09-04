@@ -587,8 +587,9 @@ function AnimalCard({
 }) {
   return (
     <div
-      className="absolute inset-0 flex flex-col overflow-hidden rounded-3xl border border-sage/20 bg-white shadow-elevated"
+      className="absolute inset-0 flex flex-col overflow-hidden rounded-3xl border border-sage/20 bg-white shadow-elevated select-none"
       style={style}
+      onDragStart={(e) => e.preventDefault()}
     >
       <div className="relative min-h-0 flex-[1.35] bg-sage/15">
         {animal.photoUrl ? (
@@ -596,7 +597,8 @@ function AnimalCard({
             src={animal.photoUrl}
             alt={animal.name}
             fill
-            className="object-cover"
+            draggable={false}
+            className="pointer-events-none select-none object-cover [-webkit-user-drag:none]"
             unoptimized
           />
         ) : (

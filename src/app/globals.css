@@ -78,6 +78,41 @@
   }
 }
 
+/* Marketing landing (scoped; does not affect dashboard/mobile chrome) */
+.landing-page {
+  font-family: var(--font-landing-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+.landing-page .landing-brand,
+.landing-page .landing-display {
+  font-family: var(--font-landing-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.03em;
+}
+
+.landing-page .landing-brand {
+  font-weight: 700;
+}
+
+.landing-page .landing-display {
+  font-weight: 600;
+}
+
+.landing-hero-scrim {
+  background:
+    linear-gradient(
+      108deg,
+      rgba(10, 26, 22, 0.9) 0%,
+      rgba(10, 26, 22, 0.74) 36%,
+      rgba(10, 26, 22, 0.28) 66%,
+      rgba(10, 26, 22, 0.16) 100%
+    ),
+    linear-gradient(to top, rgba(10, 26, 22, 0.58) 0%, transparent 46%);
+}
+
+.landing-photo {
+  box-shadow: 0 22px 56px rgba(24, 60, 53, 0.16);
+}
+
 @layer utilities {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0);
