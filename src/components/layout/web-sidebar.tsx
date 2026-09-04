@@ -65,8 +65,17 @@ export function WebSidebar({
       className="hidden md:flex w-[260px] shrink-0 flex-col sticky top-0 self-start min-h-[100dvh] bg-evergreen text-white"
       aria-label="Main navigation"
     >
-      <div className="shrink-0 px-5 py-6 border-b border-white/10">
-        <Logo variant="light" size="lg" />
+      <div className="shrink-0 border-b border-white/10 px-5 py-6">
+        <Link
+          href="/dashboard"
+          prefetch
+          onMouseEnter={() => prefetchRouteNow(router, "/dashboard")}
+          onClick={() => startPending("/dashboard")}
+          className="inline-flex rounded-xl outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white/40"
+          aria-label="ResCutes home - go to dashboard"
+        >
+          <Logo variant="light" size="lg" />
+        </Link>
       </div>
 
       <nav className="rc-scroll flex-1 min-h-0 overflow-y-auto px-3 py-5 space-y-1">
