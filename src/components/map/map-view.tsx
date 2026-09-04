@@ -711,6 +711,7 @@ export function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || loading || !pinSelectedPopup) return;
+    const liveMap = map;
 
     function syncPinnedPopups() {
       for (const [id, entry] of registryRef.current.entries()) {
@@ -718,7 +719,7 @@ export function MapView({
         if (!popup) continue;
 
         if (selectedMarkerId === id) {
-          if (!popup.isOpen()) popup.addTo(map);
+          if (!popup.isOpen()) popup.addTo(liveMap);
         } else {
           popup.remove();
         }
@@ -733,11 +734,11 @@ export function MapView({
         syncPinnedPopups();
       };
 
-      map.once("moveend", applyOnce);
+      liveMap.once("moveend", applyOnce);
       const timer = window.setTimeout(applyOnce, MAP_CAMERA_FLY_MS + 80);
 
       return () => {
-        map.off("moveend", applyOnce);
+        liveMap.off("moveend", applyOnce);
         window.clearTimeout(timer);
       };
     }

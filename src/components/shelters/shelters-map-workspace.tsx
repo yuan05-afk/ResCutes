@@ -49,7 +49,8 @@ export function SheltersMapWorkspace({
   const hasFocusCoords =
     Number.isFinite(focusLat) && Number.isFinite(focusLng);
   const [search, setSearch] = useState("");
-  const [region, setRegion] = useState("All regions");
+  const [region, setRegion] =
+    useState<(typeof PHILIPPINES_REGIONS)[number]>("All regions");
   const [speciesProfile, setSpeciesProfile] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(() => {
     if (highlightParam && shelters.some((s) => s.id === highlightParam)) {
@@ -204,7 +205,9 @@ export function SheltersMapWorkspace({
         />
         <Select
           value={region}
-          onChange={(e) => setRegion(e.target.value)}
+          onChange={(e) =>
+            setRegion(e.target.value as (typeof PHILIPPINES_REGIONS)[number])
+          }
           className="h-9"
         >
           {availableRegions.map((item) => (

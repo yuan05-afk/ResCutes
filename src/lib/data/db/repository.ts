@@ -266,7 +266,7 @@ export async function fetchCases(filters?: {
     });
   }
 
-  let cases = bundles.map(mapCaseBundle);
+  const cases = bundles.map(mapCaseBundle);
 
   if (filters?.sortBy === "urgency") {
     cases.sort((a, b) => b.urgencyScore - a.urgencyScore);

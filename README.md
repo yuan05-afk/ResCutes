@@ -72,8 +72,10 @@ If maps or uploads are not configured, some UI features may be limited.
 
 Web and mobile ship from the same Next.js project (`/` dashboard, `/mobile` app). One Vercel project covers both.
 
-1. Push this repo to GitHub (already: `Rapnunu/ResCutes`).
+1. Push this repo to GitHub.
 2. In Vercel: **Add New Project** → import the repo → Framework Preset **Next.js** → Root Directory `.`
+   - Install/authorize the [Vercel GitHub App](https://github.com/apps/vercel) on the repo owner if prompted.
+   - Set the Production Branch to the branch you ship from (`main` or `develop`).
 3. Set Environment Variables (Production + Preview) to match `.env.example`:
    - `DATABASE_URL`
    - `NEON_AUTH_BASE_URL`
@@ -92,6 +94,12 @@ npm run build
 npm run start
 ```
 
+One Vercel project serves both surfaces:
+
+| Surface | Path |
+|---------|------|
+| Web dashboard | `/dashboard`, `/rescue-cases`, `/animals`, … |
+| Mobile app | `/mobile`, `/mobile/report`, `/mobile/cases`, … |
 ---
 
 ## Demo accounts
