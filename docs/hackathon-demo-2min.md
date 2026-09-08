@@ -4,6 +4,8 @@ A click-through script for the live UI. Audience: hackathon judges (mixed techni
 
 Live app: [https://rescutes.vercel.app](https://rescutes.vercel.app)
 
+**Spoken words to read on camera:** [hackathon-demo-spoken-script.md](hackathon-demo-spoken-script.md)
+
 ---
 
 ## Demo Concept and Narrative
