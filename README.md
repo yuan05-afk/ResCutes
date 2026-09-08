@@ -106,6 +106,8 @@ One Vercel project serves both surfaces:
 
 All demo accounts use password **`demo1234`**.
 
+A 2-minute Recordly script for hackathon judges is in [docs/hackathon-demo-2min.md](docs/hackathon-demo-2min.md).
+
 | Email | Role |
 |-------|------|
 | `citizen@rescutes.demo` | Citizen |
