@@ -1,9 +1,7 @@
 /**
  * Capture tight, README-sized product screenshots for the ResCutes flow:
- *   1 Report → 2 Rescue ops → 3 Medical → 4 Adoption
+ *   Landing hero + 1 Report → 2 Rescue ops → 3 Medical → 4 Adoption
  * Plus a couple supporting shots (map home, shelter map).
- *
- * Does NOT capture landing marketing "01–04" story sections.
  *
  * Usage: node scripts/capture-readme-screenshots.mjs
  */
@@ -94,6 +92,24 @@ async function shotEl(locator, file, padding = 8) {
 }
 
 const browser = await chromium.launch();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LANDING — public hero (README masthead)
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 2,
+  });
+  await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+  await page
+    .locator(".landing-brand")
+    .first()
+    .waitFor({ state: "visible", timeout: 30000 });
+  await settle(page, 1200);
+  await shotViewport(page, "landing-hero.png");
+  await page.close();
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // WEB — staff/admin ops (compact 1280×720 viewport)
@@ -244,7 +260,6 @@ const obsolete = [
   "16-mobile-adoption.png",
   "17-mobile-report.png",
   "18-mobile-profile.png",
-  "landing-hero.png",
 ];
 for (const name of obsolete) {
   const p = outFile(name);

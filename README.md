@@ -11,6 +11,10 @@
 
 **AnimalHack 2026** submission - track: supporting animal shelters, rescues, and foster programs.
 
+<p align="center">
+  <img src="e2e/screenshots/landing-hero.png" width="880" alt="ResCutes landing page hero - Philippine animal rescue coordination" />
+</p>
+
 ---
 
 ## 60-second pitch
