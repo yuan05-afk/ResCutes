@@ -126,29 +126,83 @@ Public: `/` landing, `/login` (also `/sign-in`).
 
 ## Screenshots
 
-![Landing hero - citizen with an aspin on a Philippine street](public/landing/hero.jpg)
+Fresh captures from the live demo ([rescutes.vercel.app](https://rescutes.vercel.app/)) via Playwright - landing workflow, web ops, and mobile PWA.
 
-_Landing context: community care for street animals in the Philippines._
+### Landing - brand + 4-step pathway
 
-![Operations Overview dashboard with capacity, urgency queue, and live map](e2e/screenshots/dashboard-ux.png)
+![Landing hero with ResCutes brand, tagline, and demo CTAs](e2e/screenshots/01-landing-hero.png)
 
-_Staff dashboard: shelter capacity, attention queue with scored urgency, live rescue map._
+_Hero: Philippine animal rescue coordination, Try Demo Access, Open Mobile App._
 
-![Rescue Cases table with status and urgency score badges](e2e/screenshots/rescue-cases-ux.png)
+![Step 01 Report and Track](e2e/screenshots/02-workflow-01-report.png)
 
-_Rescue Cases: filterable case list with status stages and urgency scores._
+_01 Report & Track - citizens pin location and follow status updates._
 
-![Philippines Shelter Map with CARA capacity and routing partner details](e2e/screenshots/shelters-map-desktop.png)
+![Step 02 Coordinate Rescue](e2e/screenshots/03-workflow-02-rescue.png)
 
-_Shelter Map: verified listings, capacity, species accepted, routing partners._
+_02 Coordinate Rescue - staff verify, assign a rescuer, route to the right facility._
 
-![Adoption grid of medically cleared animals](e2e/screenshots/adoption-ux.png)
+![Step 03 Medical Clearance](e2e/screenshots/04-workflow-03-medical.png)
 
-_Adoption: animals ready for adoption or foster, plus application review._
+_03 Medical Clearance - veterinarians examine, document, and clear animals._
 
-![Mobile map legend beside Mapbox attribution](e2e/screenshots/map-legend-nearby-mobile.png)
+![Step 04 Adoption](e2e/screenshots/05-workflow-04-adoption.png)
 
-_Mobile map: layer legend for shelters and Critical / High / Standard field cases._
+_04 Adoption - cleared animals move to adoption on web and mobile._
+
+![Demo Access role cards](e2e/screenshots/06-landing-demo-access.png)
+
+_Demo Access: one-click roles for citizen, rescuer, staff, vet, and admin._
+
+### Web dashboard - operations
+
+![Operations Overview with KPIs, live map, and urgency queue](e2e/screenshots/07-web-dashboard.png)
+
+_Dashboard: shelter capacity, active cases, attention queue with scored urgency, live Metro Manila map._
+
+![Rescue Cases table with status and urgency badges](e2e/screenshots/08-web-rescue-cases.png)
+
+_Rescue Cases: searchable, filterable case list with status stages and urgency scores._
+
+![Case detail with urgency factors and shelter match](e2e/screenshots/09-web-case-detail.png)
+
+_Case detail: status pipeline, injury/danger factors, explainable urgency (e.g. 58/100), top shelter match with reasons, reporter Call/Email, staff actions._
+
+![Medical clearance workspace](e2e/screenshots/10-web-medical.png)
+
+_Medical: clearance pathway (intake → exam → treatment → follow-up → cleared) with clinical checklist._
+
+![Philippines Shelter Map](e2e/screenshots/11-web-shelter-map.png)
+
+_Shelter Map: 24 listings, capacity/species filters, routing partners across the Philippines._
+
+![Adoption ready animals grid](e2e/screenshots/12-web-adoption.png)
+
+_Adoption: medically cleared animals ready for adoption or foster, plus applications review._
+
+### Mobile PWA - field + citizen
+
+![Mobile map with shelters and field cases](e2e/screenshots/14-mobile-home-map.png)
+
+_Mobile home map: Shelters / Critical / High / Standard layers, photo pins, Report camera CTA._
+
+![Mobile report photo step](e2e/screenshots/17-mobile-report.png)
+
+_Report an animal: multi-step flow starting with camera/gallery photo capture._
+
+![Mobile cases list](e2e/screenshots/15-mobile-cases.png)
+
+_Cases: track own reports and rescuer assignments on the phone._
+
+![Mobile adoption swipe deck](e2e/screenshots/16-mobile-adoption.png)
+
+_Mobile adoption: discover cleared animals on the go._
+
+Regenerate anytime:
+
+```powershell
+node scripts/capture-readme-screenshots.mjs
+```
 
 ---
 
