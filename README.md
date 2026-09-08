@@ -29,13 +29,13 @@ Urgency is scored from visible injury, environmental danger, vulnerability, and 
 
 Sign in at [/login](https://rescutes.vercel.app/login). All seeded demo accounts use password **`demo1234`**.
 
-| Role | Email | Password |
-|------|-------|----------|
-| Citizen | `citizen@rescutes.demo` | `demo1234` |
-| Rescuer | `rescuer@rescutes.demo` | `demo1234` |
-| Shelter staff | `staff@rescutes.demo` | `demo1234` |
-| Veterinarian | `vet@rescutes.demo` | `demo1234` |
-| Administrator | `admin@rescutes.demo` | `demo1234` |
+| Role          | Email                   | Password   |
+| ------------- | ----------------------- | ---------- |
+| Citizen       | `citizen@rescutes.demo` | `demo1234` |
+| Rescuer       | `rescuer@rescutes.demo` | `demo1234` |
+| Shelter staff | `staff@rescutes.demo`   | `demo1234` |
+| Veterinarian  | `vet@rescutes.demo`     | `demo1234` |
+| Administrator | `admin@rescutes.demo`   | `demo1234` |
 
 Citizens and rescuers land on `/mobile`. Staff and veterinarians land on `/dashboard` (mobile is gated). Administrators can use both.
 
@@ -47,12 +47,12 @@ Citizens and rescuers land on `/mobile`. Staff and veterinarians land on `/dashb
 
 Score is 0-100 from four additive factors (capped at 100):
 
-| Factor | Max points | Example values from code |
-|--------|------------|---------------------------|
-| Visible injury severity | 35 | `none_visible` 0 · `moderate` 20 · `critical` 35 |
-| Environmental danger | 30 | `traffic` 25 · `trapped` 30 |
-| Animal vulnerability | 20 | `juvenile` 12 · `nursing` 18 · `disabled` 20 |
-| Time waiting after verification | 15 | &lt;1h → 2 · 12h+ → 15 |
+| Factor                          | Max points | Example values from code                         |
+| ------------------------------- | ---------- | ------------------------------------------------ |
+| Visible injury severity         | 35         | `none_visible` 0 · `moderate` 20 · `critical` 35 |
+| Environmental danger            | 30         | `traffic` 25 · `trapped` 30                      |
+| Animal vulnerability            | 20         | `juvenile` 12 · `nursing` 18 · `disabled` 20     |
+| Time waiting after verification | 15         | &lt;1h → 2 · 12h+ → 15                           |
 
 Levels: **critical** ≥80, **high** ≥60, **medium** ≥30, else **low**. Each factor returns a plain-language explanation (e.g. "Animal near traffic or busy road"), and the result surfaces the top factors in a readable summary string. Staff can override with a reason when field judgment differs from the formula.
 
@@ -98,27 +98,27 @@ flowchart LR
 
 ### Mobile PWA (citizens & rescuers)
 
-| Route | Purpose |
-|-------|---------|
-| `/mobile` | Map home - shelters + open field cases |
-| `/mobile/report` | Camera / location report flow |
-| `/mobile/cases`, `/mobile/cases/[id]` | Track own reports and case detail |
-| `/mobile/assignments/[id]` | Accept / decline dispatch |
-| `/mobile/adoption` | Swipe / browse adoption queue |
-| `/mobile/profile` | Profile + required phone contact |
+| Route                                 | Purpose                                |
+| ------------------------------------- | -------------------------------------- |
+| `/mobile`                             | Map home - shelters + open field cases |
+| `/mobile/report`                      | Camera / location report flow          |
+| `/mobile/cases`, `/mobile/cases/[id]` | Track own reports and case detail      |
+| `/mobile/assignments/[id]`            | Accept / decline dispatch              |
+| `/mobile/adoption`                    | Swipe / browse adoption queue          |
+| `/mobile/profile`                     | Profile + required phone contact       |
 
 ### Web dashboard (staff, vets, admin)
 
-| Route | Purpose |
-|-------|---------|
-| `/dashboard` | Operations overview + live map |
-| `/rescue-cases`, `/rescue-cases/new`, `/rescue-cases/[id]` | Verify, dispatch, status, notes |
-| `/animals`, `/animals/new`, `/animals/[id]` | Shelter animal registry |
-| `/medical` | Clearance queue and clinical workflow |
-| `/adoption` | Ready animals + application review |
-| `/shelters` | Philippines shelter map / directory |
-| `/users` | Admin user directory |
-| `/settings`, `/profile` | Shelter settings and account |
+| Route                                                      | Purpose                               |
+| ---------------------------------------------------------- | ------------------------------------- |
+| `/dashboard`                                               | Operations overview + live map        |
+| `/rescue-cases`, `/rescue-cases/new`, `/rescue-cases/[id]` | Verify, dispatch, status, notes       |
+| `/animals`, `/animals/new`, `/animals/[id]`                | Shelter animal registry               |
+| `/medical`                                                 | Clearance queue and clinical workflow |
+| `/adoption`                                                | Ready animals + application review    |
+| `/shelters`                                                | Philippines shelter map / directory   |
+| `/users`                                                   | Admin user directory                  |
+| `/settings`, `/profile`                                    | Shelter settings and account          |
 
 Public: `/` landing, `/login` (also `/sign-in`).
 
@@ -128,39 +128,39 @@ Public: `/` landing, `/login` (also `/sign-in`).
 
 ![Landing hero - citizen with an aspin on a Philippine street](public/landing/hero.jpg)
 
-*Landing context: community care for street animals in the Philippines.*
+_Landing context: community care for street animals in the Philippines._
 
 ![Operations Overview dashboard with capacity, urgency queue, and live map](e2e/screenshots/dashboard-ux.png)
 
-*Staff dashboard: shelter capacity, attention queue with scored urgency, live rescue map.*
+_Staff dashboard: shelter capacity, attention queue with scored urgency, live rescue map._
 
 ![Rescue Cases table with status and urgency score badges](e2e/screenshots/rescue-cases-ux.png)
 
-*Rescue Cases: filterable case list with status stages and urgency scores.*
+_Rescue Cases: filterable case list with status stages and urgency scores._
 
 ![Philippines Shelter Map with CARA capacity and routing partner details](e2e/screenshots/shelters-map-desktop.png)
 
-*Shelter Map: verified listings, capacity, species accepted, routing partners.*
+_Shelter Map: verified listings, capacity, species accepted, routing partners._
 
 ![Adoption grid of medically cleared animals](e2e/screenshots/adoption-ux.png)
 
-*Adoption: animals ready for adoption or foster, plus application review.*
+_Adoption: animals ready for adoption or foster, plus application review._
 
 ![Mobile map legend beside Mapbox attribution](e2e/screenshots/map-legend-nearby-mobile.png)
 
-*Mobile map: layer legend for shelters and Critical / High / Standard field cases.*
+_Mobile map: layer legend for shelters and Critical / High / Standard field cases._
 
 ---
 
 ## Built like a real product, not a slide deck
 
-| Evidence | Source |
-|----------|--------|
-| **QA re-audit 90 / 100** (8 Sep 2026, Asia/Manila) | `ResCutes-QA-Reaudit-Report.md` - post-remediation vs baseline **64 / 100** |
-| **+26** score lift on former blockers | Create routes, name validation, verify/dispatch, staff/vet mobile gate, narrow layouts, reporter Call/Email |
-| **35** automated test files | 20 under `src/**/*.test.ts` (Vitest) + 15 under `e2e/*.spec.ts` (Playwright) |
-| Role-gated surfaces | Staff/vet `/mobile` → `/dashboard`; citizen/rescuer cannot use web ops |
-| Shared persistence | Neon PostgreSQL via Drizzle (`src/db/schema.ts`, `src/lib/data/db/repository.ts`) |
+| Evidence                                           | Source                                                                                                      |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **QA re-audit 90 / 100** (8 Sep 2026, Asia/Manila) | `ResCutes-QA-Reaudit-Report.md` - post-remediation vs baseline **64 / 100**                                 |
+| **+26** score lift on former blockers              | Create routes, name validation, verify/dispatch, staff/vet mobile gate, narrow layouts, reporter Call/Email |
+| **35** automated test files                        | 20 under `src/**/*.test.ts` (Vitest) + 15 under `e2e/*.spec.ts` (Playwright)                                |
+| Role-gated surfaces                                | Staff/vet `/mobile` → `/dashboard`; citizen/rescuer cannot use web ops                                      |
+| Shared persistence                                 | Neon PostgreSQL via Drizzle (`src/db/schema.ts`, `src/lib/data/db/repository.ts`)                           |
 
 Roles in schema: `citizen`, `rescuer`, `shelter_staff`, `veterinarian`, `administrator`.
 
@@ -168,18 +168,18 @@ Roles in schema: `citizen`, `rescuer`, `shelter_staff`, `veterinarian`, `adminis
 
 ## Tech stack
 
-| Area | From `package.json` |
-|------|---------------------|
-| Framework | Next.js 15 (App Router) |
-| Language | TypeScript |
-| UI | React 19, Tailwind CSS, Radix UI, Motion |
-| Auth | `@neondatabase/auth` |
-| Database | `@neondatabase/serverless`, Drizzle ORM |
-| Maps | Mapbox GL |
-| Uploads | `@vercel/blob` (optional) |
-| Validation | Zod |
-| Tests | Vitest, Playwright |
-| Charts | Recharts |
+| Area       | From `package.json`                      |
+| ---------- | ---------------------------------------- |
+| Framework  | Next.js 15 (App Router)                  |
+| Language   | TypeScript                               |
+| UI         | React 19, Tailwind CSS, Radix UI, Motion |
+| Auth       | `@neondatabase/auth`                     |
+| Database   | `@neondatabase/serverless`, Drizzle ORM  |
+| Maps       | Mapbox GL                                |
+| Uploads    | `@vercel/blob` (optional)                |
+| Validation | Zod                                      |
+| Tests      | Vitest, Playwright                       |
+| Charts     | Recharts                                 |
 
 Deploy target: Vercel (`vercel.json` region `sin1`). Runtime: Node **24.x** (`engines`).
 
@@ -206,13 +206,13 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Copy `.env.example` → `.env.local`. Never commit secrets.
 
-| Variable | Purpose |
-|----------|---------|
-| `DATABASE_URL` | Neon PostgreSQL connection string (required) |
-| `NEON_AUTH_BASE_URL` | Neon Auth project URL (required for login) |
-| `NEON_AUTH_COOKIE_SECRET` | Session cookie signing secret (required) |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox public token for maps |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob for photo uploads (recommended in production) |
+| Variable                   | Purpose                                                   |
+| -------------------------- | --------------------------------------------------------- |
+| `DATABASE_URL`             | Neon PostgreSQL connection string (required)              |
+| `NEON_AUTH_BASE_URL`       | Neon Auth project URL (required for login)                |
+| `NEON_AUTH_COOKIE_SECRET`  | Session cookie signing secret (required)                  |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox public token for maps                              |
+| `BLOB_READ_WRITE_TOKEN`    | Vercel Blob for photo uploads (recommended in production) |
 
 Optional: `NEXT_PUBLIC_SITE_URL`, `SEED_AUTH_ORIGIN` (see `.env.example`).
 
@@ -254,4 +254,4 @@ If we had another week (grounded in the 8 Sep 2026 re-audit remaining polish and
 
 ---
 
-*Evidence of outcome: open the [live demo](https://rescutes.vercel.app/), sign in with a demo account above, and walk report → verify → dispatch → medical → adoption on the seeded data.*
+_Evidence of outcome: open the [live demo](https://rescutes.vercel.app/), sign in with a demo account above, and walk report → verify → dispatch → medical → adoption on the seeded data._
