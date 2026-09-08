@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import {
   confirmShelterHandoff,
   completeShelterIntake,
@@ -26,6 +26,10 @@ describe("shelter handoff guards", () => {
     await resetWorkflowTestData();
     users = await testUsers();
     await seedCase008Fixtures();
+  });
+
+  afterAll(async () => {
+    await resetWorkflowTestData();
   });
 
   it("rejects handoff without destination", async () => {

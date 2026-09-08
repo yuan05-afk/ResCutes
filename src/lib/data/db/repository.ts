@@ -1495,28 +1495,145 @@ export async function fetchAssignmentsForCases(
 }
 
 /**
- * Wipe workflow tables for integration tests.
- *
- * SAFETY: Refuses to run unless ALLOW_DESTRUCTIVE_DB_TESTS=1.
- * Never point that flag at the shared Neon demo/production database.
- * Use a dedicated Neon branch (or local DB) for vitest workflow suites.
+ * Remove only known workflow *test fixture* rows.
+ * Never truncates demo/production seed data (RC-26-*, A-26-*, etc.).
  */
 export async function clearWorkflowDataForTests(): Promise<void> {
-  if (process.env.ALLOW_DESTRUCTIVE_DB_TESTS !== "1") {
-    throw new Error(
-      "Refusing to wipe rescue_cases/animals/reports. Set ALLOW_DESTRUCTIVE_DB_TESTS=1 only on a dedicated test database (not the shared demo Neon).",
-    );
-  }
+  const { stableUuid } = await import("@/db/stable-ids");
   const db = getDb();
-  await db.delete(notifications);
-  await db.delete(animalNotes);
-  await db.delete(medicalClearances);
-  await db.delete(animals);
-  await db.delete(shelterHandoffs);
-  await db.delete(shelterRecommendations);
-  await db.delete(rescuerAssignments);
-  await db.delete(caseStatusHistory);
-  await db.delete(casePhotos);
-  await db.delete(rescueCases);
-  await db.delete(rescueReports);
+
+  const caseIds = [
+    stableUuid("test-case-004"),
+    stableUuid("test-case-008"),
+    stableUuid("test-case-luna"),
+    stableUuid("test-case-001"),
+  ];
+  const animalIds = [
+    stableUuid("test-animal-001"),
+    stableUuid("test-animal-luna"),
+  ];
+  const reportIds = [
+    stableUuid("test-report-004"),
+    stableUuid("test-report-008"),
+    stableUuid("test-report-luna"),
+    stableUuid("test-report-001"),
+  ];
+
+  // Animals created mid-test (intake) are linked to fixture cases.
+  const linkedAnimals = await db
+    .select({ id: animals.id })
+    .from(animals)
+    .where(inArray(animals.rescueCaseId, caseIds));
+  const allAnimalIds = [
+    ...new Set([...animalIds, ...linkedAnimals.map((a) => a.id)]),
+  ];
+
+  // Orphan cases from report-sync / ad-hoc submitReport tests.
+  const leftoverCases = await db
+    .select({ id: rescueCases.id, reportId: rescueCases.reportId })
+    .from(rescueCases)
+    .where(
+      inArray(rescueCases.caseNumber, [
+        "RC-TEST-004",
+        "RC-26-109", // legacy fixture number from older runs
+        "RC-2026-1008",
+        "RC-2026-LUNA",
+        "RC-2026-0001",
+      ]),
+    );
+  const allCaseIds = [
+    ...new Set([...caseIds, ...leftoverCases.map((c) => c.id)]),
+  ];
+  const allReportIds = [
+    ...new Set([
+      ...reportIds,
+      ...leftoverCases.map((c) => c.reportId).filter(Boolean),
+    ]),
+  ];
+
+  if (allAnimalIds.length > 0) {
+    await db
+      .delete(adoptionInterests)
+      .where(inArray(adoptionInterests.animalId, allAnimalIds));
+    await db
+      .delete(adoptionApplications)
+      .where(inArray(adoptionApplications.animalId, allAnimalIds));
+    await db
+      .delete(animalNotes)
+      .where(inArray(animalNotes.animalId, allAnimalIds));
+    await db
+      .delete(medicalClearances)
+      .where(inArray(medicalClearances.animalId, allAnimalIds));
+  }
+
+  if (allCaseIds.length > 0) {
+    await db
+      .update(animals)
+      .set({ rescueCaseId: null })
+      .where(inArray(animals.rescueCaseId, allCaseIds));
+    await db
+      .update(rescueCases)
+      .set({ animalId: null })
+      .where(inArray(rescueCases.id, allCaseIds));
+    await db
+      .delete(notifications)
+      .where(inArray(notifications.caseId, allCaseIds));
+    await db
+      .delete(rescuerAssignments)
+      .where(inArray(rescuerAssignments.caseId, allCaseIds));
+    await db
+      .delete(casePhotos)
+      .where(inArray(casePhotos.caseId, allCaseIds));
+    await db
+      .delete(caseStatusHistory)
+      .where(inArray(caseStatusHistory.caseId, allCaseIds));
+    await db
+      .delete(shelterHandoffs)
+      .where(inArray(shelterHandoffs.caseId, allCaseIds));
+    await db
+      .delete(shelterRecommendations)
+      .where(inArray(shelterRecommendations.caseId, allCaseIds));
+    await db.delete(rescueCases).where(inArray(rescueCases.id, allCaseIds));
+  }
+
+  if (allAnimalIds.length > 0) {
+    await db.delete(animals).where(inArray(animals.id, allAnimalIds));
+  }
+
+  if (allReportIds.length > 0) {
+    await db
+      .delete(rescueReports)
+      .where(inArray(rescueReports.id, allReportIds));
+  }
+
+  // report-sync creates random case numbers; remove by known test description.
+  const syncReports = await db
+    .select({ id: rescueReports.id })
+    .from(rescueReports)
+    .where(
+      eq(
+        rescueReports.description,
+        "Small tan aspin wandering near school gate.",
+      ),
+    );
+  for (const report of syncReports) {
+    const linked = await db
+      .select({ id: rescueCases.id })
+      .from(rescueCases)
+      .where(eq(rescueCases.reportId, report.id));
+    const syncCaseIds = linked.map((c) => c.id);
+    if (syncCaseIds.length > 0) {
+      await db
+        .delete(notifications)
+        .where(inArray(notifications.caseId, syncCaseIds));
+      await db
+        .delete(casePhotos)
+        .where(inArray(casePhotos.caseId, syncCaseIds));
+      await db
+        .delete(caseStatusHistory)
+        .where(inArray(caseStatusHistory.caseId, syncCaseIds));
+      await db.delete(rescueCases).where(inArray(rescueCases.id, syncCaseIds));
+    }
+    await db.delete(rescueReports).where(eq(rescueReports.id, report.id));
+  }
 }

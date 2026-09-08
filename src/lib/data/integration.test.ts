@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import {
   generateRecommendationsForCase,
   getCaseById,
@@ -14,6 +14,10 @@ describe("integration workflow", () => {
   beforeEach(async () => {
     await resetWorkflowTestData();
     await seedCase004Verified();
+  });
+
+  afterAll(async () => {
+    await resetWorkflowTestData();
   });
 
   it("loads a verified case", async () => {

@@ -1,169 +1,257 @@
 # ResCutes
 
-ResCutes connects citizens, rescuers, shelters, and veterinarians through one coordinated workflow from animal reporting to safe shelter intake and medical clearance.
+**Philippine animal rescue coordination - from citizen report to shelter intake, medical clearance, and adoption.**
 
-The app has two interfaces from one codebase:
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-rescutes.vercel.app-183C35)](https://rescutes.vercel.app/)
+[![AnimalHack 2026](https://img.shields.io/badge/AnimalHack-2026-C7513A)](https://rescutes.vercel.app/)
 
-- **Mobile (PWA)** - citizens report animals and track cases; rescuers accept assignments and update rescue progress.
-- **Web dashboard** - shelter staff verify cases, assign rescuers, route to shelters, complete intake; veterinarians record examinations and medical clearance.
-
-This is a hackathon MVP. Web dashboard and mobile (`/mobile`) share one Next.js app, Neon PostgreSQL, and Neon Auth.
+**AnimalHack 2026** submission - track: supporting animal shelters, rescues, and foster programs.
 
 ---
 
-## Technology stack
+## 60-second pitch
 
-| Area | Technology |
-|------|------------|
+In the Philippines, animal rescue reports still scatter across Facebook posts, group chats, phone calls, and informal rescuer networks. That fragmentation produces duplicate reports, delayed response, animals sent to shelters with no capacity or the wrong medical capabilities, and cases that become impossible to track after the animal is picked up.
+
+**ResCutes** is one coordinated workflow for that path: citizens and rescuers use a mobile PWA; shelter staff and veterinarians run operations on a web dashboard. Both surfaces share one Next.js codebase, Neon PostgreSQL, and Neon Auth.
+
+Urgency is scored from visible injury, environmental danger, vulnerability, and time waiting after verification - with human-readable factor explanations, not a black-box priority flag. Shelter destinations are ranked by capability match, free capacity, species fit, distance, and workload - each recommendation ships with explicit reasons and warnings.
+
+---
+
+## Try it now
+
+**Live demo:** [https://rescutes.vercel.app/](https://rescutes.vercel.app/)
+
+Sign in at [/login](https://rescutes.vercel.app/login). All seeded demo accounts use password **`demo1234`**.
+
+| Role | Email | Password |
+|------|-------|----------|
+| Citizen | `citizen@rescutes.demo` | `demo1234` |
+| Rescuer | `rescuer@rescutes.demo` | `demo1234` |
+| Shelter staff | `staff@rescutes.demo` | `demo1234` |
+| Veterinarian | `vet@rescutes.demo` | `demo1234` |
+| Administrator | `admin@rescutes.demo` | `demo1234` |
+
+Citizens and rescuers land on `/mobile`. Staff and veterinarians land on `/dashboard` (mobile is gated). Administrators can use both.
+
+---
+
+## What makes this different
+
+### 1. Explainable rescue urgency (`src/lib/urgency/scoring.ts`)
+
+Score is 0-100 from four additive factors (capped at 100):
+
+| Factor | Max points | Example values from code |
+|--------|------------|---------------------------|
+| Visible injury severity | 35 | `none_visible` 0 · `moderate` 20 · `critical` 35 |
+| Environmental danger | 30 | `traffic` 25 · `trapped` 30 |
+| Animal vulnerability | 20 | `juvenile` 12 · `nursing` 18 · `disabled` 20 |
+| Time waiting after verification | 15 | &lt;1h → 2 · 12h+ → 15 |
+
+Levels: **critical** ≥80, **high** ≥60, **medium** ≥30, else **low**. Each factor returns a plain-language explanation (e.g. "Animal near traffic or busy road"), and the result surfaces the top factors in a readable summary string. Staff can override with a reason when field judgment differs from the formula.
+
+**Example:** severe injury (28) + traffic (25) + nursing (18) = **71 → High**, before wait-time points accumulate.
+
+### 2. Capacity / capability shelter routing (`src/lib/routing/shelter-routing.ts`)
+
+Staff destination recommendations weight:
+
+- Capability match **35%**
+- Available capacity **25%**
+- Species acceptance **20%**
+- Distance (haversine km) **15%**
+- Operational workload **5%**
+
+Each ranked shelter includes `reasons` (e.g. "Has all required medical capabilities", "12 spaces available", "Within 4.2 km") and `warnings` (e.g. "No available capacity", "Missing: emergency surgery"). Mobile also has a nearest-shelter quiz (`src/lib/maps/nearest-shelter-match.ts`) that prefers species fit, then care/emergency capabilities, then distance across the Philippines shelter directory.
+
+---
+
+## End-to-end workflow
+
+Primary write path (from `src/lib/rescue-stages.ts`):
+
+`report_submitted` → `verified` → `rescuer_assigned` → `animal_secured` → `shelter_handoff` → `completed`
+
+Closed outcomes: `rejected` · `duplicate` · `cancelled`. After intake, animals move through medical clearance stages (`awaiting_examination` → … → `medically_cleared`) and into adoption/foster.
+
+```mermaid
+flowchart LR
+  A[Citizen report<br/>mobile /mobile/report] --> B[Staff verify / reject]
+  B --> C[Urgency score + explanation]
+  C --> D[Assign rescuer]
+  D --> E[Accept · secure animal]
+  E --> F[Shelter routing<br/>capacity + capability]
+  F --> G[Handoff · intake]
+  G --> H[Vet exam · clearance]
+  H --> I[Adoption / foster]
+```
+
+---
+
+## Two interfaces, one codebase
+
+### Mobile PWA (citizens & rescuers)
+
+| Route | Purpose |
+|-------|---------|
+| `/mobile` | Map home - shelters + open field cases |
+| `/mobile/report` | Camera / location report flow |
+| `/mobile/cases`, `/mobile/cases/[id]` | Track own reports and case detail |
+| `/mobile/assignments/[id]` | Accept / decline dispatch |
+| `/mobile/adoption` | Swipe / browse adoption queue |
+| `/mobile/profile` | Profile + required phone contact |
+
+### Web dashboard (staff, vets, admin)
+
+| Route | Purpose |
+|-------|---------|
+| `/dashboard` | Operations overview + live map |
+| `/rescue-cases`, `/rescue-cases/new`, `/rescue-cases/[id]` | Verify, dispatch, status, notes |
+| `/animals`, `/animals/new`, `/animals/[id]` | Shelter animal registry |
+| `/medical` | Clearance queue and clinical workflow |
+| `/adoption` | Ready animals + application review |
+| `/shelters` | Philippines shelter map / directory |
+| `/users` | Admin user directory |
+| `/settings`, `/profile` | Shelter settings and account |
+
+Public: `/` landing, `/login` (also `/sign-in`).
+
+---
+
+## Screenshots
+
+![Landing hero - citizen with an aspin on a Philippine street](public/landing/hero.jpg)
+
+*Landing context: community care for street animals in the Philippines.*
+
+![Operations Overview dashboard with capacity, urgency queue, and live map](e2e/screenshots/dashboard-ux.png)
+
+*Staff dashboard: shelter capacity, attention queue with scored urgency, live rescue map.*
+
+![Rescue Cases table with status and urgency score badges](e2e/screenshots/rescue-cases-ux.png)
+
+*Rescue Cases: filterable case list with status stages and urgency scores.*
+
+![Philippines Shelter Map with CARA capacity and routing partner details](e2e/screenshots/shelters-map-desktop.png)
+
+*Shelter Map: verified listings, capacity, species accepted, routing partners.*
+
+![Adoption grid of medically cleared animals](e2e/screenshots/adoption-ux.png)
+
+*Adoption: animals ready for adoption or foster, plus application review.*
+
+![Mobile map legend beside Mapbox attribution](e2e/screenshots/map-legend-nearby-mobile.png)
+
+*Mobile map: layer legend for shelters and Critical / High / Standard field cases.*
+
+---
+
+## Built like a real product, not a slide deck
+
+| Evidence | Source |
+|----------|--------|
+| **QA re-audit 90 / 100** (8 Sep 2026, Asia/Manila) | `ResCutes-QA-Reaudit-Report.md` - post-remediation vs baseline **64 / 100** |
+| **+26** score lift on former blockers | Create routes, name validation, verify/dispatch, staff/vet mobile gate, narrow layouts, reporter Call/Email |
+| **35** automated test files | 20 under `src/**/*.test.ts` (Vitest) + 15 under `e2e/*.spec.ts` (Playwright) |
+| Role-gated surfaces | Staff/vet `/mobile` → `/dashboard`; citizen/rescuer cannot use web ops |
+| Shared persistence | Neon PostgreSQL via Drizzle (`src/db/schema.ts`, `src/lib/data/db/repository.ts`) |
+
+Roles in schema: `citizen`, `rescuer`, `shelter_staff`, `veterinarian`, `administrator`.
+
+---
+
+## Tech stack
+
+| Area | From `package.json` |
+|------|---------------------|
 | Framework | Next.js 15 (App Router) |
 | Language | TypeScript |
-| UI | React 19, Tailwind CSS, Radix UI |
-| Auth | Neon Auth (`@neondatabase/auth`) |
-| Database | Neon PostgreSQL, Drizzle ORM |
+| UI | React 19, Tailwind CSS, Radix UI, Motion |
+| Auth | `@neondatabase/auth` |
+| Database | `@neondatabase/serverless`, Drizzle ORM |
 | Maps | Mapbox GL |
-| File storage (optional) | Vercel Blob |
-| Testing | Vitest, Playwright |
-| Linting | ESLint |
+| Uploads | `@vercel/blob` (optional) |
+| Validation | Zod |
+| Tests | Vitest, Playwright |
+| Charts | Recharts |
+
+Deploy target: Vercel (`vercel.json` region `sin1`). Runtime: Node **24.x** (`engines`).
 
 ---
 
-## Requirements
-
-- **Node.js** (LTS recommended)
-- **npm**
-- **Git**
-
----
-
-## Installation
-
-Clone the repository, switch to the integration branch, install dependencies, and configure environment variables.
+## Run it locally
 
 ```powershell
 git clone https://github.com/Rapnunu/ResCutes.git
 cd ResCutes
-git checkout develop
-npm install
+git checkout main
+npm install --legacy-peer-deps
 Copy-Item .env.example .env.local
+# fill .env.local, then:
+npm run db:push
+npm run db:seed
+npm run db:seed-animals
 npm run dev
 ```
 
-Open the app at [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000).
 
----
+### Environment variables
 
-## Environment variables
-
-Copy `.env.example` to `.env.local` and fill in values locally. **Never commit `.env.local` or real secrets.**
+Copy `.env.example` → `.env.local`. Never commit secrets.
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | Neon PostgreSQL connection string. **Required** for web and mobile data. |
-| `NEON_AUTH_BASE_URL` | Neon Auth project URL (from Neon console). **Required** for login. |
-| `NEON_AUTH_COOKIE_SECRET` | Cookie signing secret for Neon Auth sessions. Generate a long random string. |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox public token for dashboard and mobile maps. |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for report photo uploads. Recommended in production. |
+| `DATABASE_URL` | Neon PostgreSQL connection string (required) |
+| `NEON_AUTH_BASE_URL` | Neon Auth project URL (required for login) |
+| `NEON_AUTH_COOKIE_SECRET` | Session cookie signing secret (required) |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox public token for maps |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob for photo uploads (recommended in production) |
 
-If maps or uploads are not configured, some UI features may be limited.
+Optional: `NEXT_PUBLIC_SITE_URL`, `SEED_AUTH_ORIGIN` (see `.env.example`).
 
----
+### Deploy on Vercel
 
-## Deploy on Vercel
+1. Import [Rapnunu/ResCutes](https://github.com/Rapnunu/ResCutes) into Vercel (Next.js, root `.`).
+2. Set the same env vars for Production (and Preview if needed).
+3. Add the Vercel URL to Neon Auth trusted domains.
+4. Ship from `main`. Confirm `/login`, `/dashboard`, and `/mobile`.
 
-Web and mobile ship from the same Next.js project (`/` dashboard, `/mobile` app). One Vercel project covers both.
+One project serves both surfaces. Stop `npm run dev` before `npm run build`.
 
-1. Push this repo to GitHub.
-2. In Vercel: **Add New Project** → import the repo → Framework Preset **Next.js** → Root Directory `.`
-   - Install/authorize the [Vercel GitHub App](https://github.com/apps/vercel) on the repo owner if prompted.
-   - Set the Production Branch to the branch you ship from (`main` or `develop`).
-3. Set Environment Variables (Production + Preview) to match `.env.example`:
-   - `DATABASE_URL`
-   - `NEON_AUTH_BASE_URL`
-   - `NEON_AUTH_COOKIE_SECRET`
-   - `NEXT_PUBLIC_MAPBOX_TOKEN`
-   - `BLOB_READ_WRITE_TOKEN` (create a Blob store in the Vercel project if needed)
-4. In **Neon Auth** console, add your Vercel production URL (and preview URLs if you use them) to **trusted domains / allowed origins**.
-5. Deploy. After the first production URL is known, confirm login works on `/login`, `/dashboard`, and `/mobile`.
-
-`vercel.json` targets the Singapore region (`sin1`) for lower latency in the Philippines. Node **20+** is required (`engines` in `package.json`).
-
-Local production check (stop `npm run dev` first):
-
-```powershell
-npm run build
-npm run start
-```
-
-One Vercel project serves both surfaces:
-
-| Surface | Path |
-|---------|------|
-| Web dashboard | `/dashboard`, `/rescue-cases`, `/animals`, … |
-| Mobile app | `/mobile`, `/mobile/report`, `/mobile/cases`, … |
----
-
-## Demo accounts
-
-All demo accounts use password **`demo1234`**.
-
-| Email | Role |
-|-------|------|
-| `citizen@rescutes.demo` | Citizen |
-| `rescuer@rescutes.demo` | Rescuer |
-| `staff@rescutes.demo` | Shelter staff |
-| `vet@rescutes.demo` | Veterinarian |
-| `admin@rescutes.demo` | Administrator |
+Team workflow (branches, commits, PRs): [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
-## Demo data and persistence
+## Team - AnimalHack 2026
 
-Application data is stored in **Neon PostgreSQL** via Drizzle (`src/lib/data/db/repository.ts`). Set `DATABASE_URL` locally and on Vercel.
+BS Computer Science (Data Science specialization):
 
-Use `npm run db:push` / `npm run db:migrate` and `npm run db:seed` when setting up a fresh database. Demo accounts and sample cases come from seed scripts.
+- Yuan Andrei Mariano
+- Mark Adrian Bautista
+- Raphael Edrian Tan
+- Ivan Muñoz Untalan
 
----
-
-## Useful commands
-
-```powershell
-npm run dev          # Start dev server (auto-fixes broken .next, blocks double-start)
-npm run dev:clean    # Force-delete .next then start dev
-npm run dev:webpack  # Dev without Turbopack (fallback if Turbopack misbehaves)
-npm run lint         # Run ESLint
-npm test             # Run Vitest unit/integration tests
-```
-
-Other scripts in `package.json` (for example `npm run test:watch`, `npm run db:push`, `npm run db:seed`) are for database work and extended testing when that milestone is active.
+Repository: [github.com/Rapnunu/ResCutes](https://github.com/Rapnunu/ResCutes)
 
 ---
 
-## Dev server / `.next` cache
+## Hackathon fit / what's next
 
-If the app shows unstyled HTML, 404s on `/_next/static/...`, or `ENOENT` errors for `routes-manifest.json`, the `.next` folder is usually corrupted.
+ResCutes maps directly to AnimalHack's **shelters, rescues, and foster programs** track: field reporting and rescuer dispatch, capacity-aware shelter handoff, veterinary clearance, and an adoption/foster surface for cleared animals - with a live demo judges can operate today.
 
-**Common causes**
+If we had another week (grounded in the 8 Sep 2026 re-audit remaining polish and ops hardening):
 
-1. **Two dev servers** on the same project (e.g. port 3000 and 3001) - only run one `npm run dev`.
-2. **`npm run build` while dev is running** - `npm run build` now refuses if port 3000 is in use.
-3. **Deleting `.next` while dev is still running** - stop dev first (`Ctrl+C`), then clean.
-
-`npm run dev` automatically removes a broken `.next` on startup. Use `npm run dev:clean` only when you want a full reset.
+1. Push medical and map UX further on the smallest phone frames (re-audit still flagged residual clip risk on `/medical` tabs and legend labels at ~390px).
+2. Run CI Playwright smoke against a **dedicated** Neon test branch so demo data never shares a wipe path with local integration tests.
+3. Re-run the full QA pass (including XSS create re-check) to move past the post-remediation **90 / 100** baseline with documented evidence.
 
 ---
 
-## Build warning
-
-**Do not run `npm run build` while `npm run dev` is running.** The build script blocks this when port 3000 is in use.
-
-If you need to test a production build:
-
-1. Stop the dev server (`Ctrl+C`)
-2. Run `npm run build`
-3. Restart with `npm run dev` (no manual `.next` delete needed in most cases)
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for branch strategy, commit conventions, pull requests, and team workflow.
+*Evidence of outcome: open the [live demo](https://rescutes.vercel.app/), sign in with a demo account above, and walk report → verify → dispatch → medical → adoption on the seeded data.*

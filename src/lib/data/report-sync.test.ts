@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { submitReport, getCases } from "@/lib/data/service";
 import {
   resetWorkflowTestData,
@@ -11,6 +11,10 @@ describe("report sync", () => {
   beforeEach(async () => {
     await resetWorkflowTestData();
     users = await testUsers();
+  });
+
+  afterAll(async () => {
+    await resetWorkflowTestData();
   });
 
   it("adds a submitted report to case lists", async () => {

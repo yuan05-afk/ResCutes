@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import {
   acceptAssignment,
   declineAssignment,
@@ -19,6 +19,10 @@ describe("rescuer workflow", () => {
     await resetWorkflowTestData();
     users = await testUsers();
     await seedCase004Fixtures();
+  });
+
+  afterAll(async () => {
+    await resetWorkflowTestData();
   });
 
   it("accepts a pending assignment without changing case status", async () => {

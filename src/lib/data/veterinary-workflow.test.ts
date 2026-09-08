@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import {
   completeShelterIntake,
   confirmShelterHandoff,
@@ -23,6 +23,10 @@ describe("veterinary workflow", () => {
   beforeEach(async () => {
     await resetWorkflowTestData();
     users = await testUsers();
+  });
+
+  afterAll(async () => {
+    await resetWorkflowTestData();
   });
 
   async function intakeAnimal() {

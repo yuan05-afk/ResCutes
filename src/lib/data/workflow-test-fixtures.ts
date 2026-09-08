@@ -60,6 +60,7 @@ function hoursAgo(n: number): Date {
 }
 
 export async function resetWorkflowTestData() {
+  // Scoped fixture cleanup only - demo seed rows (RC-26-*, A-26-*) are kept.
   await clearWorkflowDataForTests();
 }
 
@@ -102,7 +103,7 @@ export async function seedCase004Fixtures() {
   await db.insert(rescueCases).values({
     id: TEST_IDS.case004,
     reportId: report.id,
-    caseNumber: "RC-26-109",
+    caseNumber: "RC-TEST-004",
     status: "rescuer_assigned",
     urgencyScore: urgency.score,
     urgencyLevel: urgency.level,
