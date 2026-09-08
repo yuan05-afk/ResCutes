@@ -468,6 +468,7 @@ export async function createStaffCaseAction(input: {
   vulnerability: string;
   description: string;
   contactPreference?: string;
+  phone?: string;
   locationNote?: string;
   latitude: number;
   longitude: number;
@@ -476,6 +477,15 @@ export async function createStaffCaseAction(input: {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
   if (!canManageCases(session.user.roles)) return { error: "Forbidden" };
+
+  const { getUserProfilePrefs } = await import("@/lib/data/user-profile");
+  const { validatePhoneRequired } = await import(
+    "@/lib/forms/animal-field-options"
+  );
+  const prefs = await getUserProfilePrefs(session.user.id);
+  const phone = (input.phone?.trim() || prefs.phone?.trim() || "").trim();
+  const phoneErr = validatePhoneRequired(phone);
+  if (phoneErr) return { error: phoneErr };
 
   const { submitReportAction } = await import("@/app/actions/report");
   return submitReportAction({
@@ -501,11 +511,12 @@ export async function createStaffCaseAction(input: {
       | "nursing"
       | "disabled",
     description: input.description,
-    contactPreference: (input.contactPreference ?? "in_app") as
+    contactPreference: (input.contactPreference ?? "phone") as
       | "in_app"
       | "phone"
       | "email"
       | "no_contact",
+    phone,
     locationNote: input.locationNote,
     latitude: input.latitude,
     longitude: input.longitude,

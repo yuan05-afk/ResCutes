@@ -49,9 +49,16 @@ export async function submitReportAction(data: z.infer<typeof reportSchema>) {
     phone: parsed.data.phone.trim(),
   });
 
-  const { phone: _phone, ...reportFields } = parsed.data;
   const payload = {
-    ...reportFields,
+    species: parsed.data.species,
+    injurySeverity: parsed.data.injurySeverity,
+    environmentalDanger: parsed.data.environmentalDanger,
+    vulnerability: parsed.data.vulnerability,
+    description: parsed.data.description,
+    contactPreference: parsed.data.contactPreference,
+    locationNote: parsed.data.locationNote,
+    latitude: parsed.data.latitude,
+    longitude: parsed.data.longitude,
     photoUrl: parsed.data.photoUrl || undefined,
   };
 

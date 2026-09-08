@@ -16,11 +16,16 @@ import {
   REPORT_INJURY,
   REPORT_SPECIES,
   REPORT_VULNERABILITY,
+  validatePhoneRequired,
 } from "@/lib/forms/animal-field-options";
 import { formatStatus } from "@/lib/utils";
 import { DEMO_GEO } from "@/lib/data/metro-manila-geo";
 
-export function CreateRescueCaseForm() {
+export function CreateRescueCaseForm({
+  initialPhone = "",
+}: {
+  initialPhone?: string;
+}) {
   const router = useRouter();
   const { pending, error, setError, run } = useActionPending();
   const [species, setSpecies] = useState<string>("dog");
@@ -28,7 +33,8 @@ export function CreateRescueCaseForm() {
   const [environmentalDanger, setEnvironmentalDanger] = useState("traffic");
   const [vulnerability, setVulnerability] = useState("adult_healthy");
   const [description, setDescription] = useState("");
-  const [contactPreference, setContactPreference] = useState("in_app");
+  const [contactPreference, setContactPreference] = useState("phone");
+  const [phone, setPhone] = useState(initialPhone);
   const [locationNote, setLocationNote] = useState("");
   const [latitude, setLatitude] = useState(String(DEMO_GEO.center.latitude));
   const [longitude, setLongitude] = useState(String(DEMO_GEO.center.longitude));
@@ -38,6 +44,11 @@ export function CreateRescueCaseForm() {
     setError(null);
     if (description.trim().length < 10) {
       setError("Please add a short description (at least 10 characters).");
+      return;
+    }
+    const phoneErr = validatePhoneRequired(phone);
+    if (phoneErr) {
+      setError(phoneErr);
       return;
     }
     const lat = Number(latitude);
@@ -59,6 +70,7 @@ export function CreateRescueCaseForm() {
         vulnerability,
         description: description.trim(),
         contactPreference,
+        phone: phone.trim(),
         locationNote: locationNote.trim() || undefined,
         latitude: lat,
         longitude: lng,
@@ -194,6 +206,23 @@ export function CreateRescueCaseForm() {
           onChange={(e) => setLocationNote(e.target.value)}
           placeholder="Landmark, street corner, building..."
         />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="case-phone">Reporter phone (required)</Label>
+        <Input
+          id="case-phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="+63 9XX XXX XXXX"
+          required
+        />
+        <p className="text-[11px] text-graphite/50">
+          Saved on your profile so field teams can reach the reporter contact.
+        </p>
       </div>
 
       <div className="space-y-1.5">
