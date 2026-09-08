@@ -126,82 +126,59 @@ Public: `/` landing, `/login` (also `/sign-in`).
 
 ## Screenshots
 
-Fresh captures from the live demo ([rescutes.vercel.app](https://rescutes.vercel.app/)) via Playwright - landing workflow, web ops, and mobile PWA.
+Product UI only (not the landing marketing story). Live demo captures, sized so GitHub stays readable.
 
-### Landing - brand + 4-step pathway
+### The flow: Report → Rescue → Medical → Adoption
 
-![Landing hero with ResCutes brand, tagline, and demo CTAs](e2e/screenshots/01-landing-hero.png)
+<table>
+<tr>
+<td width="50%" valign="top">
 
-_Hero: Philippine animal rescue coordination, Try Demo Access, Open Mobile App._
+<strong>1. Report &amp; Track</strong> (mobile)<br/>
+<img src="e2e/screenshots/flow-01-report-mobile.png" width="240" alt="Mobile report photo step" /><br/>
+<img src="e2e/screenshots/flow-01-track-mobile.png" width="240" alt="Mobile cases list" /><br/>
+<sub>Citizen reports with camera, then tracks status.</sub>
 
-![Step 01 Report and Track](e2e/screenshots/02-workflow-01-report.png)
+</td>
+<td width="50%" valign="top">
 
-_01 Report & Track - citizens pin location and follow status updates._
+<strong>2. Coordinate Rescue</strong> (web + field map)<br/>
+<img src="e2e/screenshots/flow-02-rescue-cases.png" width="400" alt="Rescue cases table" /><br/>
+<img src="e2e/screenshots/flow-02-case-detail.png" width="400" alt="Case detail urgency and staff actions" /><br/>
+<img src="e2e/screenshots/flow-02-map-mobile.png" width="240" alt="Rescuer mobile map" /><br/>
+<sub>Staff verify/dispatch with explainable urgency; rescuers use the map.</sub>
 
-![Step 02 Coordinate Rescue](e2e/screenshots/03-workflow-02-rescue.png)
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 
-_02 Coordinate Rescue - staff verify, assign a rescuer, route to the right facility._
+<strong>3. Medical Clearance</strong> (web)<br/>
+<img src="e2e/screenshots/flow-03-medical.png" width="400" alt="Medical clearance pathway" /><br/>
+<sub>Intake exam → treatment → cleared for adoption.</sub>
 
-![Step 03 Medical Clearance](e2e/screenshots/04-workflow-03-medical.png)
+</td>
+<td width="50%" valign="top">
 
-_03 Medical Clearance - veterinarians examine, document, and clear animals._
+<strong>4. Adoption</strong> (web + mobile)<br/>
+<img src="e2e/screenshots/flow-04-adoption-web.png" width="400" alt="Web adoption grid" /><br/>
+<img src="e2e/screenshots/flow-04-adoption-mobile.png" width="240" alt="Mobile adoption" /><br/>
+<sub>Cleared animals for families on dashboard and phone.</sub>
 
-![Step 04 Adoption](e2e/screenshots/05-workflow-04-adoption.png)
+</td>
+</tr>
+</table>
 
-_04 Adoption - cleared animals move to adoption on web and mobile._
+### Supporting ops views
 
-![Demo Access role cards](e2e/screenshots/06-landing-demo-access.png)
+<p><img src="e2e/screenshots/flow-ops-dashboard.png" width="680" alt="Operations dashboard" /></p>
+<sub>Dashboard: capacity, attention queue, live rescue map.</sub>
 
-_Demo Access: one-click roles for citizen, rescuer, staff, vet, and admin._
-
-### Web dashboard - operations
-
-![Operations Overview with KPIs, live map, and urgency queue](e2e/screenshots/07-web-dashboard.png)
-
-_Dashboard: shelter capacity, active cases, attention queue with scored urgency, live Metro Manila map._
-
-![Rescue Cases table with status and urgency badges](e2e/screenshots/08-web-rescue-cases.png)
-
-_Rescue Cases: searchable, filterable case list with status stages and urgency scores._
-
-![Case detail with urgency factors and shelter match](e2e/screenshots/09-web-case-detail.png)
-
-_Case detail: status pipeline, injury/danger factors, explainable urgency (e.g. 58/100), top shelter match with reasons, reporter Call/Email, staff actions._
-
-![Medical clearance workspace](e2e/screenshots/10-web-medical.png)
-
-_Medical: clearance pathway (intake → exam → treatment → follow-up → cleared) with clinical checklist._
-
-![Philippines Shelter Map](e2e/screenshots/11-web-shelter-map.png)
-
-_Shelter Map: 24 listings, capacity/species filters, routing partners across the Philippines._
-
-![Adoption ready animals grid](e2e/screenshots/12-web-adoption.png)
-
-_Adoption: medically cleared animals ready for adoption or foster, plus applications review._
-
-### Mobile PWA - field + citizen
-
-![Mobile map with shelters and field cases](e2e/screenshots/14-mobile-home-map.png)
-
-_Mobile home map: Shelters / Critical / High / Standard layers, photo pins, Report camera CTA._
-
-![Mobile report photo step](e2e/screenshots/17-mobile-report.png)
-
-_Report an animal: multi-step flow starting with camera/gallery photo capture._
-
-![Mobile cases list](e2e/screenshots/15-mobile-cases.png)
-
-_Cases: track own reports and rescuer assignments on the phone._
-
-![Mobile adoption swipe deck](e2e/screenshots/16-mobile-adoption.png)
-
-_Mobile adoption: discover cleared animals on the go._
-
-Regenerate anytime:
+<p><img src="e2e/screenshots/flow-shelters-map.png" width="680" alt="Philippines shelter map" /></p>
+<sub>Shelter map used for capacity/capability routing.</sub>
 
 ```powershell
-node scripts/capture-readme-screenshots.mjs
+npm run shots:readme
 ```
 
 ---

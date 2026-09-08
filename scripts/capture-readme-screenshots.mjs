@@ -1,5 +1,10 @@
 /**
- * Capture README screenshots from the live demo.
+ * Capture tight, README-sized product screenshots for the ResCutes flow:
+ *   1 Report → 2 Rescue ops → 3 Medical → 4 Adoption
+ * Plus a couple supporting shots (map home, shelter map).
+ *
+ * Does NOT capture landing marketing "01–04" story sections.
+ *
  * Usage: node scripts/capture-readme-screenshots.mjs
  */
 import { chromium } from "@playwright/test";
@@ -12,31 +17,34 @@ const PASSWORD = "demo1234";
 
 fs.mkdirSync(OUT, { recursive: true });
 
-function shotPath(name) {
+function outFile(name) {
   return path.join(OUT, name);
 }
 
 async function dismissNoise(page) {
-  // Close Next.js error overlay / toasts if any
   await page.keyboard.press("Escape").catch(() => {});
-  await page.evaluate(() => {
-    document
-      .querySelectorAll("[data-nextjs-dialog], [data-nextjs-toast]")
-      .forEach((el) => el.remove());
-  }).catch(() => {});
+  await page
+    .evaluate(() => {
+      document
+        .querySelectorAll("[data-nextjs-dialog], [data-nextjs-toast]")
+        .forEach((el) => el.remove());
+    })
+    .catch(() => {});
 }
 
-async function waitSettled(page, ms = 800) {
+async function settle(page, ms = 900) {
   await page.waitForLoadState("networkidle").catch(() => {});
   await page.waitForTimeout(ms);
   await dismissNoise(page);
 }
 
 async function waitForMap(page) {
-  await page.locator(".rescutes-map .mapboxgl-canvas, .mapboxgl-canvas").first()
+  await page
+    .locator(".rescutes-map .mapboxgl-canvas, .mapboxgl-canvas")
+    .first()
     .waitFor({ state: "visible", timeout: 45000 })
     .catch(() => {});
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1600);
 }
 
 async function login(page, email) {
@@ -46,212 +54,205 @@ async function login(page, email) {
   await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL(
     (url) =>
-      url.pathname.includes("/dashboard") ||
-      url.pathname.includes("/mobile") ||
-      url.pathname.includes("/rescue-cases") ||
-      url.pathname.includes("/animals") ||
-      url.pathname.includes("/medical"),
+      /\/(dashboard|mobile|rescue-cases|animals|medical)/.test(url.pathname),
     { timeout: 45000 },
   );
-  await waitSettled(page, 1000);
+  await settle(page, 800);
 }
 
-async function shot(page, file, options = {}) {
+/** Viewport shot - no fullPage (avoids giant empty canvas). */
+async function shotViewport(page, file) {
   await dismissNoise(page);
   await page.screenshot({
-    path: shotPath(file),
+    path: outFile(file),
     fullPage: false,
     animations: "disabled",
-    ...options,
+    type: "png",
   });
   console.log("✓", file);
 }
 
-async function shotLocator(locator, file) {
-  await locator.screenshot({
-    path: shotPath(file),
+/** Crop to a locator's bounding box (tight). */
+async function shotEl(locator, file, padding = 8) {
+  await locator.waitFor({ state: "visible", timeout: 30000 });
+  const box = await locator.boundingBox();
+  if (!box) throw new Error(`No box for ${file}`);
+  const page = locator.page();
+  const clip = {
+    x: Math.max(0, box.x - padding),
+    y: Math.max(0, box.y - padding),
+    width: Math.min(box.width + padding * 2, page.viewportSize().width),
+    height: Math.min(box.height + padding * 2, page.viewportSize().height),
+  };
+  await page.screenshot({
+    path: outFile(file),
+    clip,
     animations: "disabled",
+    type: "png",
   });
-  console.log("✓", file);
+  console.log("✓", file, `(${Math.round(clip.width)}×${Math.round(clip.height)})`);
 }
 
 const browser = await chromium.launch();
 
-// ─── PUBLIC LANDING (desktop) ───────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// WEB — staff/admin ops (compact 1280×720 viewport)
+// ═══════════════════════════════════════════════════════════════════════════
 {
   const page = await browser.newPage({
-    viewport: { width: 1440, height: 900 },
-    deviceScaleFactor: 2,
-  });
-  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
-  await page.getByRole("link", { name: "Try Demo Access" }).waitFor({
-    state: "visible",
-    timeout: 20000,
-  });
-  await page.waitForTimeout(1200);
-
-  const hero = page.locator("main section").first();
-  await shotLocator(hero, "01-landing-hero.png");
-
-  // Scroll workflow steps into view and capture each of the 4 steps
-  const steps = [
-    { title: "Report & Track", file: "02-workflow-01-report.png" },
-    { title: "Coordinate Rescue", file: "03-workflow-02-rescue.png" },
-    { title: "Medical Clearance", file: "04-workflow-03-medical.png" },
-    { title: "Adoption", file: "05-workflow-04-adoption.png" },
-  ];
-  for (const step of steps) {
-    const heading = page.getByRole("heading", { name: step.title }).first();
-    await heading.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(700);
-    // Capture the step article / section around the heading
-    const block = heading.locator(
-      "xpath=ancestor::article[1] | ancestor::section[1]",
-    ).first();
-    if (await block.count()) {
-      await shotLocator(block, step.file);
-    } else {
-      await shot(page, step.file);
-    }
-  }
-
-  // Demo access strip
-  const demo = page.locator("#demo").first();
-  if (await demo.count()) {
-    await demo.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(600);
-    await shotLocator(demo, "06-landing-demo-access.png");
-  }
-
-  await page.close();
-}
-
-// ─── WEB DASHBOARD (admin) ──────────────────────────────────────────────────
-{
-  const page = await browser.newPage({
-    viewport: { width: 1440, height: 900 },
+    viewport: { width: 1280, height: 720 },
     deviceScaleFactor: 2,
   });
   await login(page, "admin@rescutes.demo");
 
+  // Dashboard (supporting - essence of ops)
   await page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded" });
   await page
     .getByRole("heading", { name: /Operations Overview/i })
     .waitFor({ timeout: 30000 });
   await waitForMap(page);
-  await waitSettled(page, 1200);
-  await shot(page, "07-web-dashboard.png");
+  await settle(page, 1000);
+  await shotViewport(page, "flow-ops-dashboard.png");
 
+  // STEP 2 — Coordinate rescue: case list
   await page.goto(`${BASE}/rescue-cases`, { waitUntil: "domcontentloaded" });
-  await page
-    .getByRole("heading", { name: /Rescue Cases/i })
-    .waitFor({ timeout: 30000 });
-  await waitSettled(page, 1200);
-  // Prefer desktop table if visible
-  await shot(page, "08-web-rescue-cases.png");
+  await page.getByRole("heading", { name: /Rescue Cases/i }).waitFor({
+    timeout: 30000,
+  });
+  await settle(page, 1000);
+  await shotViewport(page, "flow-02-rescue-cases.png");
 
-  // Open first desktop table row → full case page
+  // STEP 2b — Case detail (urgency + dispatch essence)
   try {
-    const desktopRow = page.locator("table tbody tr").first();
-    await desktopRow.waitFor({ state: "visible", timeout: 10000 });
-    await desktopRow.click();
-    await page.waitForTimeout(1200);
+    const row = page.locator("table tbody tr").first();
+    await row.waitFor({ state: "visible", timeout: 10000 });
+    await row.click();
+    await page.waitForTimeout(1000);
     const openFull = page.getByRole("link", { name: /Open full case/i });
     if (await openFull.isVisible().catch(() => false)) {
       await openFull.click();
       await page.waitForURL(/\/rescue-cases\//, { timeout: 20000 });
-      await waitSettled(page, 1200);
-      await shot(page, "09-web-case-detail.png");
-    } else {
-      const modal = page.getByRole("dialog").first();
-      if (await modal.isVisible().catch(() => false)) {
-        await shotLocator(modal, "09-web-case-detail.png");
-      }
     }
-  } catch (err) {
-    console.warn("case detail shot skipped:", String(err.message || err).slice(0, 160));
+    await settle(page, 1200);
+    // Prefer main content column if present
+    const main = page.locator("main").first();
+    if (await main.count()) {
+      await shotViewport(page, "flow-02-case-detail.png");
+    } else {
+      await shotViewport(page, "flow-02-case-detail.png");
+    }
+  } catch (e) {
+    console.warn("case detail skipped:", String(e.message || e).slice(0, 120));
   }
 
+  // STEP 3 — Medical clearance
   await page.goto(`${BASE}/medical`, { waitUntil: "domcontentloaded" });
-  await waitSettled(page, 1500);
-  await shot(page, "10-web-medical.png");
+  await settle(page, 1400);
+  await shotViewport(page, "flow-03-medical.png");
 
-  await page.goto(`${BASE}/shelters`, { waitUntil: "domcontentloaded" });
-  await page
-    .getByRole("heading", { name: /Shelter/i })
-    .first()
-    .waitFor({ timeout: 30000 })
-    .catch(() => {});
-  await waitForMap(page);
-  await waitSettled(page, 1200);
-  await shot(page, "11-web-shelter-map.png");
-
+  // STEP 4 — Adoption (web)
   await page.goto(`${BASE}/adoption`, { waitUntil: "domcontentloaded" });
-  await page
-    .getByRole("heading", { name: /Adoption/i })
-    .waitFor({ timeout: 30000 });
-  await waitSettled(page, 1500);
-  await shot(page, "12-web-adoption.png");
+  await page.getByRole("heading", { name: /Adoption/i }).waitFor({
+    timeout: 30000,
+  });
+  await settle(page, 1400);
+  await shotViewport(page, "flow-04-adoption-web.png");
 
-  await page.goto(`${BASE}/animals`, { waitUntil: "domcontentloaded" });
-  await page
-    .getByRole("heading", { name: /Animals/i })
-    .waitFor({ timeout: 30000 });
-  await waitSettled(page, 1200);
-  await shot(page, "13-web-animals.png");
+  // Shelter routing map (supporting innovation shot)
+  await page.goto(`${BASE}/shelters`, { waitUntil: "domcontentloaded" });
+  await settle(page, 800);
+  await waitForMap(page);
+  await settle(page, 1000);
+  await shotViewport(page, "flow-shelters-map.png");
 
   await page.close();
 }
 
-// ─── MOBILE PWA (rescuer / citizen) ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// MOBILE — real phone viewport (<768 so no desktop iPhone mockup chrome)
+// ═══════════════════════════════════════════════════════════════════════════
 {
   const page = await browser.newPage({
     viewport: { width: 390, height: 844 },
-    deviceScaleFactor: 3,
+    deviceScaleFactor: 2,
     isMobile: true,
     hasTouch: true,
   });
 
-  // Rescuer: map home + cases
-  await login(page, "rescuer@rescutes.demo");
-  await page.goto(`${BASE}/mobile`, { waitUntil: "domcontentloaded" });
-  await waitForMap(page);
-  await waitSettled(page, 1500);
-  await shot(page, "14-mobile-home-map.png");
+  // STEP 1 — Report an animal
+  await login(page, "citizen@rescutes.demo");
+  await page.goto(`${BASE}/mobile/report`, { waitUntil: "domcontentloaded" });
+  await settle(page, 1200);
+  // Tight crop: stop just below Continue (avoid empty beige)
+  const continueBtn = page.getByRole("button", { name: /Continue/i }).first();
+  await continueBtn.waitFor({ state: "visible", timeout: 15000 });
+  const cbox = await continueBtn.boundingBox();
+  const cropH = Math.min(
+    844,
+    Math.ceil((cbox?.y ?? 480) + (cbox?.height ?? 48) + 16),
+  );
+  await page.screenshot({
+    path: outFile("flow-01-report-mobile.png"),
+    clip: { x: 0, y: 0, width: 390, height: cropH },
+    animations: "disabled",
+  });
+  console.log("✓ flow-01-report-mobile.png", `(390×${cropH})`);
 
+  // Track cases (still step 1 "Report & Track")
   await page.goto(`${BASE}/mobile/cases`, { waitUntil: "domcontentloaded" });
-  await waitSettled(page, 1500);
-  await shot(page, "15-mobile-cases.png");
+  await settle(page, 1200);
+  await shotViewport(page, "flow-01-track-mobile.png");
 
-  await page.goto(`${BASE}/mobile/adoption`, { waitUntil: "domcontentloaded" });
-  await waitSettled(page, 1500);
-  await shot(page, "16-mobile-adoption.png");
-
-  // Citizen: report flow
+  // Rescuer map home (field coordination companion)
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-  // May already be logged in as rescuer - sign out if possible
-  const signOut = page.getByRole("button", { name: /Sign out|Log out/i });
-  if (await signOut.isVisible().catch(() => false)) {
-    await signOut.click();
-    await waitSettled(page, 800);
-  }
-  await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-  await page.locator("#email, input[name='email']").first().fill("citizen@rescutes.demo");
+  await page.locator("#email, input[name='email']").first().fill("rescuer@rescutes.demo");
   await page.locator("#password, input[name='password']").first().fill(PASSWORD);
   await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL(/\/mobile/, { timeout: 45000 });
-  await waitSettled(page, 1000);
+  await settle(page, 800);
 
-  await page.goto(`${BASE}/mobile/report`, { waitUntil: "domcontentloaded" });
-  await waitSettled(page, 1500);
-  await shot(page, "17-mobile-report.png");
+  await page.goto(`${BASE}/mobile`, { waitUntil: "domcontentloaded" });
+  await waitForMap(page);
+  await settle(page, 1200);
+  await shotViewport(page, "flow-02-map-mobile.png");
 
-  await page.goto(`${BASE}/mobile/profile`, { waitUntil: "domcontentloaded" });
-  await waitSettled(page, 1000);
-  await shot(page, "18-mobile-profile.png");
+  // STEP 4 — Mobile adoption
+  await page.goto(`${BASE}/mobile/adoption`, { waitUntil: "domcontentloaded" });
+  await settle(page, 1400);
+  await shotViewport(page, "flow-04-adoption-mobile.png");
 
   await page.close();
 }
 
+// Remove obsolete landing-workflow marketing shots if present
+const obsolete = [
+  "01-landing-hero.png",
+  "02-workflow-01-report.png",
+  "03-workflow-02-rescue.png",
+  "04-workflow-03-medical.png",
+  "05-workflow-04-adoption.png",
+  "06-landing-demo-access.png",
+  "07-web-dashboard.png",
+  "08-web-rescue-cases.png",
+  "09-web-case-detail.png",
+  "10-web-medical.png",
+  "11-web-shelter-map.png",
+  "12-web-adoption.png",
+  "13-web-animals.png",
+  "14-mobile-home-map.png",
+  "15-mobile-cases.png",
+  "16-mobile-adoption.png",
+  "17-mobile-report.png",
+  "18-mobile-profile.png",
+  "landing-hero.png",
+];
+for (const name of obsolete) {
+  const p = outFile(name);
+  if (fs.existsSync(p)) {
+    fs.unlinkSync(p);
+    console.log("removed old", name);
+  }
+}
+
 await browser.close();
-console.log("\nAll README screenshots written to", OUT);
+console.log("\nDone. Flow screenshots in", OUT);
