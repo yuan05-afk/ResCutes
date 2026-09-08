@@ -53,3 +53,18 @@ lh-*.json
 
 
 .firecrawl/
+
+# AI / editor agent tooling (keep local; do not publish)
+.cursor/
+.cursorrules
+.claude/
+.aider*
+.windsurf/
+.continue/
+AGENTS.md
+.agent/
+.agents/
+
+# Internal AI scaffolding / generation prompts (not product docs)
+ResCutes_starter_prompt.md
+ResCutes_PRD.md
