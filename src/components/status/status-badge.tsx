@@ -62,8 +62,8 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full font-medium",
-        size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
+        "inline-flex w-fit max-w-full shrink-0 items-center justify-center whitespace-nowrap rounded-full font-medium leading-none",
+        size === "sm" ? "px-2.5 py-[0.4rem] text-[11px]" : "px-3 py-1.5 text-xs",
         style,
         className,
       )}

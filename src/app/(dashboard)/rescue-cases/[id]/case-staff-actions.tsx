@@ -179,6 +179,11 @@ export function CaseStaffActions({
               disabled={loading || !rejectReason.trim()}
               size={btnSize}
               className="w-full"
+              title={
+                rejectReason.trim()
+                  ? undefined
+                  : "Enter a rejection reason below to enable Reject"
+              }
             >
               {actionLoading("reject") ? "Rejecting..." : "Reject"}
             </Button>
@@ -190,11 +195,16 @@ export function CaseStaffActions({
             rows={2}
             className="min-h-[4rem] resize-none text-sm"
           />
+          {!rejectReason.trim() ? (
+            <p className="text-[11px] text-graphite/50">
+              Add a rejection reason to enable the Reject button.
+            </p>
+          ) : null}
         </ActionBlock>
       )}
 
       {caseStatus === "verified" && (
-        <ActionBlock title="Assign rescuer">
+        <ActionBlock title="Dispatch rescuer">
           <Select
             value={selectedRescuer}
             onChange={(e) => setSelectedRescuer(e.target.value)}
@@ -211,7 +221,7 @@ export function CaseStaffActions({
             onClick={() =>
               runAction(
                 () => assignRescuerAction(caseId, selectedRescuer),
-                "Rescuer assigned.",
+                "Rescuer dispatched.",
                 "assign",
               )
             }
@@ -219,7 +229,7 @@ export function CaseStaffActions({
             className="w-full"
             size={btnSize}
           >
-            {actionLoading("assign") ? "Assigning..." : "Assign Rescuer"}
+            {actionLoading("assign") ? "Dispatching..." : "Dispatch rescuer"}
           </Button>
         </ActionBlock>
       )}
@@ -397,7 +407,9 @@ export function CaseStaffActions({
       <div className="flex flex-col">
         <div className="shrink-0 border-b border-sage/20 bg-evergreen/5 px-3 py-2.5">
           <p className="text-xs font-bold text-evergreen">Staff Actions</p>
-          <p className="text-[10px] text-graphite/50">Update case status and routing</p>
+          <p className="text-[10px] text-graphite/50">
+            Verify reports, dispatch rescuers, and confirm shelter routing
+          </p>
         </div>
         <div className="p-2.5">{body}</div>
       </div>

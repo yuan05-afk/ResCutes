@@ -141,17 +141,6 @@ export function LandingPage() {
           </Link>
           <nav className="flex items-center gap-2 sm:gap-3" aria-label="Primary">
             <Link
-              href="#demo"
-              className={cn(
-                "hidden min-h-11 items-center rounded-md px-3 text-sm font-medium transition sm:inline-flex",
-                scrolled
-                  ? "text-graphite/75 hover:bg-evergreen/5 hover:text-evergreen"
-                  : "text-white/90 hover:bg-white/10 hover:text-white",
-              )}
-            >
-              Demo Access
-            </Link>
-            <Link
               href="/login"
               className={cn(
                 "inline-flex min-h-11 items-center rounded-md px-4 text-sm font-semibold transition",
@@ -182,13 +171,13 @@ export function LandingPage() {
               priority
               quality={95}
               sizes="100vw"
-              className="object-cover object-[center_30%]"
+              className="object-cover object-[center_22%] sm:object-[center_30%]"
             />
           </motion.div>
           <div className="landing-hero-scrim absolute inset-0" aria-hidden />
 
           <motion.div
-            className="relative z-10 flex min-h-[100svh] flex-col justify-end pb-14 pt-28 md:justify-center md:pb-24 md:pt-28"
+            className="relative z-10 flex min-h-[100svh] flex-col justify-end pb-10 pt-24 sm:pb-14 sm:pt-28 md:justify-center md:pb-24 md:pt-28"
             style={{ y: heroTextY, opacity: heroFade }}
           >
             <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
@@ -200,25 +189,25 @@ export function LandingPage() {
               >
                 <motion.p
                   variants={fadeUp}
-                  className="mb-5 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-white/80"
+                  className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-white/80 sm:mb-5 sm:text-[0.7rem]"
                 >
                   Philippine animal rescue coordination
                 </motion.p>
                 <motion.p
                   variants={fadeUp}
-                  className="landing-brand text-[clamp(3.25rem,10vw,6.75rem)] leading-[0.9] tracking-[-0.04em]"
+                  className="landing-brand text-[clamp(2.35rem,12vw,6.75rem)] leading-[0.9] tracking-[-0.04em]"
                 >
                   ResCutes
                 </motion.p>
                 <motion.h1
                   variants={fadeUp}
-                  className="landing-display mt-5 max-w-xl text-balance text-[clamp(1.55rem,3.4vw,2.35rem)] font-medium leading-[1.2] text-white"
+                  className="landing-display mt-3 max-w-xl text-balance text-[clamp(1.2rem,4.2vw,2.35rem)] font-medium leading-[1.2] text-white sm:mt-5"
                 >
                   {SITE_TAGLINE}
                 </motion.h1>
                 <motion.p
                   variants={fadeUp}
-                  className="mt-5 max-w-lg text-[0.98rem] leading-relaxed text-white/90 sm:text-lg"
+                  className="mt-3 max-w-lg text-[0.9rem] leading-relaxed text-white/90 sm:mt-5 sm:text-[0.98rem] sm:text-lg"
                 >
                   One coordinated workflow for citizens, rescuers, shelters, and
                   veterinarians, from a street report through medical clearance
@@ -226,7 +215,7 @@ export function LandingPage() {
                 </motion.p>
                 <motion.div
                   variants={fadeUp}
-                  className="mt-9 flex flex-wrap gap-3"
+                  className="mt-6 flex flex-wrap gap-3 sm:mt-9"
                 >
                   <Link
                     href="#demo"
@@ -427,9 +416,8 @@ export function LandingPage() {
         <footer className="border-t border-sage/25 bg-bone py-8">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 text-center text-sm leading-relaxed text-graphite/75 md:px-6">
             <p>
-              No sample rescue cases are loaded. Submit a report from the mobile
-              app to start testing the workflow. Not connected to live rescue
-              services.
+              Demo includes seeded operations data for walkthroughs. Not
+              connected to live rescue services.
             </p>
             <Link
               href="/terms"

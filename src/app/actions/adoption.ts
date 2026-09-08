@@ -19,6 +19,7 @@ import {
 } from "@/lib/auth/permissions";
 import {
   HOME_TYPE_OPTIONS,
+  REPORT_SPECIES,
   isAllowedCatalogOrOther,
   validateAnimalProfilePayload,
   validateEmail,
@@ -285,14 +286,94 @@ export async function updateAnimalAction(
     return { error: "Forbidden" };
   }
 
-  const validationError = validateAnimalProfilePayload(fields);
+  const validationError = validateAnimalProfilePayload({
+    ...fields,
+    requireName: true,
+  });
   if (validationError) return { error: validationError };
 
-  const result = await updateAnimalProfile(id, fields);
+  const result = await updateAnimalProfile(id, {
+    ...fields,
+    name: fields.name?.trim() || null,
+  });
   if (!result.ok) return { error: result.error };
 
   revalidateAdoptionViews(id);
   return { success: true };
+}
+
+export async function createAnimalAction(input: {
+  name: string;
+  species: string;
+  sex?: string | null;
+  estimatedAge?: string | null;
+  breed?: string | null;
+  color?: string | null;
+  bio?: string | null;
+  temperament?: string | null;
+  pathwayStage?: string;
+  shelterId?: string | null;
+}) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+  if (!canManageAdoption(session.user.roles)) {
+    return { error: "Forbidden" };
+  }
+
+  const validationError = validateAnimalProfilePayload({
+    name: input.name,
+    bio: input.bio,
+    temperament: input.temperament,
+    pathwayStage: input.pathwayStage ?? "intake",
+    sex: input.sex,
+    estimatedAge: input.estimatedAge,
+    breed: input.breed,
+    color: input.color,
+    species: input.species,
+    requireName: true,
+  });
+  if (validationError) return { error: validationError };
+
+  if (!REPORT_SPECIES.includes(input.species as (typeof REPORT_SPECIES)[number])) {
+    return { error: "Select a valid species." };
+  }
+
+  const { createAnimalRecord } = await import("@/lib/data/service");
+  const result = await createAnimalRecord({
+    name: input.name.trim(),
+    species: input.species,
+    sex: input.sex?.trim() || null,
+    estimatedAge: input.estimatedAge?.trim() || null,
+    breed: input.breed?.trim() || null,
+    color: input.color?.trim() || null,
+    bio: input.bio?.trim() || null,
+    temperament: input.temperament?.trim() || null,
+    pathwayStage: input.pathwayStage ?? "intake",
+    shelterId: input.shelterId || null,
+  });
+
+  if (!result.ok) return { error: result.error };
+
+  revalidateAdoptionViews(result.animal.id);
+  return { success: true as const, animalId: result.animal.id };
+}
+
+export async function setAnimalAdoptionListingAction(
+  animalId: string,
+  listed: boolean,
+) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+  if (!canManageAdoption(session.user.roles)) {
+    return { error: "Forbidden" };
+  }
+
+  const { setAnimalAdoptionListing } = await import("@/lib/data/service");
+  const result = await setAnimalAdoptionListing(animalId, listed);
+  if (!result.ok) return { error: result.error };
+
+  revalidateAdoptionViews(animalId);
+  return { success: true as const, pathwayStage: result.pathwayStage };
 }
 
 export async function deleteAnimalAction(id: string) {

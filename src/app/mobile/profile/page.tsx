@@ -1,13 +1,17 @@
 import { requireAuth } from "@/lib/auth/session";
-import { isAdministrator, ROLE_LABELS } from "@/lib/auth/permissions";
+import { getProfileRoleLabels, isAdministrator } from "@/lib/auth/permissions";
+import { getUserProfilePrefs } from "@/lib/data/user-profile";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { MobileProfileEditor } from "@/components/mobile/mobile-profile-editor";
 import { Monitor } from "lucide-react";
 import Link from "next/link";
 
 export default async function MobileProfilePage() {
   const session = await requireAuth();
   const isAdmin = isAdministrator(session.user.roles);
+  const roleLabels = getProfileRoleLabels(session.user.roles);
+  const prefs = await getUserProfilePrefs(session.user.id);
 
   return (
     <div>
@@ -23,16 +27,18 @@ export default async function MobileProfilePage() {
           <h2 className="mt-4 text-lg font-bold text-graphite">{session.user.name}</h2>
           <p className="text-sm text-graphite/55">{session.user.email}</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {session.user.roles.map((role) => (
+            {roleLabels.map((label) => (
               <span
-                key={role}
+                key={label}
                 className="rounded-full bg-evergreen/10 px-3 py-1 text-xs font-semibold text-evergreen"
               >
-                {ROLE_LABELS[role]}
+                {label}
               </span>
             ))}
           </div>
         </div>
+
+        <MobileProfileEditor initialPhone={prefs.phone} />
 
         {isAdmin ? (
           <Button variant="outline" asChild className="h-12 w-full rounded-full">

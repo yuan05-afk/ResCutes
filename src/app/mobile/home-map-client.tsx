@@ -25,6 +25,7 @@ import { NearestShelterQuiz } from "@/components/mobile/nearest-shelter-quiz";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { ShelterSpeciesProfile } from "@/lib/data/philippines-shelters-directory";
+import { sortByDistanceKm } from "@/lib/maps/geo-distance";
 import {
   findNearestMatchingShelter,
   nearestAnimalLabel,
@@ -37,6 +38,8 @@ import {
   type ShelterMapsLocation,
 } from "@/lib/maps/shelter-links";
 import { cn } from "@/lib/utils";
+
+type LayerId = "shelters" | "critical" | "high" | "standard";
 
 export interface HomeMapShelter {
   id: string;
@@ -89,7 +92,9 @@ export function HomeMapClient({
   showCasesLayer,
 }: HomeMapClientProps) {
   const [showShelters, setShowShelters] = useState(true);
-  const [showCases, setShowCases] = useState(showCasesLayer);
+  const [showCritical, setShowCritical] = useState(true);
+  const [showHigh, setShowHigh] = useState(true);
+  const [showStandard, setShowStandard] = useState(true);
   const [peek, setPeek] = useState<Peek | null>(null);
   const [locationExplainOpen, setLocationExplainOpen] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
@@ -106,63 +111,28 @@ export function HomeMapClient({
     latitude: DEMO_GEO.center.latitude,
     longitude: DEMO_GEO.center.longitude,
   });
+  const [cameraZoom, setCameraZoom] = useState(11);
   const [cameraRequestId, setCameraRequestId] = useState(0);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | undefined>();
 
-  const legendItems: MapLegendItem[] = useMemo(() => {
-    const items: MapLegendItem[] = [];
-    if (showShelters) {
-      items.push({
-        id: "shelters",
-        label: "Shelters",
-        description: "Rescue shelters and partners",
-        color: SHELTER_PIN_COLOR,
-      });
-    }
-    if (showCasesLayer && showCases) {
-      items.push(
-        {
-          id: "critical",
-          label: "Critical",
-          description: "Immediate rescue response",
-          color: MAP_MARKER_COLORS.critical,
-        },
-        {
-          id: "high",
-          label: "High",
-          description: "Urgent attention needed",
-          color: MAP_MARKER_COLORS.high,
-        },
-        {
-          id: "standard",
-          label: "Cases",
-          description: "Active field cases",
-          color: MAP_MARKER_COLORS.standard,
-        },
-      );
-    }
-    return items;
-  }, [showShelters, showCases, showCasesLayer]);
-
   const markers = useMemo(() => {
     const list = [];
-    if (showShelters) {
-      for (const s of shelters) {
-        list.push({
-          id: `shelter:${s.id}`,
-          latitude: s.latitude,
-          longitude: s.longitude,
-          label: s.name,
-          address: s.address,
-          phone: s.phone,
-          region: s.region,
-          color: SHELTER_PIN_COLOR,
-          legendLayerId: "shelters",
-        });
-      }
+    for (const s of shelters) {
+      list.push({
+        id: `shelter:${s.id}`,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        label: s.name,
+        address: s.address,
+        phone: s.phone,
+        region: s.region,
+        color: SHELTER_PIN_COLOR,
+        legendLayerId: "shelters",
+      });
     }
-    if (showCasesLayer && showCases) {
+    if (showCasesLayer) {
       for (const c of cases) {
+        const level = c.urgencyLevel;
         list.push({
           id: `case:${c.id}`,
           latitude: c.latitude,
@@ -175,16 +145,160 @@ export function HomeMapClient({
           photoUrl: c.photoUrl,
           label: `${c.caseNumber} ${c.species}`,
           legendLayerId:
-            c.urgencyLevel === "critical"
+            level === "critical"
               ? "critical"
-              : c.urgencyLevel === "high"
+              : level === "high"
                 ? "high"
                 : "standard",
         });
       }
     }
     return list;
-  }, [shelters, cases, showShelters, showCases, showCasesLayer]);
+  }, [shelters, cases, showCasesLayer]);
+
+  const legendItems: MapLegendItem[] = useMemo(() => {
+    const items: MapLegendItem[] = [
+      {
+        id: "shelters",
+        label: "Shelters",
+        description: "Rescue shelters and partners",
+        color: SHELTER_PIN_COLOR,
+      },
+    ];
+    if (showCasesLayer) {
+      items.push(
+        {
+          id: "critical",
+          label: "Critical",
+          description: "Highest urgency field cases",
+          color: MAP_MARKER_COLORS.critical,
+        },
+        {
+          id: "high",
+          label: "High",
+          description: "High urgency field cases",
+          color: MAP_MARKER_COLORS.high,
+        },
+        {
+          id: "standard",
+          label: "Standard",
+          description: "Medium and low urgency cases",
+          color: MAP_MARKER_COLORS.standard,
+        },
+      );
+    }
+    return items;
+  }, [showCasesLayer]);
+
+  const hiddenLegendLayers = useMemo(() => {
+    const layers: string[] = [];
+    if (!showShelters) layers.push("shelters");
+    if (showCasesLayer) {
+      if (!showCritical) layers.push("critical");
+      if (!showHigh) layers.push("high");
+      if (!showStandard) layers.push("standard");
+    }
+    return layers;
+  }, [
+    showShelters,
+    showCasesLayer,
+    showCritical,
+    showHigh,
+    showStandard,
+  ]);
+
+  function handleHiddenLegendLayersChange(layers: string[]) {
+    const prevHidden = new Set(hiddenLegendLayers);
+    const nextHidden = new Set(layers);
+
+    setShowShelters(!nextHidden.has("shelters"));
+    if (showCasesLayer) {
+      setShowCritical(!nextHidden.has("critical"));
+      setShowHigh(!nextHidden.has("high"));
+      setShowStandard(!nextHidden.has("standard"));
+    }
+
+    const layerOrder: LayerId[] = [
+      "shelters",
+      "critical",
+      "high",
+      "standard",
+    ];
+    for (const layerId of layerOrder) {
+      if (prevHidden.has(layerId) && !nextHidden.has(layerId)) {
+        // Newly turned on via legend - fly to nearest for feedback.
+        window.setTimeout(() => focusNearestInLayer(layerId), 0);
+        break;
+      }
+    }
+  }
+
+  const caseCounts = useMemo(() => {
+    let standard = 0;
+    let critical = 0;
+    let high = 0;
+    for (const c of cases) {
+      if (c.urgencyLevel === "critical") critical += 1;
+      else if (c.urgencyLevel === "high") high += 1;
+      else standard += 1;
+    }
+    return { standard, critical, high, total: cases.length };
+  }, [cases]);
+
+  function referencePoint() {
+    return userCoords ?? cameraCenter;
+  }
+
+  /** Smooth pan/zoom only - no peek sheet or pinned popup. */
+  function focusNearestInLayer(layerId: LayerId) {
+    const from = referencePoint();
+    let target: { latitude: number; longitude: number } | null = null;
+
+    if (layerId === "shelters") {
+      if (shelters.length === 0) return;
+      const nearest = sortByDistanceKm(shelters, from)[0];
+      if (nearest) {
+        target = {
+          latitude: nearest.latitude,
+          longitude: nearest.longitude,
+        };
+      }
+    } else {
+      const filtered = cases.filter((c) => {
+        if (layerId === "critical") return c.urgencyLevel === "critical";
+        if (layerId === "high") return c.urgencyLevel === "high";
+        return c.urgencyLevel !== "critical" && c.urgencyLevel !== "high";
+      });
+      if (filtered.length === 0) return;
+      const nearest = sortByDistanceKm(filtered, from)[0];
+      if (nearest) {
+        target = {
+          latitude: nearest.latitude,
+          longitude: nearest.longitude,
+        };
+      }
+    }
+
+    if (!target) return;
+
+    setPeek(null);
+    setSelectedMarkerId(undefined);
+    setCameraZoom(14);
+    setCameraCenter(target);
+    setCameraRequestId((n) => n + 1);
+  }
+
+  function toggleLayer(layerId: LayerId, currentlyOn: boolean) {
+    const turnOn = !currentlyOn;
+    if (layerId === "shelters") setShowShelters(turnOn);
+    else if (layerId === "critical") setShowCritical(turnOn);
+    else if (layerId === "high") setShowHigh(turnOn);
+    else setShowStandard(turnOn);
+
+    if (turnOn) {
+      window.setTimeout(() => focusNearestInLayer(layerId), 0);
+    }
+  }
 
   function openShelter(
     shelter: HomeMapShelter,
@@ -193,6 +307,7 @@ export function HomeMapClient({
   ) {
     setPeek({ kind: "shelter", shelter, distanceKm, matchNote });
     setSelectedMarkerId(`shelter:${shelter.id}`);
+    setCameraZoom(14);
     setCameraCenter({
       latitude: shelter.latitude,
       longitude: shelter.longitude,
@@ -215,6 +330,12 @@ export function HomeMapClient({
       },
     });
     setSelectedMarkerId(`case:${caseItem.id}`);
+    setCameraZoom(14);
+    setCameraCenter({
+      latitude: caseItem.latitude,
+      longitude: caseItem.longitude,
+    });
+    setCameraRequestId((n) => n + 1);
   }
 
   function handleMarkerClick(id: string) {
@@ -310,7 +431,9 @@ export function HomeMapClient({
           <div className="min-w-0">
             <h1 className="text-base font-bold text-graphite">Map</h1>
             <p className="truncate text-[11px] text-graphite/50">
-              Shelters{showCasesLayer ? " and open cases" : ""} nearby
+              {showCasesLayer
+                ? "Shelters and field cases nearby"
+                : "Nearby shelters"}
             </p>
           </div>
           <Button
@@ -330,19 +453,54 @@ export function HomeMapClient({
           </Button>
         </div>
 
-        {showCasesLayer ? (
-          <div className="mt-1.5 flex flex-wrap gap-2">
-            <LayerChip
-              active={showShelters}
-              onClick={() => setShowShelters((v) => !v)}
-              label="Shelters"
-            />
-            <LayerChip
-              active={showCases}
-              onClick={() => setShowCases((v) => !v)}
-              label="Cases"
-            />
-          </div>
+        <div
+          className="mt-1.5 flex w-full gap-1"
+          role="group"
+          aria-label="Map layers"
+        >
+          <LayerChip
+            active={showShelters}
+            onClick={() => toggleLayer("shelters", showShelters)}
+            label="Shelters"
+            count={shelters.length}
+            swatch={SHELTER_PIN_COLOR}
+            className="min-w-0 flex-1"
+          />
+          {showCasesLayer ? (
+            <>
+              <LayerChip
+                active={showCritical}
+                onClick={() => toggleLayer("critical", showCritical)}
+                label="Critical"
+                count={caseCounts.critical}
+                swatch={MAP_MARKER_COLORS.critical}
+                className="min-w-0 flex-1"
+              />
+              <LayerChip
+                active={showHigh}
+                onClick={() => toggleLayer("high", showHigh)}
+                label="High"
+                count={caseCounts.high}
+                swatch={MAP_MARKER_COLORS.high}
+                className="min-w-0 flex-1"
+              />
+              <LayerChip
+                active={showStandard}
+                onClick={() => toggleLayer("standard", showStandard)}
+                label="Standard"
+                count={caseCounts.standard}
+                swatch={MAP_MARKER_COLORS.standard}
+                className="min-w-0 flex-1"
+              />
+            </>
+          ) : null}
+        </div>
+
+        {showCasesLayer && caseCounts.total === 0 ? (
+          <p className="mt-1.5 text-[11px] text-graphite/55" role="status">
+            No open field cases to plot yet. Needs-review through secured cases
+            appear here.
+          </p>
         ) : null}
 
         {locationError ? (
@@ -356,16 +514,20 @@ export function HomeMapClient({
         <MapView
           className="absolute inset-0 h-full w-full"
           center={cameraCenter}
-          zoom={11}
+          zoom={cameraZoom}
           compactLegend
           legend="none"
           legendItems={legendItems}
+          interactiveLegend
+          hiddenLegendLayers={hiddenLegendLayers}
+          onHiddenLegendLayersChange={handleHiddenLegendLayersChange}
           markers={markers}
           onMarkerClick={handleMarkerClick}
           selectedMarkerId={selectedMarkerId}
           flyToSelectedMarker
+          pinSelectedPopup
           cameraRequestId={cameraRequestId}
-          selectedMarkerZoom={14}
+          selectedMarkerZoom={cameraZoom}
           fitVisibleMarkers={false}
         />
 
@@ -489,10 +651,16 @@ function LayerChip({
   active,
   onClick,
   label,
+  swatch,
+  count,
+  className,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
+  swatch?: string;
+  count?: number;
+  className?: string;
 }) {
   return (
     <button
@@ -500,13 +668,26 @@ function LayerChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "min-h-9 rounded-full border px-3 text-xs font-semibold",
+        "inline-flex h-8 min-h-8 items-center justify-center gap-0.5 overflow-visible rounded-full border px-1 text-[8px] font-semibold leading-snug sm:gap-1 sm:px-1.5 sm:text-[9px]",
         active
           ? "border-evergreen bg-evergreen/10 text-evergreen"
           : "border-sage/30 bg-white text-graphite/55",
+        className,
       )}
     >
-      {label}
+      {swatch ? (
+        <span
+          className="h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-black/10 sm:h-2 sm:w-2"
+          style={{ backgroundColor: swatch, opacity: active ? 1 : 0.35 }}
+          aria-hidden
+        />
+      ) : null}
+      <span className="whitespace-nowrap">{label}</span>
+      {typeof count === "number" ? (
+        <span className="shrink-0 tabular-nums text-[8px] opacity-70 sm:text-[9px]">
+          {count}
+        </span>
+      ) : null}
     </button>
   );
 }

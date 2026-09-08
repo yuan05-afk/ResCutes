@@ -6,7 +6,7 @@ import {
 } from "@/lib/auth/permissions";
 import {
   formatShelterSpeciesLabel,
-  getCuratedShelterRecords,
+  getPhilippinesShelterDirectory,
 } from "@/lib/data/philippines-shelters-directory";
 import { OPERATIONAL_SHELTER_PROFILES } from "@/lib/data/operational-shelter-profiles";
 import { isActiveCaseStatus, statusToStage } from "@/lib/rescue-stages";
@@ -17,7 +17,7 @@ export default async function MobileHomePage() {
   const isRescuer = shouldUseRescuerMobileExperience(session.user.roles);
   const canExact = canViewExactLocation(session.user.roles);
 
-  const shelters = getCuratedShelterRecords().map((s) => {
+  const shelters = getPhilippinesShelterDirectory().map((s) => {
     const profile = OPERATIONAL_SHELTER_PROFILES[s.id];
     return {
       id: s.id,
@@ -54,17 +54,18 @@ export default async function MobileHomePage() {
 
   if (isRescuer) {
     const allCases = await getCases();
-    const verifiedCases = allCases.filter((c) => {
+    const fieldReadyCases = allCases.filter((c) => {
       if (!isActiveCaseStatus(c.status)) return false;
       const stage = statusToStage(c.status);
       return (
+        stage === "needs_review" ||
         stage === "verified" ||
         stage === "with_rescuer" ||
         stage === "animal_secured"
       );
     });
 
-    fieldCases = verifiedCases.map((c) => {
+    fieldCases = fieldReadyCases.map((c) => {
       const loc = getCaseLocation(c, session.user.roles, canExact);
       const urgency = resolveCurrentUrgency(c);
       return {

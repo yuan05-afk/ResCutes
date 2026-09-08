@@ -301,7 +301,7 @@ export function MedicalWorkspace({
           className="overflow-x-auto"
         />
 
-        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
           {/* Queue list */}
           <div className="flex max-h-[40vh] min-h-[12rem] flex-col overflow-hidden rounded-xl border border-sage/25 bg-white shadow-card lg:max-h-none lg:min-h-0">
             <div className="shrink-0 border-b border-sage/20 bg-bone/40 px-4 py-2.5 text-xs text-graphite/55">

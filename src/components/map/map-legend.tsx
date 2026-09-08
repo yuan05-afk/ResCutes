@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import type { MapLegendItem } from "@/components/map/map-constants";
@@ -29,13 +29,15 @@ function measureLegendPlacement(
 
   const mapRect = mapRoot.getBoundingClientRect();
   const logoRect = logo.getBoundingClientRect();
-  const gap = compact ? 6 : 8;
-  // Bottom-right is clear of attribution (moved top-left); keep a small edge inset only.
-  const rightReserve = compact ? 12 : 16;
+  const gap = compact ? 8 : 10;
+  const rightReserve = compact ? 6 : 12;
 
   const left = Math.ceil(logoRect.right - mapRect.left + gap);
   const bottom = Math.max(6, Math.round(mapRect.bottom - logoRect.bottom));
-  const maxWidth = Math.max(120, Math.floor(mapRect.width - left - rightReserve));
+  const maxWidth = Math.max(
+    180,
+    Math.floor(mapRect.width - left - rightReserve),
+  );
 
   return { left, bottom, maxWidth };
 }
@@ -49,7 +51,10 @@ export function MapLegend({
   onToggleLayer,
 }: MapLegendProps) {
   const legendRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const [placement, setPlacement] = useState<LegendPlacement | null>(null);
+  const [fitScale, setFitScale] = useState(1);
+  const [pillWidth, setPillWidth] = useState<number | null>(null);
 
   useEffect(() => {
     const legendEl = legendRef.current;
@@ -85,34 +90,77 @@ export function MapLegend({
     };
   }, [compact, items.length]);
 
-  const fallbackLeftPx = compact ? 108 : 104;
+  useLayoutEffect(() => {
+    const legendEl = legendRef.current;
+    const listEl = listRef.current;
+    if (!legendEl || !listEl) return;
+
+    const fit = () => {
+      listEl.style.transform = "none";
+      const padX = compact ? 12 : 16;
+      const maxOuter =
+        placement?.maxWidth ??
+        Math.max(180, legendEl.parentElement?.clientWidth ?? 280);
+      const neededInner = listEl.scrollWidth;
+      if (neededInner <= 0) {
+        setFitScale(1);
+        setPillWidth(null);
+        return;
+      }
+
+      const neededOuter = neededInner + padX;
+      if (neededOuter <= maxOuter) {
+        // Pill grows to hug every label (including Standard).
+        setFitScale(1);
+        setPillWidth(neededOuter);
+        return;
+      }
+
+      // Only scale when the map truly cannot fit the full row.
+      const scale = (maxOuter - padX) / neededInner;
+      setFitScale(scale);
+      setPillWidth(maxOuter);
+    };
+
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(listEl);
+    return () => observer.disconnect();
+  }, [items, placement?.maxWidth, compact, placement?.left]);
+
+  const fallbackLeftPx = compact ? 56 : 104;
 
   return (
     <div
       ref={legendRef}
       className={cn(
-        "pointer-events-auto absolute z-10 w-max",
+        "pointer-events-auto absolute z-10 overflow-hidden",
         "flex shrink-0 items-center rounded-md border border-sage/25 bg-white/94 shadow-card backdrop-blur-sm",
-        compact ? "h-5 gap-1.5 px-1.5" : "h-6 gap-2 px-2",
+        compact ? "h-7 gap-1 px-1.5" : "h-6 gap-2 px-2",
         className,
       )}
       style={
         {
           left: placement?.left ?? fallbackLeftPx,
           bottom: placement?.bottom ?? (compact ? 8 : 9),
+          width: pillWidth ?? undefined,
           maxWidth:
             placement?.maxWidth ??
-            (compact ? "calc(100% - 7.5rem)" : "calc(100% - 7rem)"),
+            (compact ? "calc(100% - 3.5rem)" : "calc(100% - 7rem)"),
         } as CSSProperties
       }
       role="region"
       aria-label="Map legend"
     >
       <ul
+        ref={listRef}
         className={cn(
-          "flex shrink-0 flex-nowrap items-center",
-          compact ? "gap-x-2" : "gap-x-3",
+          "flex w-max flex-nowrap items-center origin-left",
+          compact ? "gap-x-1.5" : "gap-x-3",
         )}
+        style={{
+          transform: fitScale < 0.999 ? `scale(${fitScale})` : undefined,
+        }}
       >
         {items.map((item) => {
           const hidden = hiddenLayerIds?.has(item.id) ?? false;
@@ -129,7 +177,9 @@ export function MapLegend({
               <span
                 className={cn(
                   "rescutes-map-legend-label whitespace-nowrap font-semibold text-graphite transition-colors duration-200",
-                  compact ? "text-[9px] leading-none" : "text-[10px] leading-none",
+                  compact
+                    ? "text-[9px] leading-snug"
+                    : "text-[10px] leading-[1.15]",
                   !hidden && "group-hover:text-evergreen",
                 )}
               >
@@ -143,8 +193,8 @@ export function MapLegend({
               <li key={item.id} className="shrink-0">
                 <div
                   className={cn(
-                    "group flex items-center gap-1.5 rounded-md transition-colors duration-200",
-                    compact ? "px-0.5 py-0" : "px-1 py-0.5",
+                    "group flex items-center gap-1 rounded-md transition-colors duration-200",
+                    compact ? "px-0.5 py-0.5" : "px-1 py-0.5",
                     "hover:bg-bone/90",
                   )}
                   title={item.description}
@@ -160,8 +210,8 @@ export function MapLegend({
               <button
                 type="button"
                 className={cn(
-                  "group flex items-center gap-1.5 rounded-md transition-colors duration-200",
-                  compact ? "px-0.5 py-0" : "px-1 py-0.5",
+                  "group flex items-center gap-1 rounded-md transition-colors duration-200",
+                  compact ? "px-0.5 py-0.5" : "px-1 py-0.5",
                   "hover:bg-bone/90",
                   hidden && "rescutes-map-legend-item--hidden",
                 )}

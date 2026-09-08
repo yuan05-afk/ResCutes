@@ -3,12 +3,14 @@
 import { auth } from "@/lib/auth";
 import { revalidateAfterReport } from "@/lib/cache-revalidate";
 import { submitReport } from "@/lib/data/service";
+import { updateUserProfilePrefs } from "@/lib/data/user-profile";
 import {
   REPORT_CONTACT,
   REPORT_DANGER,
   REPORT_INJURY,
   REPORT_SPECIES,
   REPORT_VULNERABILITY,
+  validatePhoneRequired,
 } from "@/lib/forms/animal-field-options";
 import { z } from "zod";
 
@@ -23,6 +25,7 @@ const reportSchema = z.object({
     .min(10, "Description must be at least 10 characters")
     .max(2000, "Description must be under 2000 characters"),
   contactPreference: z.enum(REPORT_CONTACT),
+  phone: z.string().trim().min(1, "Phone number is required"),
   locationNote: z.string().trim().max(300).optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -39,8 +42,16 @@ export async function submitReportAction(data: z.infer<typeof reportSchema>) {
     return { error: first ?? "Invalid report data" };
   }
 
+  const phoneErr = validatePhoneRequired(parsed.data.phone);
+  if (phoneErr) return { error: phoneErr };
+
+  await updateUserProfilePrefs(session.user.id, {
+    phone: parsed.data.phone.trim(),
+  });
+
+  const { phone: _phone, ...reportFields } = parsed.data;
   const payload = {
-    ...parsed.data,
+    ...reportFields,
     photoUrl: parsed.data.photoUrl || undefined,
   };
 

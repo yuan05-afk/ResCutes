@@ -383,6 +383,7 @@ export function AnimalDetailView({
               bio: animal.bio,
               temperament: animal.temperament,
               pathwayStage: animal.pathwayStage,
+              clearanceStatus: animal.clearanceStatus,
               sex: animal.sex,
               estimatedAge: animal.estimatedAge,
               breed: animal.breed,

@@ -73,9 +73,19 @@ async function seedUsers() {
         id: userId,
         email: account.email,
         name: account.name,
+        phone: account.phone,
         passwordHash: null,
       });
       console.log(`Inserted app user: ${account.email}`);
+    } else {
+      await db
+        .update(users)
+        .set({
+          name: account.name,
+          phone: account.phone,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.email, account.email));
     }
 
     for (const role of account.roles) {

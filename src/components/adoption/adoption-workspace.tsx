@@ -77,14 +77,18 @@ export function AdoptionWorkspace({
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <ModalTabs
           tabs={[
-            { id: "animals", label: `Available animals (${animals.length})` },
+            {
+              id: "animals",
+              label: `Animals (${animals.length})`,
+            },
             {
               id: "applications",
-              label: `Applications (${applications.length}${pendingCount ? ` · ${pendingCount} open` : ""})`,
+              label: `Apps (${applications.length}${pendingCount ? ` · ${pendingCount}` : ""})`,
             },
           ]}
           active={tab}
           onChange={(id) => setTab(id as TabId)}
+          className="overflow-x-auto"
         />
 
         {tab === "animals" ? (
@@ -139,6 +143,7 @@ export function AdoptionWorkspace({
                     key={animal.id}
                     animal={animal}
                     canApply={canManage}
+                    canManage={canManage}
                     onApply={setApplyAnimal}
                   />
                 ))}

@@ -75,6 +75,63 @@ export function RescueCasesTable({ cases, rescuers }: RescueCasesTableProps) {
             details
           </TableMetaLine>
 
+          {/* Mobile card stack */}
+          <div className="space-y-2 p-2 md:hidden">
+            {pager.pageItems.length === 0 ? (
+              <p className="px-2 py-8 text-center text-sm text-graphite/50">
+                No cases match your search or filters.
+              </p>
+            ) : (
+              pager.pageItems.map((c) => {
+                const urgency = resolveCurrentUrgency(c);
+                const img = getCasePhotoUrl(c.species, c.photoUrl, c.id);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setOpenId(c.id)}
+                    className="flex w-full gap-3 rounded-xl border border-sage/20 bg-white p-3 text-left shadow-sm transition hover:border-sage/40 active:bg-bone/50"
+                  >
+                    <AnimalImage
+                      src={img}
+                      species={c.species}
+                      alt={c.caseNumber}
+                      containerClassName="h-14 w-14 shrink-0 rounded-lg"
+                      sizes="56px"
+                      objectPosition="center top"
+                    />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-semibold text-evergreen">
+                          {c.caseNumber}
+                        </p>
+                        {urgency.score > 0 ? (
+                          <UrgencyBadge
+                            level={urgency.level}
+                            score={urgency.score}
+                          />
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <StatusBadge status={c.status} />
+                        <span className="text-[11px] capitalize text-graphite/50">
+                          {c.species}
+                        </span>
+                      </div>
+                      <p className="truncate text-xs text-graphite/55">
+                        {c.reporterName}
+                      </p>
+                      <p className="line-clamp-2 text-xs text-graphite/60">
+                        {c.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="hidden md:block">
           <TableHeaderPane
             headerRef={headerRef}
             minWidth={TABLE_MIN_WIDTH}
@@ -156,6 +213,7 @@ export function RescueCasesTable({ cases, rescuers }: RescueCasesTableProps) {
               );
             })}
           </TableBodyPane>
+          </div>
 
           <PaginationBar
             from={pager.from}

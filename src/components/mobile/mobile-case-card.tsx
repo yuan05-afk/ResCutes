@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useState } from "react";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { formatCaseStageLabel } from "@/lib/rescue-stages";
 import { formatStatus, cn } from "@/lib/utils";
@@ -36,12 +37,13 @@ export function MobileCaseCard({
   status,
   urgencyLevel,
   urgencyScore,
-  description: _description,
+  description,
   photoUrl,
   href,
 }: MobileCaseCardProps) {
   const router = useRouter();
   const { startPending } = useNavigationPending();
+  const [imageLoaded, setImageLoaded] = useState(false);
   const imageUrl = getCasePhotoUrl(species, photoUrl, id);
   const linkHref = href ?? `/mobile/cases/${id}`;
   const stageLabel = formatCaseStageLabel(status);
@@ -72,22 +74,26 @@ export function MobileCaseCard({
             alt=""
             fill
             draggable={false}
-            className="object-cover pointer-events-none select-none [-webkit-user-drag:none]"
+            className={cn(
+              "object-cover pointer-events-none select-none [-webkit-user-drag:none] transition-opacity duration-200",
+              imageLoaded ? "opacity-100" : "opacity-0",
+            )}
             unoptimized
             sizes="76px"
+            onLoad={() => setImageLoaded(true)}
           />
         </div>
 
         <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-2">
-              <h2 className="truncate text-[15px] font-bold leading-tight text-graphite">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <h2 className="break-words text-[15px] font-bold leading-tight text-graphite">
                 {caseNumber}
               </h2>
               {showUrgency && urgencyLabel ? (
                 <span
                   className={cn(
-                    "shrink-0 text-[10px] font-bold uppercase tracking-wide",
+                    "shrink-0 text-[9px] font-bold uppercase tracking-wide",
                     urgencyText[urgencyLevel] ?? urgencyText.low,
                   )}
                 >
@@ -100,6 +106,11 @@ export function MobileCaseCard({
               <span className="text-graphite/35"> · </span>
               {stageLabel}
             </p>
+            {description.trim() ? (
+              <p className="mt-0.5 line-clamp-1 text-xs text-graphite/50">
+                {description}
+              </p>
+            ) : null}
           </div>
           <ChevronRight
             className="h-4 w-4 shrink-0 text-graphite/25"

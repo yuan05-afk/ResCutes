@@ -350,6 +350,12 @@ export function isAllowedCatalogOrOther(
   return /^[\w\s.,'/()+&\-]+$/i.test(trimmed);
 }
 
+export function validateRequiredAnimalName(name: string | null | undefined): string | null {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) return "Name is required.";
+  return validateOptionalText("Name", trimmed, { minLen: 1, maxLen: 80 });
+}
+
 export function validateAnimalProfilePayload(fields: {
   name?: string | null;
   bio?: string | null;
@@ -360,13 +366,15 @@ export function validateAnimalProfilePayload(fields: {
   breed?: string | null;
   color?: string | null;
   species?: string | null;
+  /** When true, name must be present even if omitted from fields. */
+  requireName?: boolean;
 }): string | null {
   if (fields.pathwayStage !== undefined && !isPathwayStage(fields.pathwayStage)) {
     return "Invalid pathway stage.";
   }
-  if (fields.name != null) {
-    const err = validateOptionalText("Name", fields.name, { maxLen: 80 });
-    if (err) return err;
+  if (fields.requireName || fields.name !== undefined) {
+    const nameErr = validateRequiredAnimalName(fields.name);
+    if (nameErr) return nameErr;
   }
   if (fields.bio != null) {
     const err = validateOptionalText("Bio", fields.bio, { maxLen: 2000 });

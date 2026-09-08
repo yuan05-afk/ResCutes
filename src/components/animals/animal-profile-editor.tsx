@@ -18,6 +18,7 @@ import {
 import { useActionPending } from "@/components/shared/useActionPending";
 import {
   deleteAnimalAction,
+  setAnimalAdoptionListingAction,
   updateAnimalAction,
 } from "@/app/actions/adoption";
 import {
@@ -32,6 +33,7 @@ import {
   resolveSelectOther,
   splitSelectOther,
   validateOptionalText,
+  validateRequiredAnimalName,
   validateSelectOther,
 } from "@/lib/forms/animal-field-options";
 import { formatStatus } from "@/lib/utils";
@@ -45,6 +47,7 @@ interface AnimalProfileEditorProps {
     bio?: string | null;
     temperament?: string | null;
     pathwayStage: string;
+    clearanceStatus?: string;
     sex?: string | null;
     estimatedAge?: string | null;
     breed?: string | null;
@@ -99,6 +102,20 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const isListed =
+    pathwayStage === "ready_for_adoption" ||
+    pathwayStage === "ready_for_foster";
+  const canPublish =
+    animal.clearanceStatus === "medically_cleared" || isListed;
+
+  function clearNameErrorIfValid(nextName: string) {
+    if (validateRequiredAnimalName(nextName)) return;
+    setFieldErrors((prev) => {
+      if (!prev.name) return prev;
+      const { name: _, ...rest } = prev;
+      return rest;
+    });
+  }
 
   function validate(): boolean {
     const next: Record<string, string> = {};
@@ -110,7 +127,7 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
     if (breedErr) next.breed = breedErr;
     const colorErr = validateSelectOther("Color", colorChoice, colorOther);
     if (colorErr) next.color = colorErr;
-    const nameErr = validateOptionalText("Name", name, { maxLen: 80 });
+    const nameErr = validateRequiredAnimalName(name);
     if (nameErr) next.name = nameErr;
     const bioErr = validateOptionalText("Bio", bio, { maxLen: 2000 });
     if (bioErr) next.bio = bioErr;
@@ -153,7 +170,7 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
     await run(
       () =>
         updateAnimalAction(animal.id, {
-          name: name.trim() || null,
+          name: name.trim(),
           bio: bio.trim() || null,
           temperament,
           pathwayStage,
@@ -165,6 +182,24 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
       {
         rewarm: [`/animals/${animal.id}`, "/animals", "/adoption"],
         onSuccess: () => toast("Animal profile updated"),
+      },
+    );
+  }
+
+  async function handleListingToggle() {
+    setError(null);
+    await run(
+      () => setAnimalAdoptionListingAction(animal.id, !isListed),
+      {
+        rewarm: [`/animals/${animal.id}`, "/animals", "/adoption"],
+        onSuccess: () => {
+          toast(
+            isListed
+              ? "Removed from adoption listing"
+              : "Published to adoption listing",
+          );
+          setPathwayStage(isListed ? "medical_clearance" : "ready_for_adoption");
+        },
       },
     );
   }
@@ -203,10 +238,17 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
           <Input
             id="animal-name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setName(next);
+              clearNameErrorIfValid(next);
+            }}
+            onBlur={() => clearNameErrorIfValid(name)}
             className="h-9"
             maxLength={80}
-            placeholder="Optional name"
+            placeholder="Required name"
+            required
+            aria-invalid={Boolean(fieldErrors.name)}
           />
           {fieldErrors.name ? (
             <p className="text-[11px] text-rescue">{fieldErrors.name}</p>
@@ -339,6 +381,20 @@ export function AnimalProfileEditor({ animal }: AnimalProfileEditorProps) {
         <Button size="sm" disabled={pending} onClick={() => void handleSave()}>
           {pending ? "Saving..." : "Save profile"}
         </Button>
+        {canPublish ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={pending}
+            onClick={() => void handleListingToggle()}
+          >
+            {pending
+              ? "Updating..."
+              : isListed
+                ? "Unpublish listing"
+                : "Publish to adoption"}
+          </Button>
+        ) : null}
         <Button
           size="sm"
           variant="destructive"

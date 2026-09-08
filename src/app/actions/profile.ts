@@ -7,7 +7,7 @@ import type { UserProfilePrefs } from "@/lib/data/user-profile";
 import {
   DEPARTMENT_OPTIONS,
   isAllowedCatalogOrOther,
-  validatePhoneOptional,
+  validatePhoneRequired,
 } from "@/lib/forms/animal-field-options";
 
 export async function updateProfileAction(
@@ -17,7 +17,7 @@ export async function updateProfileAction(
   if (!session?.user) return { error: "Unauthorized" };
 
   if (data.phone !== undefined) {
-    const phoneErr = validatePhoneOptional(data.phone);
+    const phoneErr = validatePhoneRequired(data.phone);
     if (phoneErr) return { error: phoneErr };
   }
 
@@ -38,5 +38,6 @@ export async function updateProfileAction(
 
   await updateUserProfilePrefs(session.user.id, data);
   revalidatePath("/profile");
+  revalidatePath("/mobile/profile");
   return { success: true };
 }

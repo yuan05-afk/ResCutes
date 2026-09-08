@@ -10,11 +10,13 @@ import {
 } from "@/components/admin/AdminModal";
 import { CaseMediaStrip, CaseMediaStripSkeleton } from "@/components/admin/case-media-strip";
 import { CaseLocationBlock } from "@/components/case/case-location-block";
+import { CaseStatusPipeline } from "@/components/case/case-status-pipeline";
 import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { Button } from "@/components/ui/button";
 import { fetchCaseModalData } from "@/app/actions/modal-data";
 import { CaseStaffActions } from "@/app/(dashboard)/rescue-cases/[id]/case-staff-actions";
+import { ReporterDetails } from "@/components/case/reporter-details";
 import { formatDateTime, formatStatus, formatTimelineLabel } from "@/lib/utils";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { cn } from "@/lib/utils";
@@ -121,6 +123,8 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
         >
           {/* Case information */}
           <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
+            <CaseStatusPipeline status={caseItem.status} className="shrink-0" />
+
             <CaseMediaStrip
               compact
               mapInteractive
@@ -165,12 +169,23 @@ export function CaseDetailModal({ caseId, onClose }: CaseDetailModalProps) {
                 label="Danger"
                 value={formatStatus(caseItem.environmentalDanger)}
               />
-              {data.canReporter ? (
-                <ModalMeta label="Reporter" value={caseItem.reporterName} />
-              ) : (
-                <div className="hidden sm:block" aria-hidden />
-              )}
             </div>
+
+            {data.canReporter ? (
+              <div className="shrink-0 rounded-lg border border-sage/15 bg-bone/40 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+                  Reporter
+                </p>
+                <ReporterDetails
+                  className="mt-2"
+                  name={caseItem.reporterName}
+                  contactPreference={caseItem.contactPreference}
+                  phone={data.reporterUser?.phone}
+                  email={data.reporterUser?.email}
+                  reportedAt={caseItem.createdAt}
+                />
+              </div>
+            ) : null}
 
             {data.assignments[0] ? (
               <ModalMeta

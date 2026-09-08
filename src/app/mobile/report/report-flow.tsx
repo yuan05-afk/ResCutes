@@ -28,10 +28,11 @@ import {
   REPORT_INJURY,
   REPORT_SPECIES,
   REPORT_VULNERABILITY,
+  validatePhoneRequired,
 } from "@/lib/forms/animal-field-options";
 
 const STEPS = ["Photo", "Location", "Animal", "Condition", "Contact", "Review"];
-const DRAFT_KEY = "rescutes-report-draft-v1";
+const DRAFT_KEY = "rescutes-report-draft-v2";
 
 type ReportSpecies = (typeof REPORT_SPECIES)[number];
 type ReportInjury = (typeof REPORT_INJURY)[number];
@@ -53,6 +54,7 @@ interface ReportDraft {
   vulnerability: ReportVulnerability;
   description: string;
   contactPreference: ReportContact;
+  phone: string;
   latitude: number | null;
   longitude: number | null;
   locationNote: string;
@@ -63,8 +65,17 @@ interface ReportDraft {
 
 function readDraft(): ReportDraft | null {
   try {
-    const raw = sessionStorage.getItem(DRAFT_KEY);
+    const raw =
+      localStorage.getItem(DRAFT_KEY) ?? sessionStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
+    if (!localStorage.getItem(DRAFT_KEY) && sessionStorage.getItem(DRAFT_KEY)) {
+      try {
+        localStorage.setItem(DRAFT_KEY, raw);
+        sessionStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* ignore migrate failures */
+      }
+    }
     return JSON.parse(raw) as ReportDraft;
   } catch {
     return null;
@@ -73,13 +84,18 @@ function readDraft(): ReportDraft | null {
 
 function clearDraft() {
   try {
+    localStorage.removeItem(DRAFT_KEY);
     sessionStorage.removeItem(DRAFT_KEY);
   } catch {
     /* ignore */
   }
 }
 
-export function ReportFlow() {
+export function ReportFlow({
+  initialPhone = "",
+}: {
+  initialPhone?: string;
+}) {
   const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(0);
@@ -97,7 +113,8 @@ export function ReportFlow() {
     useState<ReportVulnerability>("adult_healthy");
   const [description, setDescription] = useState("");
   const [contactPreference, setContactPreference] =
-    useState<ReportContact>("in_app");
+    useState<ReportContact>("phone");
+  const [phone, setPhone] = useState(initialPhone);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationNote, setLocationNote] = useState("");
@@ -120,6 +137,7 @@ export function ReportFlow() {
       setVulnerability(draft.vulnerability);
       setDescription(draft.description);
       setContactPreference(draft.contactPreference);
+      setPhone(draft.phone?.trim() ? draft.phone : initialPhone);
       setLatitude(draft.latitude);
       setLongitude(draft.longitude);
       setLocationNote(draft.locationNote);
@@ -130,7 +148,7 @@ export function ReportFlow() {
       setPhotoPreview(draft.photoPreview ?? draft.photoUrl);
     }
     setHydrated(true);
-  }, []);
+  }, [initialPhone]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -142,6 +160,7 @@ export function ReportFlow() {
       vulnerability,
       description,
       contactPreference,
+      phone,
       latitude,
       longitude,
       locationNote,
@@ -153,7 +172,7 @@ export function ReportFlow() {
           : photoUrl,
     };
     try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch {
       /* quota / private mode */
     }
@@ -166,6 +185,7 @@ export function ReportFlow() {
     vulnerability,
     description,
     contactPreference,
+    phone,
     latitude,
     longitude,
     locationNote,
@@ -254,6 +274,12 @@ export function ReportFlow() {
       setStep(1);
       return;
     }
+    const phoneErr = validatePhoneRequired(phone);
+    if (phoneErr) {
+      setError(phoneErr);
+      setStep(4);
+      return;
+    }
     setLoading(true);
     setError("");
 
@@ -265,6 +291,7 @@ export function ReportFlow() {
         vulnerability,
         description,
         contactPreference,
+        phone: phone.trim(),
         locationNote: locationNote.trim() || undefined,
         latitude,
         longitude,
@@ -301,6 +328,13 @@ export function ReportFlow() {
     if (step === 3 && description.trim().length > 2000) {
       setError("Description must be under 2000 characters.");
       return;
+    }
+    if (step === 4) {
+      const phoneErr = validatePhoneRequired(phone);
+      if (phoneErr) {
+        setError(phoneErr);
+        return;
+      }
     }
     setError("");
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -564,7 +598,13 @@ export function ReportFlow() {
               <Label className="text-sm font-semibold">Description</Label>
               <Textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setDescription(next);
+                  if (next.trim().length >= 10) {
+                    setError("");
+                  }
+                }}
                 placeholder="Describe what you observed..."
                 rows={4}
                 className="rounded-xl"
@@ -578,12 +618,37 @@ export function ReportFlow() {
         )}
 
         {step === 4 && (
-          <OptionGrid
-            label="Contact preference"
-            options={CONTACT}
-            value={contactPreference}
-            onChange={setContactPreference}
-          />
+          <div className="space-y-4">
+            <div className="space-y-1.5 rounded-2xl border border-sage/25 bg-white p-4 shadow-card">
+              <Label htmlFor="report-phone" className="text-sm font-semibold">
+                Phone number (required)
+              </Label>
+              <Input
+                id="report-phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                required
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  if (error) setError("");
+                }}
+                placeholder="+63 9XX XXX XXXX"
+                className="h-11 rounded-xl"
+              />
+              <p className="text-[11px] text-graphite/50">
+                Rescuers use this number if they need directions or updates from
+                you.
+              </p>
+            </div>
+            <OptionGrid
+              label="Contact preference"
+              options={CONTACT}
+              value={contactPreference}
+              onChange={setContactPreference}
+            />
+          </div>
         )}
 
         {step === 5 && (
@@ -599,6 +664,7 @@ export function ReportFlow() {
               label="Vulnerability"
               value={formatStatus(vulnerability)}
             />
+            <ReviewRow label="Phone" value={phone.trim() || "Missing"} />
             <ReviewRow
               label="Contact"
               value={formatStatus(contactPreference)}

@@ -11,6 +11,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { getDb } from "@/db";
+import { isUuid } from "@/lib/ids";
 import {
   adoptionApplications,
   adoptionInterests,
@@ -287,6 +288,7 @@ export async function fetchCases(filters?: {
 }
 
 export async function fetchCaseById(id: string): Promise<RescueCaseRecord | null> {
+  if (!isUuid(id)) return null;
   const bundles = await loadCaseBundles([id]);
   return bundles[0] ? mapCaseBundle(bundles[0]) : null;
 }
@@ -576,6 +578,7 @@ export async function fetchAnimals(filters?: {
 }
 
 export async function fetchAnimalById(id: string): Promise<AnimalRecord | null> {
+  if (!isUuid(id)) return null;
   const db = getDb();
   const animal = await db.query.animals.findFirst({
     where: eq(animals.id, id),

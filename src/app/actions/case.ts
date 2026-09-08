@@ -40,6 +40,7 @@ import {
   isAllowedCatalogOrOther,
   isMedicalPriority,
   validateOptionalText,
+  validateRequiredAnimalName,
 } from "@/lib/forms/animal-field-options";
 import {
   followUpDateBounds,
@@ -266,9 +267,7 @@ export async function completeShelterIntakeAction(
     return { error: "Unauthorized" };
 
   if (input) {
-    const nameErr = validateOptionalText("Name", input.name ?? "", {
-      maxLen: 80,
-    });
+    const nameErr = validateRequiredAnimalName(input.name);
     if (nameErr) return { error: nameErr };
     if (
       input.sex !== undefined &&
@@ -381,6 +380,18 @@ export async function updateMedicalClearanceAction(
     if (err) return { error: err };
   }
 
+  const notes = data.veterinarianNotes?.trim() ?? "";
+  if (
+    (data.clearanceStatus === "under_examination" ||
+      data.clearanceStatus === "medically_cleared") &&
+    notes.length < 10
+  ) {
+    return {
+      error:
+        "Clinical notes are required (at least 10 characters) before this step.",
+    };
+  }
+
   let normalizedFollowUp: string | undefined;
   if (data.clearanceStatus === "follow_up_required") {
     const bounds = followUpDateBounds();
@@ -447,4 +458,57 @@ export async function updateShelterSettingsAction(
   revalidateTag("dashboard-metrics");
   revalidateTag("shelters");
   return { success: true };
+}
+
+/** Staff-logged rescue case (web Create flow). Uses the signed-in user as reporter. */
+export async function createStaffCaseAction(input: {
+  species: string;
+  injurySeverity: string;
+  environmentalDanger: string;
+  vulnerability: string;
+  description: string;
+  contactPreference?: string;
+  locationNote?: string;
+  latitude: number;
+  longitude: number;
+  photoUrl?: string;
+}) {
+  const session = await auth();
+  if (!session?.user) return { error: "Unauthorized" };
+  if (!canManageCases(session.user.roles)) return { error: "Forbidden" };
+
+  const { submitReportAction } = await import("@/app/actions/report");
+  return submitReportAction({
+    species: input.species as "dog" | "cat" | "bird" | "rabbit" | "other",
+    injurySeverity: input.injurySeverity as
+      | "none_visible"
+      | "minor"
+      | "moderate"
+      | "severe"
+      | "critical",
+    environmentalDanger: input.environmentalDanger as
+      | "none"
+      | "traffic"
+      | "weather"
+      | "predators"
+      | "trapped"
+      | "other_danger",
+    vulnerability: input.vulnerability as
+      | "adult_healthy"
+      | "juvenile"
+      | "elderly"
+      | "pregnant"
+      | "nursing"
+      | "disabled",
+    description: input.description,
+    contactPreference: (input.contactPreference ?? "in_app") as
+      | "in_app"
+      | "phone"
+      | "email"
+      | "no_contact",
+    locationNote: input.locationNote,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    photoUrl: input.photoUrl,
+  });
 }

@@ -149,6 +149,73 @@ export function AnimalsTable({
             row to open
           </TableMetaLine>
 
+          {/* Mobile card stack */}
+          <div className="space-y-2 p-2 md:hidden">
+            {pager.pageItems.length === 0 ? (
+              <p className="px-2 py-8 text-center text-sm text-graphite/50">
+                No animals match your search or filters.
+              </p>
+            ) : (
+              pager.pageItems.map((a) => {
+                const img = getCasePhotoUrl(
+                  a.species,
+                  a.photoUrl,
+                  a.rescueCaseId,
+                );
+                return (
+                  <div
+                    key={a.id}
+                    className="rounded-xl border border-sage/20 bg-white p-3 shadow-sm"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenId(a.id)}
+                      className="flex w-full gap-3 text-left"
+                    >
+                      <AnimalImage
+                        src={img}
+                        species={a.species}
+                        alt={a.name ?? a.temporaryId}
+                        containerClassName="h-14 w-14 shrink-0 rounded-lg"
+                        sizes="56px"
+                        objectPosition="center top"
+                      />
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <p className="font-semibold text-graphite">
+                          {a.name ?? a.temporaryId}
+                        </p>
+                        <p className="text-[11px] text-graphite/45">
+                          {a.temporaryId} · {formatStatus(a.species)}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <StatusBadge status={a.clearanceStatus} />
+                          <span className="text-[11px] capitalize text-graphite/50">
+                            {formatStatus(a.pathwayStage)}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                    {canManage ? (
+                      <div className="mt-2.5 flex justify-end gap-1.5 border-t border-sage/15 pt-2.5">
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/animals/${a.id}`}>Edit</Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setDeleteTarget(a)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="hidden md:block">
           <TableHeaderPane
             headerRef={headerRef}
             minWidth={TABLE_MIN_WIDTH}
@@ -268,6 +335,7 @@ export function AnimalsTable({
               );
             })}
           </TableBodyPane>
+          </div>
 
           <PaginationBar
             from={pager.from}

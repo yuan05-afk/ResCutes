@@ -9,6 +9,7 @@ import {
   canActAsRescuer,
   canUseCitizenMobileFeatures,
   canAccessDashboard,
+  canAccessMobileApp,
   canAccessMobileCase,
   shouldUseRescuerMobileExperience,
   getDisplayRoleLabel,
@@ -44,6 +45,9 @@ describe("Authorization helpers", () => {
     expect(isAdministrator(admin)).toBe(true);
     expect(canViewExactLocation(admin)).toBe(true);
     expect(canViewReporterInfo(admin)).toBe(true);
+    expect(canViewReporterInfo([ROLES.RESCUER])).toBe(true);
+    expect(canViewReporterInfo([ROLES.SHELTER_STAFF])).toBe(true);
+    expect(canViewReporterInfo([ROLES.CITIZEN])).toBe(false);
     expect(canViewMedicalNotes(admin)).toBe(true);
     expect(canManageCases(admin)).toBe(true);
     expect(canEditMedical(admin)).toBe(true);
@@ -122,5 +126,13 @@ describe("Authorization helpers", () => {
     expect(getPostLoginPath([ROLES.ADMINISTRATOR], "/mobile/cases")).toBe(
       "/dashboard",
     );
+  });
+
+  it("gates mobile app access to citizen, rescuer, and admin", () => {
+    expect(canAccessMobileApp([ROLES.CITIZEN])).toBe(true);
+    expect(canAccessMobileApp([ROLES.RESCUER])).toBe(true);
+    expect(canAccessMobileApp([ROLES.ADMINISTRATOR])).toBe(true);
+    expect(canAccessMobileApp([ROLES.SHELTER_STAFF])).toBe(false);
+    expect(canAccessMobileApp([ROLES.VETERINARIAN])).toBe(false);
   });
 });

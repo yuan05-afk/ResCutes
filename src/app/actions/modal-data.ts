@@ -14,6 +14,7 @@ import {
   getNotesForAnimal,
   resolveCurrentUrgency,
   getCaseLocation,
+  getUserById,
 } from "@/lib/data/service";
 import { canManageCases, canViewReporterInfo, canViewMedicalNotes, canEditMedical, canViewExactLocation } from "@/lib/auth/permissions";
 
@@ -24,6 +25,8 @@ export async function fetchCaseModalData(caseId: string) {
   const caseItem = await getCaseById(caseId);
   if (!caseItem) return { error: "Not found" as const };
 
+  const canReporter = canViewReporterInfo(session.user.roles);
+
   const [
     history,
     assignments,
@@ -32,6 +35,7 @@ export async function fetchCaseModalData(caseId: string) {
     animal,
     shelter,
     rescuers,
+    reporterUser,
   ] = await Promise.all([
     getStatusHistoryForCase(caseId),
     getAssignmentsForCase(caseId),
@@ -42,6 +46,9 @@ export async function fetchCaseModalData(caseId: string) {
       ? getShelterById(caseItem.assignedShelterId)
       : Promise.resolve(null),
     getRescuers(),
+    canReporter
+      ? getUserById(caseItem.reporterId)
+      : Promise.resolve(null),
   ]);
   const currentUrgency = resolveCurrentUrgency(caseItem);
   const canExact = canViewExactLocation(session.user.roles);
@@ -50,6 +57,7 @@ export async function fetchCaseModalData(caseId: string) {
   return {
     data: {
       caseItem,
+      reporterUser,
       currentUrgency,
       mapLocation,
       history,
@@ -60,7 +68,7 @@ export async function fetchCaseModalData(caseId: string) {
       shelter,
       rescuers,
       canManage: canManageCases(session.user.roles),
-      canReporter: canViewReporterInfo(session.user.roles),
+      canReporter,
       canExact,
     },
   };

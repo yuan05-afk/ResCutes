@@ -13,25 +13,43 @@ import {
   MapPinned,
   HeartHandshake,
   Stethoscope,
+  Users,
 } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
 import { Logo } from "@/components/ui/logo";
 import type { Role } from "@/lib/auth/permissions";
-import { getDisplayRoleLabel } from "@/lib/auth/permissions";
+import {
+  getDisplayRoleLabel,
+  getMedicalNavLabel,
+} from "@/lib/auth/permissions";
 import { AdminExperienceSwitcher } from "@/components/layout/admin-experience-switcher";
 import { prefetchRouteNow } from "@/components/layout/AppRoutePrefetcher";
 import { useNavigationPending } from "@/components/layout/NavigationPending";
 import { useRouter } from "next/navigation";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/rescue-cases", label: "Rescue Cases", icon: ClipboardList },
-  { href: "/animals", label: "Animals", icon: PawPrint },
-  { href: "/medical", label: "Medical", icon: Stethoscope },
-  { href: "/adoption", label: "Adoption", icon: HeartHandshake },
-  { href: "/shelters", label: "Shelter Map", icon: MapPinned },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+function buildNavItems(userRoles: Role[], isAdministrator: boolean) {
+  const items = [
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/rescue-cases", label: "Rescue Cases", icon: ClipboardList },
+    { href: "/animals", label: "Animals", icon: PawPrint },
+    {
+      href: "/medical",
+      label: getMedicalNavLabel(userRoles),
+      icon: Stethoscope,
+    },
+    { href: "/adoption", label: "Adoption", icon: HeartHandshake },
+    { href: "/shelters", label: "Shelter Map", icon: MapPinned },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ];
+  if (isAdministrator) {
+    items.splice(items.length - 1, 0, {
+      href: "/users",
+      label: "Users",
+      icon: Users,
+    });
+  }
+  return items;
+}
 
 function userInitials(name: string) {
   return name
@@ -59,6 +77,7 @@ export function WebSidebar({
   const router = useRouter();
   const { startPending } = useNavigationPending();
   const isProfileActive = pathname.startsWith("/profile");
+  const navItems = buildNavItems(userRoles, isAdministrator);
 
   return (
     <aside

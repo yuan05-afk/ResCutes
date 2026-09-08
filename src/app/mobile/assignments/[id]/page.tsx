@@ -4,18 +4,23 @@ import {
   getAssignmentById,
   getCaseById,
   getShelterById,
+  getUserById,
   resolveCurrentUrgency,
   canAccessAssignment,
 } from "@/lib/data/service";
-import { isAdministrator } from "@/lib/auth/permissions";
+import {
+  canViewReporterInfo,
+  isAdministrator,
+} from "@/lib/auth/permissions";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { StatusBadge } from "@/components/status/status-badge";
-import { AssignmentActionsClient } from "./assignment-actions";
 import { CaseLocationBlock } from "@/components/case/case-location-block";
+import { ReporterDetails } from "@/components/case/reporter-details";
+import { AssignmentActionsClient } from "./assignment-actions";
 
 export default async function AssignmentDetailPage({
   params,
@@ -41,6 +46,14 @@ export default async function AssignmentDetailPage({
   const currentUrgency = resolveCurrentUrgency(caseItem);
   const shelter = caseItem.assignedShelterId
     ? await getShelterById(caseItem.assignedShelterId)
+    : null;
+
+  // Assigned rescuer (and staff/admin) need reporter contact before accepting.
+  const showReporter =
+    canViewReporterInfo(session.user.roles) ||
+    assignment.rescuerId === session.user.id;
+  const reporterUser = showReporter
+    ? await getUserById(caseItem.reporterId)
     : null;
 
   return (
@@ -110,6 +123,23 @@ export default async function AssignmentDetailPage({
             showRescuerNote: Boolean(caseItem.rescuerNote),
           }}
         />
+
+        {showReporter ? (
+          <Card className="border-sage/20 shadow-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Reporter</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ReporterDetails
+                name={caseItem.reporterName}
+                contactPreference={caseItem.contactPreference}
+                phone={reporterUser?.phone}
+                email={reporterUser?.email}
+                reportedAt={caseItem.createdAt}
+              />
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
 
       <div className="z-20 shrink-0 border-t border-sage/20 bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(24,60,53,0.06)]">

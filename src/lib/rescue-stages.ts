@@ -118,8 +118,8 @@ export const STAGE_BADGE_STYLES: Record<CaseStage, string> = {
   needs_review: "bg-sage/20 text-evergreen",
   verified: "bg-evergreen/12 text-evergreen",
   with_rescuer: "bg-ochre/12 text-ochre",
-  animal_secured: "bg-evergreen/20 text-evergreen",
-  at_shelter: "bg-evergreen/25 text-evergreen",
-  completed: "bg-evergreen/15 text-evergreen",
+  animal_secured: "bg-evergreen/12 text-evergreen",
+  at_shelter: "bg-evergreen/15 text-evergreen",
+  completed: "bg-evergreen/12 text-evergreen",
   closed: "bg-graphite/10 text-graphite/70",
 };

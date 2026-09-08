@@ -21,7 +21,7 @@ export async function signInAction(
 
   if (error) {
     return {
-      error: "Invalid email or password. Use demo1234 for seeded demo accounts.",
+      error: "Invalid email or password.",
     };
   }
 

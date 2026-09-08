@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CaseMediaStrip } from "@/components/admin/case-media-strip";
 import { CaseLocationBlock } from "@/components/case/case-location-block";
+import { CaseStatusPipeline } from "@/components/case/case-status-pipeline";
 import { ModalMeta, ModalSection } from "@/components/admin/AdminModal";
 import { CaseStaffActions } from "@/app/(dashboard)/rescue-cases/[id]/case-staff-actions";
+import { ReporterDetails } from "@/components/case/reporter-details";
 import { formatDateTime, formatStatus, formatTimelineLabel } from "@/lib/utils";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { cn } from "@/lib/utils";
@@ -46,6 +48,9 @@ interface CaseDetailViewProps {
     description: string;
     reporterName: string;
     contactPreference: string;
+    reporterPhone?: string;
+    reporterEmail?: string;
+    createdAt?: string;
     locationLabel?: string;
     locationNote?: string;
     rescuerNote?: string;
@@ -110,6 +115,8 @@ export function CaseDetailView({
     >
       {/* Left: case intelligence */}
       <div className="flex min-h-0 flex-col gap-2">
+        <CaseStatusPipeline status={caseItem.status} className="shrink-0" />
+
         <CaseMediaStrip
           compact
           photoSrc={photoSrc}
@@ -152,9 +159,6 @@ export function CaseDetailView({
           <ModalMeta label="Injury" value={formatStatus(caseItem.injurySeverity)} />
           <ModalMeta label="Danger" value={formatStatus(caseItem.environmentalDanger)} />
           <ModalMeta label="Vulnerability" value={formatStatus(caseItem.vulnerability)} />
-          {canReporter ? (
-            <ModalMeta label="Reporter" value={caseItem.reporterName} />
-          ) : null}
           {acceptedAssignment ? (
             <ModalMeta
               label="Rescuer"
@@ -252,10 +256,19 @@ export function CaseDetailView({
         {!canReporter && !canManage ? null : (
           <div className="grid shrink-0 grid-cols-1 gap-2">
             {canReporter ? (
-              <ModalMeta
-                label="Contact"
-                value={formatStatus(caseItem.contactPreference)}
-              />
+              <div className="rounded-xl border border-sage/20 bg-white p-3 shadow-card">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-graphite/45">
+                  Reporter
+                </p>
+                <ReporterDetails
+                  className="mt-2"
+                  name={caseItem.reporterName}
+                  contactPreference={caseItem.contactPreference}
+                  phone={caseItem.reporterPhone}
+                  email={caseItem.reporterEmail}
+                  reportedAt={caseItem.createdAt}
+                />
+              </div>
             ) : null}
           </div>
         )}

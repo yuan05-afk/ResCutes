@@ -139,6 +139,18 @@ export function MedicalClearanceForm({
     // a second attempt while the treatment plan is still empty.
     if (
       !rollback &&
+      (targetStatus === "under_examination" ||
+        targetStatus === "medically_cleared") &&
+      form.veterinarianNotes.trim().length < 10
+    ) {
+      setError(
+        "Clinical notes are required (at least 10 characters) before this step.",
+      );
+      return;
+    }
+
+    if (
+      !rollback &&
       targetStatus === "under_treatment" &&
       !form.treatmentSummary.trim()
     ) {
@@ -461,13 +473,22 @@ export function MedicalClearanceForm({
           <Label>Clinical notes</Label>
           <Textarea
             value={form.veterinarianNotes}
-            onChange={(e) =>
-              setForm({ ...form, veterinarianNotes: e.target.value })
-            }
+            onChange={(e) => {
+              const next = e.target.value;
+              setForm({ ...form, veterinarianNotes: next });
+              if (next.trim().length >= 10 && error?.includes("Clinical notes")) {
+                setError(null);
+              }
+            }}
             placeholder="Exam findings, vaccines, parasite prevention, disclosures for adopters"
             rows={isWorkspace ? 3 : 4}
             className={cn(isWorkspace && "resize-none text-sm")}
+            aria-invalid={Boolean(error?.includes("Clinical notes"))}
           />
+          <p className="text-[11px] text-graphite/50">
+            Required (10+ characters) to start an examination or mark medically
+            cleared.
+          </p>
         </div>
       ) : null}
 

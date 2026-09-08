@@ -10,6 +10,7 @@ import {
   getRescuers,
   resolveCurrentUrgency,
   getCaseLocation,
+  getUserById,
 } from "@/lib/data/service";
 import { canManageCases, canViewReporterInfo, canViewExactLocation } from "@/lib/auth/permissions";
 import { notFound } from "next/navigation";
@@ -18,6 +19,19 @@ import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { formatStatus } from "@/lib/utils";
 import { DashboardHeader, PageShell } from "@/components/layout/dashboard-header";
 import { CaseDetailView } from "@/components/case/case-detail-view";
+import { isUuid } from "@/lib/ids";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  if (!isUuid(id)) return { title: "Rescue case" };
+  const caseItem = await getCaseById(id);
+  if (!caseItem) return { title: "Rescue case" };
+  return { title: caseItem.caseNumber };
+}
 
 export default async function RescueCaseDetailPage({
   params,
@@ -25,6 +39,7 @@ export default async function RescueCaseDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const session = await requireAuth();
   const caseItem = await getCaseById(id);
   if (!caseItem) notFound();
@@ -41,6 +56,7 @@ export default async function RescueCaseDetailPage({
     animal,
     shelter,
     rescuers,
+    reporterUser,
   ] = await Promise.all([
     getStatusHistoryForCase(id),
     getAssignmentsForCase(id),
@@ -51,6 +67,9 @@ export default async function RescueCaseDetailPage({
       ? getShelterById(caseItem.assignedShelterId)
       : Promise.resolve(null),
     getRescuers(),
+    canReporter
+      ? getUserById(caseItem.reporterId)
+      : Promise.resolve(null),
   ]);
   const currentUrgency = resolveCurrentUrgency(caseItem);
 
@@ -85,6 +104,9 @@ export default async function RescueCaseDetailPage({
           description: caseItem.description,
           reporterName: caseItem.reporterName,
           contactPreference: caseItem.contactPreference,
+          reporterPhone: reporterUser?.phone,
+          reporterEmail: reporterUser?.email,
+          createdAt: caseItem.createdAt,
           locationLabel: caseItem.locationLabel,
           locationNote: caseItem.locationNote,
           rescuerNote: caseItem.rescuerNote,

@@ -497,14 +497,6 @@ export function MapView({
       });
       el.dataset.markerId = marker.id;
 
-      if (clickable) {
-        el.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (el.classList.contains("rescutes-map-marker--off")) return;
-          onMarkerClickRef.current?.(marker.id);
-        });
-      }
-
       const mapMarker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([marker.longitude, marker.latitude])
         .addTo(map);
@@ -537,6 +529,17 @@ export function MapView({
             return;
           }
           popup.remove();
+        });
+      }
+
+      if (clickable) {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (el.classList.contains("rescutes-map-marker--off")) return;
+          // Touch has no hover - open the label popup immediately on tap.
+          const popup = mapMarker.getPopup();
+          if (popup) popup.addTo(map);
+          onMarkerClickRef.current?.(marker.id);
         });
       }
 
@@ -689,6 +692,7 @@ export function MapView({
     center.latitude,
     center.longitude,
     zoom,
+    cameraRequestId,
     animateCamera,
     fitVisibleMarkers,
     loading,

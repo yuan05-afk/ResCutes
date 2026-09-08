@@ -16,6 +16,19 @@ import { notFound } from "next/navigation";
 import { DashboardHeader, PageShell } from "@/components/layout/dashboard-header";
 import { AnimalDetailView } from "@/components/animals/animal-detail-view";
 import { getCasePhotoUrl } from "@/lib/demo-images";
+import { isUuid } from "@/lib/ids";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  if (!isUuid(id)) return { title: "Animal" };
+  const animal = await getAnimalById(id);
+  if (!animal) return { title: "Animal" };
+  return { title: animal.name ?? animal.temporaryId };
+}
 
 export default async function AnimalDetailPage({
   params,
@@ -23,6 +36,7 @@ export default async function AnimalDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const session = await requireAuth();
   const animal = await getAnimalById(id);
   if (!animal) notFound();

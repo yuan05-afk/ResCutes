@@ -23,6 +23,8 @@ export const config = {
     "/adoption/:path*",
     "/shelters/:path*",
     "/settings/:path*",
+    "/users",
+    "/users/:path*",
     "/profile/:path*",
     "/unauthorized",
   ],

@@ -15,7 +15,7 @@ import {
 } from "@/lib/auth/permissions";
 import { TERMS_OF_USE } from "@/lib/legal/terms";
 import { TermsSheet } from "@/components/legal/terms-sheet";
-import { ArrowLeft, PawPrint } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, PawPrint } from "lucide-react";
 import { signInAction } from "./actions";
 
 const MOBILE_DEMO = DEMO_ACCOUNTS.filter(
@@ -100,6 +100,11 @@ export default function LoginForm() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
 
   const prefillAccount = useMemo(() => {
     if (!emailFromQuery) return null;
@@ -147,7 +152,19 @@ export default function LoginForm() {
               </p>
             </div>
 
-            <form action={formAction} className="space-y-2.5">
+            <form
+              action={formAction}
+              className="space-y-2.5"
+              onSubmit={(e) => {
+                const next: { email?: string; password?: string } = {};
+                if (!email.trim()) next.email = "Email is required.";
+                if (!password) next.password = "Password is required.";
+                setFieldErrors(next);
+                if (Object.keys(next).length > 0) {
+                  e.preventDefault();
+                }
+              }}
+            >
               <input type="hidden" name="callbackUrl" value={callbackUrl} />
               <div className="space-y-1">
                 <Label htmlFor="email" className="text-xs">
@@ -161,25 +178,63 @@ export default function LoginForm() {
                   placeholder="citizen@rescutes.demo"
                   className="h-9"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (e.target.value.trim()) {
+                      setFieldErrors((prev) => {
+                        if (!prev.email) return prev;
+                        const { email: _, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
+                  aria-invalid={Boolean(fieldErrors.email)}
                 />
+                {fieldErrors.email ? (
+                  <p className="text-[11px] text-rescue">{fieldErrors.email}</p>
+                ) : null}
               </div>
               <div className="space-y-1">
                 <Label htmlFor="password" className="text-xs">
                   Password
                 </Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="demo1234"
-                  className="h-9"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="Your password"
+                    className="h-9 pr-10"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (e.target.value) {
+                        setFieldErrors((prev) => {
+                          if (!prev.password) return prev;
+                          const { password: _, ...rest } = prev;
+                          return rest;
+                        });
+                      }
+                    }}
+                    aria-invalid={Boolean(fieldErrors.password)}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-1 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-md text-graphite/50 hover:text-evergreen"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" aria-hidden />
+                    ) : (
+                      <Eye className="h-4 w-4" aria-hidden />
+                    )}
+                  </button>
+                </div>
+                {fieldErrors.password ? (
+                  <p className="text-[11px] text-rescue">{fieldErrors.password}</p>
+                ) : null}
               </div>
               {state?.error && (
                 <p className="text-xs text-rescue" role="alert">

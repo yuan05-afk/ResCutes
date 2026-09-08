@@ -9,14 +9,14 @@ import { Select } from "@/components/ui/select";
 import { useActionPending } from "@/components/shared/useActionPending";
 import { updateProfileAction } from "@/app/actions/profile";
 import { signOutAction } from "@/app/actions/auth";
-import { ROLE_LABELS } from "@/lib/auth/permissions";
+import { getProfileRoleLabels } from "@/lib/auth/permissions";
 import type { Role } from "@/lib/auth/permissions";
 import type { UserProfilePrefs } from "@/lib/data/user-profile";
 import {
   DEPARTMENT_OPTIONS,
   resolveSelectOther,
   splitSelectOther,
-  validatePhoneOptional,
+  validatePhoneRequired,
   validateSelectOther,
 } from "@/lib/forms/animal-field-options";
 import {
@@ -84,7 +84,7 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
-    const phoneErr = validatePhoneOptional(phone);
+    const phoneErr = validatePhoneRequired(phone);
     if (phoneErr) {
       setFormError(phoneErr);
       return;
@@ -123,12 +123,12 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
             <h2 className="mt-4 text-lg font-bold text-graphite">{user.name}</h2>
             <p className="mt-0.5 text-sm text-graphite/55">{user.email}</p>
             <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-              {user.roles.map((role) => (
+              {getProfileRoleLabels(user.roles).map((label) => (
                 <span
-                  key={role}
+                  key={label}
                   className="rounded-full bg-evergreen/10 px-2.5 py-1 text-[11px] font-semibold text-evergreen"
                 >
-                  {ROLE_LABELS[role]}
+                  {label}
                 </span>
               ))}
             </div>
@@ -181,12 +181,15 @@ export function ProfileSettingsForm({ user, prefs }: ProfileSettingsFormProps) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="profile-phone">Phone number</Label>
+              <Label htmlFor="profile-phone">Phone number (required)</Label>
               <div className="relative">
                 <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite/40" />
                 <Input
                   id="profile-phone"
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  required
                   placeholder="+63 9XX XXX XXXX"
                   value={phone}
                   onChange={(e) => {

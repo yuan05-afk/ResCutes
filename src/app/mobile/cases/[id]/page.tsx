@@ -5,6 +5,7 @@ import {
   getCaseLocation,
   getStatusHistoryForCase,
   getAssignmentsForCase,
+  getUserById,
   resolveCurrentUrgency,
 } from "@/lib/data/service";
 import {
@@ -20,6 +21,7 @@ import { StatusBadge } from "@/components/status/status-badge";
 import { UrgencyBadge } from "@/components/status/urgency-badge";
 import { formatDateTime, formatStatus, formatTimelineLabel } from "@/lib/utils";
 import { CaseLocationBlock } from "@/components/case/case-location-block";
+import { ReporterDetails } from "@/components/case/reporter-details";
 import { CaseActionsClient } from "./case-actions";
 import { MobileCaseTimeline } from "./case-timeline";
 
@@ -51,6 +53,9 @@ export default async function MobileCaseDetailPage({
   const history = await getStatusHistoryForCase(id);
   const myAssignment = assignments.find((a) => a.rescuerId === session.user.id);
   const currentUrgency = resolveCurrentUrgency(caseItem);
+  const reporterUser = canReporter
+    ? await getUserById(caseItem.reporterId)
+    : null;
 
   const isCitizenView =
     caseItem.reporterId === session.user.id && !canReporter;
@@ -74,7 +79,7 @@ export default async function MobileCaseDetailPage({
             <h1 className="truncate text-base font-bold text-graphite">
               {caseItem.caseNumber}
             </h1>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
               <StatusBadge status={caseItem.status} />
               {currentUrgency.score > 0 ? (
                 <UrgencyBadge
@@ -153,11 +158,14 @@ export default async function MobileCaseDetailPage({
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Reporter</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm">
-              <p>{caseItem.reporterName}</p>
-              <p className="mt-1 capitalize text-graphite/55">
-                Contact: {formatStatus(caseItem.contactPreference)}
-              </p>
+            <CardContent>
+              <ReporterDetails
+                name={caseItem.reporterName}
+                contactPreference={caseItem.contactPreference}
+                phone={reporterUser?.phone}
+                email={reporterUser?.email}
+                reportedAt={caseItem.createdAt}
+              />
             </CardContent>
           </Card>
         ) : null}

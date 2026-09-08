@@ -38,7 +38,7 @@ export function canViewExactLocation(userRoles: Role[]): boolean {
 
 export function canViewReporterInfo(userRoles: Role[]): boolean {
   if (hasFullAccess(userRoles)) return true;
-  return hasAnyRole(userRoles, [ROLES.SHELTER_STAFF]);
+  return hasAnyRole(userRoles, [ROLES.SHELTER_STAFF, ROLES.RESCUER]);
 }
 
 export function canViewMedicalNotes(userRoles: Role[]): boolean {
@@ -72,6 +72,38 @@ export function canAccessDashboard(userRoles: Role[]): boolean {
     ROLES.SHELTER_STAFF,
     ROLES.VETERINARIAN,
   ]);
+}
+
+/**
+ * Field PWA access: citizens, rescuers, and administrators (demo preview).
+ * Shelter staff and veterinarians stay on the web dashboard.
+ */
+export function canAccessMobileApp(userRoles: Role[]): boolean {
+  if (isAdministrator(userRoles)) return true;
+  return hasAnyRole(userRoles, [ROLES.CITIZEN, ROLES.RESCUER]);
+}
+
+/** Roles to show on profile badges (admins collapse to a single label). */
+export function getProfileRoleLabels(userRoles: Role[]): string[] {
+  if (isAdministrator(userRoles)) {
+    return [ROLE_LABELS.administrator];
+  }
+  const seen = new Set<string>();
+  const labels: string[] = [];
+  for (const role of userRoles) {
+    const label = ROLE_LABELS[role];
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    labels.push(label);
+  }
+  return labels.length > 0 ? labels : ["User"];
+}
+
+/** Nav label for Medical: staff are view-only; vets/admins can act. */
+export function getMedicalNavLabel(userRoles: Role[]): string {
+  if (canEditMedical(userRoles)) return "Medical";
+  if (canViewMedicalNotes(userRoles)) return "Medical (view)";
+  return "Medical";
 }
 
 /**

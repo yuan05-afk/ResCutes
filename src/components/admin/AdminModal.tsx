@@ -86,14 +86,18 @@ export function AdminModal({
       >
         <div className="flex shrink-0 items-start gap-3 border-b border-sage/20 bg-bone/40 px-4 py-2.5 sm:px-5">
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-1.5">
               <h2
                 id={titleId}
                 className="text-base font-bold tracking-tight text-graphite sm:text-lg"
               >
                 {title}
               </h2>
-              {headerExtra}
+              {headerExtra ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {headerExtra}
+                </div>
+              ) : null}
             </div>
             {description ? (
               <p id={descId} className="mt-0.5 text-xs text-graphite/55 sm:text-sm">

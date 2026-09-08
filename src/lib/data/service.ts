@@ -86,6 +86,10 @@ export async function getCaseById(id: string) {
   return (await dataRepo()).fetchCaseById(id);
 }
 
+export async function getUserById(id: string) {
+  return (await dataRepo()).fetchUserById(id);
+}
+
 export function getCaseLocation(
   caseItem: RescueCaseRecord,
   roles: Role[],
@@ -1384,6 +1388,99 @@ export async function transferClearedAnimalToAdoption(
   });
 
   return { ok: true as const, alreadyReady: false as const };
+}
+
+export async function createAnimalRecord(input: {
+  name: string;
+  species: string;
+  sex?: string | null;
+  estimatedAge?: string | null;
+  breed?: string | null;
+  color?: string | null;
+  bio?: string | null;
+  temperament?: string | null;
+  pathwayStage?: string;
+  shelterId?: string | null;
+}) {
+  const { generateTemporaryId } = await import("@/lib/ids");
+  const temporaryId = generateTemporaryId();
+  const pathwayStage = (input.pathwayStage ?? "intake") as typeof import("@/db/schema").animals.$inferInsert.pathwayStage;
+  const clearanceStatus =
+    pathwayStage === "medical_clearance" || pathwayStage === "intake"
+      ? "awaiting_examination"
+      : pathwayStage === "ready_for_adoption" || pathwayStage === "ready_for_foster"
+        ? "medically_cleared"
+        : "awaiting_examination";
+
+  try {
+    const animal = await (await dataRepo()).insertAnimal(
+      {
+        temporaryId,
+        name: input.name.trim(),
+        species: input.species as typeof import("@/db/schema").animals.$inferInsert.species,
+        sex: input.sex?.trim() || undefined,
+        estimatedAge: input.estimatedAge?.trim() || undefined,
+        breed: input.breed?.trim() || undefined,
+        color: input.color?.trim() || undefined,
+        bio: input.bio?.trim() || undefined,
+        temperament: input.temperament?.trim() || undefined,
+        shelterId: input.shelterId || undefined,
+        intakeDate: new Date(),
+        pathwayStage,
+        recommendedNextAction:
+          clearanceStatus === "awaiting_examination"
+            ? "Schedule veterinary examination"
+            : "Ready for placement review",
+      },
+      clearanceStatus,
+    );
+    return { ok: true as const, animal };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to create animal";
+    if (message.toLowerCase().includes("unique") || message.includes("23505")) {
+      return { ok: false as const, error: "Temporary ID collision. Try again." };
+    }
+    return { ok: false as const, error: message };
+  }
+}
+
+/** Publish or unpublish an animal on the adoption/foster listing. */
+export async function setAnimalAdoptionListing(
+  animalId: string,
+  listed: boolean,
+) {
+  const animal = await getAnimalById(animalId);
+  if (!animal) {
+    return { ok: false as const, error: "Animal not found" };
+  }
+
+  if (listed) {
+    if (animal.clearanceStatus !== "medically_cleared") {
+      return {
+        ok: false as const,
+        error: "Animal must be medically cleared before publishing.",
+      };
+    }
+    const destination =
+      animal.pathwayStage === "ready_for_foster"
+        ? "ready_for_foster"
+        : "ready_for_adoption";
+    await (await dataRepo()).updateAnimalFields(animalId, {
+      pathwayStage: destination,
+      recommendedNextAction:
+        destination === "ready_for_foster"
+          ? "Awaiting foster application"
+          : "Awaiting adoption application",
+    });
+    return { ok: true as const, pathwayStage: destination };
+  }
+
+  await (await dataRepo()).updateAnimalFields(animalId, {
+    pathwayStage: "medical_clearance",
+    recommendedNextAction: "Review listing before republishing",
+  });
+  return { ok: true as const, pathwayStage: "medical_clearance" as const };
 }
 
 export async function deleteAnimal(id: string) {

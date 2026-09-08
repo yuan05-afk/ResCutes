@@ -17,6 +17,7 @@ import {
   breedOptionsForSpecies,
   resolveSelectOther,
   validateOptionalText,
+  validateRequiredAnimalName,
   validateSelectOther,
 } from "@/lib/forms/animal-field-options";
 
@@ -69,7 +70,7 @@ export function CaseIntakeForm({
     if (breedErr) next.breed = breedErr;
     const colorErr = validateSelectOther("Color", colorChoice, colorOther);
     if (colorErr) next.color = colorErr;
-    const nameErr = validateOptionalText("Name", name, { maxLen: 80 });
+    const nameErr = validateRequiredAnimalName(name);
     if (nameErr) next.name = nameErr;
     const condErr = validateOptionalText("Initial condition", initialCondition, {
       maxLen: 2000,
@@ -89,7 +90,7 @@ export function CaseIntakeForm({
     const ok = await run(
       () =>
         completeShelterIntakeAction(caseId, {
-          name: name.trim() || undefined,
+          name: name.trim(),
           estimatedAge:
             resolveSelectOther(ageChoice, ageOther) ?? undefined,
           sex: resolveSelectOther(sexChoice, sexOther) ?? undefined,
@@ -123,13 +124,25 @@ export function CaseIntakeForm({
           <p className="font-medium capitalize">{species}</p>
         </div>
         <div className="space-y-1">
-          <Label htmlFor="intake-name">Name (optional)</Label>
+          <Label htmlFor="intake-name">Name</Label>
           <Input
             id="intake-name"
-            placeholder="Leave blank until named"
+            placeholder="Required name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setName(next);
+              if (!validateRequiredAnimalName(next)) {
+                setFieldErrors((prev) => {
+                  if (!prev.name) return prev;
+                  const { name: _, ...rest } = prev;
+                  return rest;
+                });
+              }
+            }}
             maxLength={80}
+            required
+            aria-invalid={Boolean(fieldErrors.name)}
           />
           {fieldErrors.name ? (
             <p className="text-[11px] text-rescue">{fieldErrors.name}</p>
