@@ -425,6 +425,10 @@ export const adoptionApplications = pgTable(
     applicantName: text("applicant_name").notNull(),
     applicantEmail: text("applicant_email").notNull(),
     applicantPhone: text("applicant_phone"),
+    /** Optional Facebook / Instagram / other profile for staff follow-up. */
+    socialLink: text("social_link"),
+    /** City / area for staff contact and matching (minimal address). */
+    applicantCity: text("applicant_city"),
     homeType: text("home_type").notNull(),
     hasYard: boolean("has_yard").default(false).notNull(),
     hasOtherPets: boolean("has_other_pets").default(false).notNull(),

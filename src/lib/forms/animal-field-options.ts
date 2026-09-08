@@ -284,6 +284,42 @@ export function validatePhoneOptional(value: string): string | null {
   return null;
 }
 
+/** Phone is required so shelter staff can reach the adopter before approval. */
+export function validatePhoneRequired(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "Phone number is required.";
+  return validatePhoneOptional(trimmed);
+}
+
+/**
+ * Optional social profile URL (Facebook, Instagram, etc.) for staff contact.
+ * Accepts full URLs or common profile handles starting with @.
+ */
+export function validateSocialLinkOptional(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > 200) {
+    return "Social link must be under 200 characters.";
+  }
+  if (trimmed.startsWith("@")) {
+    if (!/^@[\w.]{2,80}$/i.test(trimmed)) {
+      return "Enter a valid @handle or a full profile URL.";
+    }
+    return null;
+  }
+  try {
+    const url = new URL(
+      /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`,
+    );
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return "Social link must be a web URL.";
+    }
+    return null;
+  } catch {
+    return "Enter a valid profile URL or @handle.";
+  }
+}
+
 export function pathwayValues(): string[] {
   return PATHWAY_STAGE_OPTIONS.map((o) => o.value);
 }

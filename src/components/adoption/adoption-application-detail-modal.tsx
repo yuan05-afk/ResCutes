@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Mail, Phone, Home, Users, PawPrint, FileText } from "lucide-react";
+import { Mail, Phone, Home, Users, PawPrint, FileText, Link2 } from "lucide-react";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AdoptionReviewActions } from "@/components/adoption/adoption-review-actions";
 import { AnimalImage } from "@/components/ui/animal-image";
@@ -112,6 +112,11 @@ export function AdoptionApplicationDetailModal({
             <p className="text-sm font-medium text-graphite">
               {application.applicantName}
             </p>
+            {application.applicantCity ? (
+              <p className="mt-0.5 text-xs text-graphite/55">
+                {application.applicantCity}
+              </p>
+            ) : null}
             <a
               href={`mailto:${application.applicantEmail}`}
               className="mt-1 flex items-center gap-1.5 text-xs text-evergreen hover:underline"
@@ -128,8 +133,23 @@ export function AdoptionApplicationDetailModal({
                 {application.applicantPhone}
               </a>
             ) : (
-              <p className="mt-1 text-xs text-graphite/45">No phone provided</p>
+              <p className="mt-1 text-xs text-rescue/80">No phone provided</p>
             )}
+            {application.socialLink ? (
+              <a
+                href={
+                  application.socialLink.startsWith("@")
+                    ? `https://www.facebook.com/${application.socialLink.slice(1)}`
+                    : application.socialLink
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 flex items-center gap-1.5 break-all text-xs text-evergreen hover:underline"
+              >
+                <Link2 className="h-3.5 w-3.5 shrink-0" />
+                {application.socialLink}
+              </a>
+            ) : null}
           </DetailSection>
 
           <DetailSection

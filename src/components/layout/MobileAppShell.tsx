@@ -51,8 +51,8 @@ function MobileAppContent({ children }: { children: React.ReactNode }) {
       className={cn(
         "relative flex min-h-0 w-full flex-1 flex-col bg-bone",
         isFramed
-          ? "h-full min-h-full max-h-full"
-          : "mx-auto h-[100dvh] max-w-mobile",
+          ? "h-full max-h-full min-h-0 overflow-hidden"
+          : "mx-auto h-[100dvh] max-h-[100dvh] max-w-mobile overflow-hidden",
       )}
     >
       <div

@@ -51,3 +51,5 @@ drizzle/
 psi-*.json
 lh-*.json
 
+
+.firecrawl/

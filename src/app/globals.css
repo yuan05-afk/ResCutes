@@ -580,8 +580,33 @@
   }
 }
 
-/* Desktop phone mockup: compact dynamic island overlay (sibling of screen, not app content) */
-.rescutes-mobile-device-mockup > div > div > div:last-child > div {
+/* Desktop phone mockup: keep app content clipped to the screen glass */
+.rescutes-mobile-device-mockup {
+  display: block;
+  max-width: 100%;
+  line-height: 0;
+}
+
+.rescutes-mobile-device-mockup > div {
+  max-width: 100%;
+}
+
+.rescutes-mobile-screen-root,
+.rescutes-mobile-screen-root > * {
+  min-height: 0;
+}
+
+.rescutes-mobile-screen-root {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+/*
+  Compact dynamic island only (frame > screen siblings: screen then notch overlay).
+  Do not target the app content tree - that caused oversized UI outside the bezel.
+*/
+.rescutes-mobile-device-mockup > div > div:first-of-type > div:last-of-type > div {
   transform: scale(0.72);
   transform-origin: top center;
 }

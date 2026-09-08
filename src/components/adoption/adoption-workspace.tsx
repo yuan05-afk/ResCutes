@@ -193,6 +193,11 @@ export function AdoptionWorkspace({
                               {app.applicantPhone}
                             </p>
                           ) : null}
+                          {app.applicantCity ? (
+                            <p className="text-[11px] text-graphite/45">
+                              {app.applicantCity}
+                            </p>
+                          ) : null}
                         </td>
                         <td
                           className={tableTdClass}

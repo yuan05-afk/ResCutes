@@ -11,8 +11,11 @@ import {
   LayoutGrid,
   Layers,
   RotateCcw,
+  Eye,
+  ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -49,7 +52,7 @@ interface AdoptionMobileClientProps {
 }
 
 type Mode = "swipe" | "browse";
-type Phase = "queue" | "match" | "apply" | "empty";
+type Phase = "queue" | "match" | "apply" | "detail" | "empty";
 
 const SWIPE_THRESHOLD = 110;
 
@@ -73,6 +76,9 @@ export function AdoptionMobileClient({
   );
   const [matched, setMatched] = useState<AdoptionCardData | null>(null);
   const [applyAnimal, setApplyAnimal] = useState<AdoptionCardData | null>(null);
+  const [detailAnimal, setDetailAnimal] = useState<AdoptionCardData | null>(
+    null,
+  );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragX, setDragX] = useState(0);
@@ -85,8 +91,22 @@ export function AdoptionMobileClient({
   function openApply(animal: AdoptionCardData) {
     setApplyAnimal(animal);
     setMatched(animal);
+    setDetailAnimal(null);
     setPhase("apply");
-    setMode("swipe");
+  }
+
+  function openDetail(animal: AdoptionCardData) {
+    setDetailAnimal(animal);
+    setPhase("detail");
+  }
+
+  function closeDetail() {
+    setDetailAnimal(null);
+    if (mode === "browse") {
+      setPhase("queue");
+      return;
+    }
+    setPhase(cards.length > 0 ? "queue" : "empty");
   }
 
   function afterRemoveFromQueue(animalId: string) {
@@ -223,11 +243,33 @@ export function AdoptionMobileClient({
     const animal = applyAnimal ?? matched!;
     return (
       <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        <header className="shrink-0 border-b border-sage/20 bg-white px-4 py-2.5">
-          <h1 className="text-base font-bold text-graphite">Application</h1>
-          <p className="text-[11px] text-graphite/50">
-            Finish your interest in {animal.name}
-          </p>
+        <header className="shrink-0 border-b border-sage/20 bg-white px-2 py-2.5">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setApplyAnimal(null);
+                setMatched(null);
+                if (mode === "browse") {
+                  setPhase("queue");
+                  return;
+                }
+                setPhase(cards.length > 0 ? "queue" : "empty");
+              }}
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-graphite/70 active:bg-bone"
+              aria-label="Back"
+            >
+              <ChevronLeft className="h-5 w-5" aria-hidden />
+            </button>
+            <div className="min-w-0 flex-1 pr-3">
+              <h1 className="truncate text-base font-bold text-graphite">
+                Application
+              </h1>
+              <p className="mt-1 text-[11px] leading-snug text-graphite/50">
+                Staff must approve before {animal.name} can go home
+              </p>
+            </div>
+          </div>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           <ShortApplyForm
@@ -237,12 +279,47 @@ export function AdoptionMobileClient({
             onDone={() => onApplied(animal.id)}
             onCancel={() => {
               setApplyAnimal(null);
-              setPhase(cards.length > 0 ? "queue" : "empty");
               setMatched(null);
+              if (mode === "browse") {
+                setPhase("queue");
+                return;
+              }
+              setPhase(cards.length > 0 ? "queue" : "empty");
             }}
           />
         </div>
       </div>
+    );
+  }
+
+  if (phase === "detail" && detailAnimal) {
+    const animal = detailAnimal;
+    const applied = appliedIds.has(animal.id);
+    const liked = interested.some((a) => a.id === animal.id);
+    return (
+      <AnimalDetailScreen
+        animal={animal}
+        applied={applied}
+        liked={liked}
+        pending={pending}
+        onBack={closeDetail}
+        onApply={() => openApply(animal)}
+        onInterest={async () => {
+          setPending(true);
+          setError(null);
+          const result = await expressAdoptionInterestAction(animal.id);
+          setPending(false);
+          if (result.error) {
+            setError(result.error);
+            return;
+          }
+          setInterested((prev) =>
+            prev.some((a) => a.id === animal.id) ? prev : [animal, ...prev],
+          );
+          setCards((prev) => prev.filter((c) => c.id !== animal.id));
+          openApply(animal);
+        }}
+      />
     );
   }
 
@@ -252,11 +329,18 @@ export function AdoptionMobileClient({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h1 className="text-base font-bold text-graphite">Adopt</h1>
-            <p className="text-[11px] text-graphite/50">
-              {mode === "swipe"
-                ? "Swipe right if interested · left to pass"
-                : "Browse all animals ready for a home"}
-            </p>
+            {mode === "swipe" ? (
+              <p className="mt-0.5 text-xs leading-snug text-graphite/65">
+                Swipe{" "}
+                <span className="font-semibold text-evergreen">right</span> if
+                interested ·{" "}
+                <span className="font-semibold text-rescue">left</span> to pass
+              </p>
+            ) : (
+              <p className="mt-0.5 text-xs leading-snug text-graphite/65">
+                Browse all animals ready for a home
+              </p>
+            )}
           </div>
           <div className="flex shrink-0 rounded-full border border-sage/25 bg-bone p-0.5">
             <ModeChip
@@ -301,6 +385,7 @@ export function AdoptionMobileClient({
           animals={browse}
           interestedIds={new Set(interested.map((a) => a.id))}
           appliedIds={appliedIds}
+          onView={openDetail}
           onApply={openApply}
           onCancelInterest={async (animal) => {
             setPending(true);
@@ -530,10 +615,19 @@ function EmptySwipeState({
   );
 }
 
+function listCardBlurb(animal: AdoptionCardData): string {
+  const bio = animal.bio?.trim();
+  if (bio) return bio;
+  const temperament = animal.temperament?.trim();
+  if (temperament) return temperament;
+  return "Tap View for more about this animal.";
+}
+
 function BrowseList({
   animals,
   interestedIds,
   appliedIds,
+  onView,
   onApply,
   onCancelInterest,
   onInterest,
@@ -542,6 +636,7 @@ function BrowseList({
   animals: AdoptionCardData[];
   interestedIds: Set<string>;
   appliedIds: Set<string>;
+  onView: (animal: AdoptionCardData) => void;
   onApply: (animal: AdoptionCardData) => void;
   onCancelInterest: (animal: AdoptionCardData) => void | Promise<void>;
   onInterest: (animal: AdoptionCardData) => void | Promise<void>;
@@ -563,20 +658,36 @@ function BrowseList({
         return (
           <li
             key={animal.id}
-            className="flex gap-3 overflow-hidden rounded-2xl border border-sage/20 bg-white p-2.5 shadow-card"
+            className="flex items-stretch gap-3 overflow-hidden rounded-2xl border border-sage/20 bg-white p-2.5 shadow-card"
           >
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-sage/15">
-              {animal.photoUrl ? (
-                <Image
-                  src={animal.photoUrl}
-                  alt={animal.name}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              ) : null}
+            <div className="flex w-20 shrink-0 flex-col">
+              <button
+                type="button"
+                onClick={() => onView(animal)}
+                className="relative h-20 w-20 overflow-hidden rounded-xl bg-sage/15 active:opacity-90"
+                aria-label={`View details for ${animal.name}`}
+              >
+                {animal.photoUrl ? (
+                  <Image
+                    src={animal.photoUrl}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : null}
+              </button>
+              <button
+                type="button"
+                onClick={() => onView(animal)}
+                className="mt-1 flex h-5 w-full items-center justify-center gap-0.5 text-[10px] font-medium text-graphite/40 active:text-evergreen"
+                aria-label={`View details for ${animal.name}`}
+              >
+                <Eye className="h-2.5 w-2.5 opacity-70" aria-hidden />
+                View
+              </button>
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-1 flex-col">
               <p className="truncate font-semibold text-graphite">
                 {animal.name}
               </p>
@@ -590,16 +701,19 @@ function BrowseList({
                   {animal.shelterName}
                 </p>
               ) : null}
-              <div className="mt-2">
+              <p className="mt-1 line-clamp-2 min-h-[2rem] text-[11px] leading-snug text-graphite/60">
+                {listCardBlurb(animal)}
+              </p>
+              <div className="mt-auto pt-2">
                 {applied ? (
                   <span className="text-xs font-semibold text-evergreen">
-                    Application submitted
+                    Pending staff review
                   </span>
                 ) : liked ? (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-nowrap items-center gap-1.5">
                     <Button
                       size="sm"
-                      className="h-8 min-h-8 rounded-full px-2.5 text-xs"
+                      className="h-8 min-h-8 shrink rounded-full px-2.5 text-xs"
                       onClick={() => onApply(animal)}
                     >
                       Finish application
@@ -607,7 +721,7 @@ function BrowseList({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 min-h-8 rounded-full px-2.5 text-xs"
+                      className="h-8 min-h-8 shrink-0 rounded-full px-2.5 text-xs"
                       disabled={pending}
                       onClick={() => void onCancelInterest(animal)}
                     >
@@ -618,7 +732,7 @@ function BrowseList({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="min-h-9 rounded-full"
+                    className="h-8 min-h-8 rounded-full px-2.5 text-xs"
                     disabled={pending}
                     onClick={() => void onInterest(animal)}
                   >
@@ -631,6 +745,114 @@ function BrowseList({
         );
       })}
     </ul>
+  );
+}
+
+function AnimalDetailScreen({
+  animal,
+  applied,
+  liked,
+  pending,
+  onBack,
+  onApply,
+  onInterest,
+}: {
+  animal: AdoptionCardData;
+  applied: boolean;
+  liked: boolean;
+  pending: boolean;
+  onBack: () => void;
+  onApply: () => void;
+  onInterest: () => void | Promise<void>;
+}) {
+  return (
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="shrink-0 border-b border-sage/20 bg-white px-2 py-2.5">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-graphite/70 active:bg-bone"
+            aria-label="Back"
+          >
+            <ChevronLeft className="h-5 w-5" aria-hidden />
+          </button>
+          <div className="min-w-0 flex-1 pr-3">
+            <h1 className="truncate text-base font-bold text-graphite">
+              {animal.name}
+            </h1>
+            <p className="mt-1 text-[11px] leading-snug text-graphite/50">
+              Review details before applying. Shelter staff must approve
+              placement.
+            </p>
+          </div>
+        </div>
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <div className="overflow-hidden rounded-2xl border border-sage/20 bg-white shadow-card">
+          <div className="relative aspect-[4/3] bg-sage/15">
+            {animal.photoUrl ? (
+              <Image
+                src={animal.photoUrl}
+                alt={animal.name}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-graphite/40">
+                No photo
+              </div>
+            )}
+          </div>
+          <div className="space-y-2 p-3.5">
+            <p className="text-sm text-graphite/60">
+              {[formatStatus(animal.species), animal.estimatedAge, animal.sex]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            {animal.shelterName ? (
+              <p className="text-sm font-medium text-evergreen">
+                {animal.shelterName}
+              </p>
+            ) : null}
+            {animal.temperament ? (
+              <p className="text-sm text-graphite/75">{animal.temperament}</p>
+            ) : null}
+            {animal.bio ? (
+              <p className="text-sm leading-relaxed text-graphite/70">
+                {animal.bio}
+              </p>
+            ) : (
+              <p className="text-sm text-graphite/45">
+                No additional bio yet. Shelter staff can share more after you
+                apply.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="shrink-0 space-y-2 border-t border-sage/20 bg-white px-3 py-3">
+        {applied ? (
+          <p className="text-center text-sm font-semibold text-evergreen">
+            Application submitted · awaiting staff approval
+          </p>
+        ) : liked ? (
+          <Button className="min-h-11 w-full rounded-full" onClick={onApply}>
+            Finish application
+          </Button>
+        ) : (
+          <Button
+            className="min-h-11 w-full rounded-full"
+            disabled={pending}
+            onClick={() => void onInterest()}
+          >
+            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            I&apos;m interested · apply
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -720,9 +942,9 @@ function MatchPause({
       </div>
       <h2 className="mt-4 text-xl font-bold text-graphite">It&apos;s a match</h2>
       <p className="mt-2 max-w-xs text-sm text-graphite/60">
-        You liked {animal.name}. Fill out a short application now, or keep
-        swiping. Liked animals stay under &quot;finish application&quot; at the
-        top.
+        You liked {animal.name}. Submit a short application for staff review,
+        or keep swiping. Liked animals stay under &quot;finish application&quot;
+        at the top. Placement only happens after approval.
       </p>
       <div className="mt-6 flex w-full max-w-xs flex-col gap-2">
         <Button className="min-h-11 w-full rounded-full" onClick={onApply}>
@@ -753,7 +975,14 @@ function ShortApplyForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
+  const [fullName, setFullName] = useState(applicantName);
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [socialLink, setSocialLink] = useState("");
   const [homeType, setHomeType] = useState("house");
+  const [hasYard, setHasYard] = useState(false);
+  const [hasOtherPets, setHasOtherPets] = useState(false);
+  const [householdSize, setHouseholdSize] = useState(1);
   const [motivation, setMotivation] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -764,11 +993,16 @@ function ShortApplyForm({
     setError(null);
     const result = await submitAdoptionApplicationAction({
       animalId: animal.id,
-      applicantName,
+      applicantName: fullName,
       applicantEmail,
+      applicantPhone: phone,
+      applicantCity: city,
+      socialLink: socialLink || undefined,
       homeType,
+      hasYard,
+      hasOtherPets,
+      householdSize,
       motivation,
-      householdSize: 1,
     });
     setPending(false);
     if (result.error) {
@@ -776,58 +1010,199 @@ function ShortApplyForm({
       return;
     }
     setDone(true);
-    window.setTimeout(() => onDone(), 900);
+    window.setTimeout(() => onDone(), 1100);
   }
 
   if (done) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center">
         <CheckCircle2 className="h-10 w-10 text-evergreen" aria-hidden />
-        <p className="mt-3 font-semibold text-graphite">Interest submitted</p>
-        <p className="mt-1 text-sm text-graphite/55">
-          Shelter staff will review your application.
+        <p className="mt-3 font-semibold text-graphite">
+          Application submitted
+        </p>
+        <p className="mt-1 max-w-xs text-sm text-graphite/55">
+          Shelter staff will review and contact you. {animal.name} stays at
+          the shelter until approved.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-sm space-y-4">
+    <div className="mx-auto w-full max-w-sm space-y-4 pb-4">
       <div>
         <h2 className="text-lg font-bold text-graphite">
-          Interest in {animal.name}
+          Apply for {animal.name}
         </h2>
         <p className="mt-1 text-xs text-graphite/55">
-          Submitting as {applicantName} ({applicantEmail})
+          Enter your contact details so shelter staff can review and reach you.
+          Placement only happens after approval.
         </p>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-sm font-semibold">Home type</Label>
+      <div className="space-y-3 rounded-2xl border border-sage/20 bg-white p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-graphite/45">
+          Personal details
+        </p>
+
+        <div className="space-y-2">
+          <Label htmlFor="adopt-name" className="text-sm font-semibold">
+            Full name <span className="text-rescue">*</span>
+          </Label>
+          <Input
+            id="adopt-name"
+            autoComplete="name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Name as staff should contact you"
+            maxLength={100}
+            className="min-h-11 rounded-xl"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="adopt-email" className="text-sm font-semibold">
+            Email
+          </Label>
+          <Input
+            id="adopt-email"
+            type="email"
+            value={applicantEmail}
+            readOnly
+            className="min-h-11 rounded-xl bg-bone/60 text-graphite/70"
+          />
+          <p className="text-[11px] text-graphite/45">
+            Linked to your ResCutes account
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="adopt-phone" className="text-sm font-semibold">
+            Phone <span className="text-rescue">*</span>
+          </Label>
+          <Input
+            id="adopt-phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+63…"
+            maxLength={20}
+            className="min-h-11 rounded-xl"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="adopt-city" className="text-sm font-semibold">
+            City / area <span className="text-rescue">*</span>
+          </Label>
+          <Input
+            id="adopt-city"
+            autoComplete="address-level2"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="e.g. Quezon City, Marikina"
+            maxLength={80}
+            className="min-h-11 rounded-xl"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="adopt-social" className="text-sm font-semibold">
+            Social profile{" "}
+            <span className="font-normal text-graphite/45">(optional)</span>
+          </Label>
+          <Input
+            id="adopt-social"
+            type="url"
+            autoComplete="url"
+            value={socialLink}
+            onChange={(e) => setSocialLink(e.target.value)}
+            placeholder="Facebook / Instagram URL or @handle"
+            maxLength={200}
+            className="min-h-11 rounded-xl"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-sage/20 bg-white p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-graphite/45">
+          Home
+        </p>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold">Home type</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {HOME_TYPE_OPTIONS.filter((o) => o.value !== OTHER_VALUE).map(
+              (opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setHomeType(opt.value)}
+                  className={cn(
+                    "min-h-11 rounded-xl border px-3 text-left text-sm font-medium",
+                    homeType === opt.value
+                      ? "border-evergreen bg-evergreen/8 text-evergreen"
+                      : "border-sage/30 bg-white text-graphite/70",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-2">
-          {HOME_TYPE_OPTIONS.filter((o) => o.value !== OTHER_VALUE).map(
-            (opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setHomeType(opt.value)}
-                className={cn(
-                  "min-h-11 rounded-xl border px-3 text-left text-sm font-medium",
-                  homeType === opt.value
-                    ? "border-evergreen bg-evergreen/8 text-evergreen"
-                    : "border-sage/30 bg-white text-graphite/70",
-                )}
-              >
-                {opt.label}
-              </button>
-            ),
-          )}
+          <button
+            type="button"
+            onClick={() => setHasYard((v) => !v)}
+            className={cn(
+              "min-h-11 rounded-xl border px-3 text-left text-sm font-medium",
+              hasYard
+                ? "border-evergreen bg-evergreen/8 text-evergreen"
+                : "border-sage/30 bg-white text-graphite/70",
+            )}
+            aria-pressed={hasYard}
+          >
+            Has yard
+          </button>
+          <button
+            type="button"
+            onClick={() => setHasOtherPets((v) => !v)}
+            className={cn(
+              "min-h-11 rounded-xl border px-3 text-left text-sm font-medium",
+              hasOtherPets
+                ? "border-evergreen bg-evergreen/8 text-evergreen"
+                : "border-sage/30 bg-white text-graphite/70",
+            )}
+            aria-pressed={hasOtherPets}
+          >
+            Other pets
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="household-size" className="text-sm font-semibold">
+            People in household
+          </Label>
+          <Input
+            id="household-size"
+            type="number"
+            min={1}
+            max={30}
+            inputMode="numeric"
+            value={householdSize}
+            onChange={(e) => setHouseholdSize(Number(e.target.value) || 1)}
+            className="min-h-11 rounded-xl"
+          />
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="motivation" className="text-sm font-semibold">
-          Why this animal?
+          Why this animal? <span className="text-rescue">*</span>
         </Label>
         <Textarea
           id="motivation"
@@ -835,10 +1210,15 @@ function ShortApplyForm({
           onChange={(e) => setMotivation(e.target.value)}
           rows={4}
           maxLength={2000}
-          placeholder="Share a short note for shelter staff..."
+          placeholder="Short note for shelter staff..."
           className="rounded-xl"
         />
       </div>
+
+      <p className="text-[11px] leading-relaxed text-graphite/50">
+        Submitting sends your application for staff review. Placement only
+        happens after approval.
+      </p>
 
       {error ? (
         <p className="text-sm text-rescue" role="alert">

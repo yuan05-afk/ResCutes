@@ -23,7 +23,8 @@ import {
   validateAnimalProfilePayload,
   validateEmail,
   validateOptionalText,
-  validatePhoneOptional,
+  validatePhoneRequired,
+  validateSocialLinkOptional,
 } from "@/lib/forms/animal-field-options";
 
 function canManageAdoption(roles: Parameters<typeof canManageCases>[0]) {
@@ -133,6 +134,8 @@ export async function submitAdoptionApplicationAction(input: {
   applicantName: string;
   applicantEmail: string;
   applicantPhone?: string;
+  socialLink?: string;
+  applicantCity?: string;
   homeType: string;
   hasYard?: boolean;
   hasOtherPets?: boolean;
@@ -143,19 +146,37 @@ export async function submitAdoptionApplicationAction(input: {
   const session = await auth();
   if (!session?.user) return { error: "Unauthorized" };
 
+  const staffLogging = canManageAdoption(session.user.roles);
+
+  // Adopters enter their real name on the form; email stays tied to the account.
   const name = input.applicantName.trim();
-  if (!name) return { error: "Applicant name is required" };
-  const nameErr = validateOptionalText("Applicant name", name, {
+  const email = staffLogging
+    ? input.applicantEmail.trim().toLowerCase()
+    : session.user.email.trim().toLowerCase();
+
+  if (!name) return { error: "Full name is required" };
+  const nameErr = validateOptionalText("Full name", name, {
     minLen: 2,
     maxLen: 100,
   });
   if (nameErr) return { error: nameErr };
 
-  const emailErr = validateEmail(input.applicantEmail);
+  const emailErr = validateEmail(email);
   if (emailErr) return { error: emailErr };
 
-  const phoneErr = validatePhoneOptional(input.applicantPhone ?? "");
+  const phoneErr = validatePhoneRequired(input.applicantPhone ?? "");
   if (phoneErr) return { error: phoneErr };
+
+  const city = (input.applicantCity ?? "").trim();
+  if (!city) return { error: "City or area is required" };
+  const cityErr = validateOptionalText("City / area", city, {
+    minLen: 2,
+    maxLen: 80,
+  });
+  if (cityErr) return { error: cityErr };
+
+  const socialErr = validateSocialLinkOptional(input.socialLink ?? "");
+  if (socialErr) return { error: socialErr };
 
   if (
     !isAllowedCatalogOrOther(input.homeType, HOME_TYPE_OPTIONS, {
@@ -182,18 +203,27 @@ export async function submitAdoptionApplicationAction(input: {
   if (expErr) return { error: expErr };
 
   const motivation = input.motivation.trim();
-  if (!motivation) return { error: "Motivation is required" };
+  if (!motivation) return { error: "Please share why you want this animal" };
   const motErr = validateOptionalText("Motivation", motivation, {
     minLen: 10,
     maxLen: 2000,
   });
   if (motErr) return { error: motErr };
 
+  const socialLink = input.socialLink?.trim() || undefined;
+  const normalizedSocial = socialLink
+    ? socialLink.startsWith("@") || /^https?:\/\//i.test(socialLink)
+      ? socialLink
+      : `https://${socialLink}`
+    : undefined;
+
   const result = await createAdoptionApplication({
     animalId: input.animalId,
     applicantName: name,
-    applicantEmail: input.applicantEmail.trim().toLowerCase(),
-    applicantPhone: input.applicantPhone?.trim() || undefined,
+    applicantEmail: email,
+    applicantPhone: input.applicantPhone!.trim(),
+    socialLink: normalizedSocial,
+    applicantCity: city,
     homeType: input.homeType.trim(),
     hasYard: input.hasYard,
     hasOtherPets: input.hasOtherPets,

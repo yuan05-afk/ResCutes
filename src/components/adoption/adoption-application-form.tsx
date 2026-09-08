@@ -16,8 +16,9 @@ import {
   resolveSelectOther,
   validateEmail,
   validateOptionalText,
-  validatePhoneOptional,
+  validatePhoneRequired,
   validateSelectOther,
+  validateSocialLinkOptional,
 } from "@/lib/forms/animal-field-options";
 
 interface AdoptionApplicationFormProps {
@@ -35,6 +36,8 @@ export function AdoptionApplicationForm({
   const [applicantName, setApplicantName] = useState("");
   const [applicantEmail, setApplicantEmail] = useState("");
   const [applicantPhone, setApplicantPhone] = useState("");
+  const [socialLink, setSocialLink] = useState("");
+  const [applicantCity, setApplicantCity] = useState("");
   const [homeChoice, setHomeChoice] = useState("house");
   const [homeOther, setHomeOther] = useState("");
   const [hasYard, setHasYard] = useState(false);
@@ -48,6 +51,8 @@ export function AdoptionApplicationForm({
     setApplicantName("");
     setApplicantEmail("");
     setApplicantPhone("");
+    setSocialLink("");
+    setApplicantCity("");
     setHomeChoice("house");
     setHomeOther("");
     setHasYard(false);
@@ -77,8 +82,20 @@ export function AdoptionApplicationForm({
     const emailErr = validateEmail(applicantEmail);
     if (emailErr) next.email = emailErr;
 
-    const phoneErr = validatePhoneOptional(applicantPhone);
+    const phoneErr = validatePhoneRequired(applicantPhone);
     if (phoneErr) next.phone = phoneErr;
+
+    const socialErr = validateSocialLinkOptional(socialLink);
+    if (socialErr) next.social = socialErr;
+
+    if (!applicantCity.trim()) next.city = "City / area is required.";
+    else {
+      const cityErr = validateOptionalText("City / area", applicantCity, {
+        minLen: 2,
+        maxLen: 80,
+      });
+      if (cityErr) next.city = cityErr;
+    }
 
     const homeErr = validateSelectOther("Home type", homeChoice, homeOther, {
       required: true,
@@ -121,7 +138,9 @@ export function AdoptionApplicationForm({
           animalId: animal.id,
           applicantName,
           applicantEmail,
-          applicantPhone: applicantPhone || undefined,
+          applicantPhone,
+          socialLink: socialLink || undefined,
+          applicantCity,
           homeType,
           hasYard,
           hasOtherPets,
@@ -174,7 +193,7 @@ export function AdoptionApplicationForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="applicant-name">
-              Applicant name <span className="text-rescue">*</span>
+              Full name <span className="text-rescue">*</span>
             </Label>
             <Input
               id="applicant-name"
@@ -205,7 +224,9 @@ export function AdoptionApplicationForm({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="applicant-phone">Phone</Label>
+            <Label htmlFor="applicant-phone">
+              Phone <span className="text-rescue">*</span>
+            </Label>
             <Input
               id="applicant-phone"
               value={applicantPhone}
@@ -213,11 +234,47 @@ export function AdoptionApplicationForm({
               className="h-9"
               placeholder="+63…"
               maxLength={20}
+              inputMode="tel"
+              autoComplete="tel"
             />
             {fieldErrors.phone ? (
               <p className="text-[11px] text-rescue">{fieldErrors.phone}</p>
             ) : null}
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="social-link">Social profile (optional)</Label>
+            <Input
+              id="social-link"
+              value={socialLink}
+              onChange={(e) => setSocialLink(e.target.value)}
+              className="h-9"
+              placeholder="Facebook / Instagram URL or @handle"
+              maxLength={200}
+              autoComplete="url"
+            />
+            {fieldErrors.social ? (
+              <p className="text-[11px] text-rescue">{fieldErrors.social}</p>
+            ) : null}
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="applicant-city">
+            City / area <span className="text-rescue">*</span>
+          </Label>
+          <Input
+            id="applicant-city"
+            value={applicantCity}
+            onChange={(e) => setApplicantCity(e.target.value)}
+            className="h-9"
+            placeholder="e.g. Quezon City, Marikina"
+            maxLength={80}
+            autoComplete="address-level2"
+          />
+          {fieldErrors.city ? (
+            <p className="text-[11px] text-rescue">{fieldErrors.city}</p>
+          ) : null}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
           <SelectWithOtherSplit
             id="home-type"
             label="Home type"
@@ -229,26 +286,6 @@ export function AdoptionApplicationForm({
             required
             error={fieldErrors.home}
           />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="flex items-center gap-2 text-sm text-graphite">
-            <input
-              type="checkbox"
-              checked={hasYard}
-              onChange={(e) => setHasYard(e.target.checked)}
-              className="rounded border-sage/40"
-            />
-            Has yard
-          </label>
-          <label className="flex items-center gap-2 text-sm text-graphite">
-            <input
-              type="checkbox"
-              checked={hasOtherPets}
-              onChange={(e) => setHasOtherPets(e.target.checked)}
-              className="rounded border-sage/40"
-            />
-            Other pets
-          </label>
           <div className="space-y-1.5">
             <Label htmlFor="household-size">Household size</Label>
             <Input
@@ -265,8 +302,28 @@ export function AdoptionApplicationForm({
             ) : null}
           </div>
         </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex min-h-11 items-center gap-2 text-sm text-graphite">
+            <input
+              type="checkbox"
+              checked={hasYard}
+              onChange={(e) => setHasYard(e.target.checked)}
+              className="rounded border-sage/40"
+            />
+            Has yard / outdoor space
+          </label>
+          <label className="flex min-h-11 items-center gap-2 text-sm text-graphite">
+            <input
+              type="checkbox"
+              checked={hasOtherPets}
+              onChange={(e) => setHasOtherPets(e.target.checked)}
+              className="rounded border-sage/40"
+            />
+            Other pets at home
+          </label>
+        </div>
         <div className="space-y-1.5">
-          <Label htmlFor="experience-notes">Experience notes</Label>
+          <Label htmlFor="experience-notes">Experience notes (optional)</Label>
           <Textarea
             id="experience-notes"
             rows={2}
@@ -281,7 +338,7 @@ export function AdoptionApplicationForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="motivation">
-            Motivation <span className="text-rescue">*</span>
+            Why this animal? <span className="text-rescue">*</span>
           </Label>
           <Textarea
             id="motivation"
@@ -290,12 +347,16 @@ export function AdoptionApplicationForm({
             onChange={(e) => setMotivation(e.target.value)}
             className="resize-none text-sm"
             maxLength={2000}
-            placeholder="Why this animal is a good fit (min 10 characters)"
+            placeholder="Short note for shelter staff (min 10 characters)"
           />
           {fieldErrors.motivation ? (
             <p className="text-[11px] text-rescue">{fieldErrors.motivation}</p>
           ) : null}
         </div>
+        <p className="text-[11px] text-graphite/50">
+          Applications stay pending until shelter staff approve. Animals are
+          not placed until review is complete.
+        </p>
       </div>
     </AdminModal>
   );

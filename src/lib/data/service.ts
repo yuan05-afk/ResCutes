@@ -1193,6 +1193,8 @@ export async function createAdoptionApplication(input: {
   applicantName: string;
   applicantEmail: string;
   applicantPhone?: string;
+  socialLink?: string;
+  applicantCity?: string;
   homeType: string;
   hasYard?: boolean;
   hasOtherPets?: boolean;
@@ -1204,8 +1206,41 @@ export async function createAdoptionApplication(input: {
   if (!animal) {
     return { ok: false as const, error: "Animal not found" };
   }
+  if (
+    animal.pathwayStage !== "ready_for_adoption" &&
+    animal.pathwayStage !== "ready_for_foster"
+  ) {
+    return {
+      ok: false as const,
+      error: "This animal is not open for adoption applications",
+    };
+  }
 
-  const application = await (await dataRepo()).insertAdoptionApplication(input);
+  const email = input.applicantEmail.trim().toLowerCase();
+  const existing = await getAdoptionApplications({ animalId: input.animalId });
+  const openStatuses = new Set([
+    "pending",
+    "under_review",
+    "approved",
+    "completed",
+  ]);
+  if (
+    existing.some(
+      (app) =>
+        app.applicantEmail.trim().toLowerCase() === email &&
+        openStatuses.has(app.status),
+    )
+  ) {
+    return {
+      ok: false as const,
+      error: "You already have an application for this animal",
+    };
+  }
+
+  const application = await (await dataRepo()).insertAdoptionApplication({
+    ...input,
+    applicantEmail: email,
+  });
 
   const staffUsers = await (await dataRepo()).fetchStaffUsersByRole(
     "shelter_staff",
@@ -1215,7 +1250,7 @@ export async function createAdoptionApplication(input: {
       userId: staff.id,
       type: "adoption",
       title: "New adoption application",
-      message: `${input.applicantName} applied for ${animal.name ?? animal.temporaryId}.`,
+      message: `${input.applicantName} applied for ${animal.name ?? animal.temporaryId}. Review required before placement.`,
       caseId: animal.rescueCaseId,
     });
   }

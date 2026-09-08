@@ -7,7 +7,7 @@ export const SITE_URL =
 
 export const SITE_NAME = "ResCutes";
 
-export const SITE_TAGLINE = "From report to safe shelter intake";
+export const SITE_TAGLINE = "From report to rescue, care, and adoption.";
 
 export const SITE_DESCRIPTION =
   "ResCutes connects citizens, rescuers, shelters, and veterinarians through one coordinated animal rescue workflow in the Philippines.";

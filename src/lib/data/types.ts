@@ -121,6 +121,8 @@ export interface AdoptionApplicationRecord {
   applicantName: string;
   applicantEmail: string;
   applicantPhone?: string;
+  socialLink?: string;
+  applicantCity?: string;
   homeType: string;
   hasYard: boolean;
   hasOtherPets: boolean;

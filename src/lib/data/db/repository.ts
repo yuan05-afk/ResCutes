@@ -505,6 +505,8 @@ function mapAdoptionApplicationRow(
     applicantName: row.applicantName,
     applicantEmail: row.applicantEmail,
     applicantPhone: row.applicantPhone ?? undefined,
+    socialLink: row.socialLink ?? undefined,
+    applicantCity: row.applicantCity ?? undefined,
     homeType: row.homeType,
     hasYard: row.hasYard,
     hasOtherPets: row.hasOtherPets,
@@ -1141,6 +1143,8 @@ export async function insertAdoptionApplication(input: {
   applicantName: string;
   applicantEmail: string;
   applicantPhone?: string;
+  socialLink?: string;
+  applicantCity?: string;
   homeType: string;
   hasYard?: boolean;
   hasOtherPets?: boolean;
@@ -1156,6 +1160,8 @@ export async function insertAdoptionApplication(input: {
       applicantName: input.applicantName,
       applicantEmail: input.applicantEmail,
       applicantPhone: input.applicantPhone,
+      socialLink: input.socialLink,
+      applicantCity: input.applicantCity,
       homeType: input.homeType,
       hasYard: input.hasYard ?? false,
       hasOtherPets: input.hasOtherPets ?? false,

@@ -13,6 +13,7 @@ import {
 } from "motion/react";
 import { Bricolage_Grotesque, Manrope } from "next/font/google";
 import { DEMO_ACCOUNTS, ROLE_LABELS, type Role } from "@/lib/auth/permissions";
+import { SITE_TAGLINE } from "@/lib/site";
 import { ParallaxBackground } from "@/components/landing/parallax-media";
 import { WorkflowSteps } from "@/components/landing/workflow-steps";
 import { cn } from "@/lib/utils";
@@ -213,7 +214,7 @@ export function LandingPage() {
                   variants={fadeUp}
                   className="landing-display mt-5 max-w-xl text-balance text-[clamp(1.55rem,3.4vw,2.35rem)] font-medium leading-[1.2] text-white"
                 >
-                  From report to safe shelter intake
+                  {SITE_TAGLINE}
                 </motion.h1>
                 <motion.p
                   variants={fadeUp}
