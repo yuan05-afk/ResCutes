@@ -135,35 +135,40 @@ export function ModalTabs({
   active,
   onChange,
   className,
+  wrap = false,
 }: {
   tabs: { id: string; label: string }[];
   active: string;
   onChange: (id: string) => void;
   className?: string;
+  /** When true, tabs wrap instead of scrolling horizontally. */
+  wrap?: boolean;
 }) {
   return (
     <div
+      className={cn(
+        "flex shrink-0 gap-1 rounded-lg border border-sage/20 bg-bone/60 p-1",
+        wrap ? "flex-wrap" : "overflow-x-auto",
+        className,
+      )}
+      role="tablist"
+    >
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          role="tab"
+          aria-selected={active === tab.id}
+          onClick={() => onChange(tab.id)}
           className={cn(
-            "flex shrink-0 gap-1 overflow-x-auto rounded-lg border border-sage/20 bg-bone/60 p-1",
-            className,
+            "rounded-md px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-evergreen/40",
+            wrap ? "min-h-11 grow sm:grow-0" : "shrink-0",
+            active === tab.id
+              ? "bg-white text-evergreen shadow-sm"
+              : "text-graphite/55 hover:bg-white/60 hover:text-graphite",
           )}
-          role="tablist"
         >
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={active === tab.id}
-              onClick={() => onChange(tab.id)}
-              className={cn(
-                "shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-evergreen/40",
-                active === tab.id
-                  ? "bg-white text-evergreen shadow-sm"
-                  : "text-graphite/55 hover:bg-white/60 hover:text-graphite",
-              )}
-            >
           {tab.label}
         </button>
       ))}

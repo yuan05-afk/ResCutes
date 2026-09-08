@@ -93,6 +93,17 @@ test.describe("Map legend layout", () => {
     const itemCount = await items.count();
     expect(itemCount).toBeGreaterThanOrEqual(1);
 
+    // Compact labels (Shelter / Crit / High / Std) must stay fully visible.
+    const standard = legend.getByText(/^(Standard|Std)$/);
+    await expect(standard.first()).toBeVisible();
+    const standardBox = await standard.first().boundingBox();
+    const legendBoxAfter = await legend.boundingBox();
+    expect(standardBox).not.toBeNull();
+    expect(legendBoxAfter).not.toBeNull();
+    expect(standardBox!.x + standardBox!.width).toBeLessThanOrEqual(
+      legendBoxAfter!.x + legendBoxAfter!.width + 1,
+    );
+
     if (itemCount >= 2) {
       const a = await items.nth(0).boundingBox();
       const b = await items.nth(1).boundingBox();

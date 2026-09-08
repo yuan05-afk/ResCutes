@@ -161,6 +161,7 @@ export function HomeMapClient({
       {
         id: "shelters",
         label: "Shelters",
+        compactLabel: "Shelter",
         description: "Rescue shelters and partners",
         color: SHELTER_PIN_COLOR,
       },
@@ -170,18 +171,21 @@ export function HomeMapClient({
         {
           id: "critical",
           label: "Critical",
+          compactLabel: "Crit",
           description: "Highest urgency field cases",
           color: MAP_MARKER_COLORS.critical,
         },
         {
           id: "high",
           label: "High",
+          compactLabel: "High",
           description: "High urgency field cases",
           color: MAP_MARKER_COLORS.high,
         },
         {
           id: "standard",
           label: "Standard",
+          compactLabel: "Std",
           description: "Medium and low urgency cases",
           color: MAP_MARKER_COLORS.standard,
         },

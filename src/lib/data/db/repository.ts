@@ -1494,7 +1494,19 @@ export async function fetchAssignmentsForCases(
   return result;
 }
 
+/**
+ * Wipe workflow tables for integration tests.
+ *
+ * SAFETY: Refuses to run unless ALLOW_DESTRUCTIVE_DB_TESTS=1.
+ * Never point that flag at the shared Neon demo/production database.
+ * Use a dedicated Neon branch (or local DB) for vitest workflow suites.
+ */
 export async function clearWorkflowDataForTests(): Promise<void> {
+  if (process.env.ALLOW_DESTRUCTIVE_DB_TESTS !== "1") {
+    throw new Error(
+      "Refusing to wipe rescue_cases/animals/reports. Set ALLOW_DESTRUCTIVE_DB_TESTS=1 only on a dedicated test database (not the shared demo Neon).",
+    );
+  }
   const db = getDb();
   await db.delete(notifications);
   await db.delete(animalNotes);

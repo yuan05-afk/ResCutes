@@ -15,12 +15,15 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:seed": "tsx src/db/seed.ts",
-    "db:seed-animals": "tsx src/db/seed-animals.ts",
-    "db:migrate-rescue-stages": "tsx scripts/migrate-rescue-stages.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "vitest run --config vitest.db.config.ts",
     "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:seed-animals": "tsx src/db/seed-animals.ts",
+    "db:cleanup-qa": "tsx scripts/cleanup-qa-artifacts.ts",
+    "db:migrate-rescue-stages": "tsx scripts/migrate-rescue-stages.ts",
     "fetch:osm-shelters": "node scripts/fetch-osm-shelters.mjs"
   },
   "dependencies": {

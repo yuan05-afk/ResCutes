@@ -196,8 +196,11 @@ export function CaseStaffActions({
             className="min-h-[4rem] resize-none text-sm"
           />
           {!rejectReason.trim() ? (
-            <p className="text-[11px] text-graphite/50">
-              Add a rejection reason to enable the Reject button.
+            <p
+              className="rounded-md border border-ochre/25 bg-ochre/8 px-2.5 py-1.5 text-[11px] font-medium text-ochre"
+              role="status"
+            >
+              Enter a rejection reason below to enable Reject.
             </p>
           ) : null}
         </ActionBlock>

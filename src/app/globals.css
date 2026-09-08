@@ -254,15 +254,15 @@
   box-shadow: 0 1px 2px rgba(24, 60, 53, 0.12);
 }
 
-/* Compact Mapbox wordmark so the bottom legend has room for full labels. */
+/* Compact Mapbox wordmark so the bottom legend has room for labels. */
 .rescutes-map .mapboxgl-ctrl-logo {
-  width: 48px !important;
-  height: 12px !important;
-  margin: 0 0 3px 3px !important;
+  width: 44px !important;
+  height: 11px !important;
+  margin: 0 0 3px 2px !important;
 }
 
 .rescutes-map .mapboxgl-ctrl-bottom-left {
-  max-width: 56px;
+  max-width: 50px;
 }
 
 .rescutes-map .mapboxgl-ctrl-top-left {

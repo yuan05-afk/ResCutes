@@ -29,17 +29,22 @@ function measureLegendPlacement(
 
   const mapRect = mapRoot.getBoundingClientRect();
   const logoRect = logo.getBoundingClientRect();
-  const gap = compact ? 8 : 10;
-  const rightReserve = compact ? 6 : 12;
+  const gap = compact ? 6 : 10;
+  const rightReserve = compact ? 4 : 12;
 
   const left = Math.ceil(logoRect.right - mapRect.left + gap);
   const bottom = Math.max(6, Math.round(mapRect.bottom - logoRect.bottom));
   const maxWidth = Math.max(
-    180,
+    compact ? 200 : 180,
     Math.floor(mapRect.width - left - rightReserve),
   );
 
   return { left, bottom, maxWidth };
+}
+
+function displayLabel(item: MapLegendItem, compact: boolean) {
+  if (compact && item.compactLabel) return item.compactLabel;
+  return item.label;
 }
 
 export function MapLegend({
@@ -97,7 +102,7 @@ export function MapLegend({
 
     const fit = () => {
       listEl.style.transform = "none";
-      const padX = compact ? 12 : 16;
+      const padX = compact ? 10 : 16;
       const maxOuter =
         placement?.maxWidth ??
         Math.max(180, legendEl.parentElement?.clientWidth ?? 280);
@@ -110,14 +115,13 @@ export function MapLegend({
 
       const neededOuter = neededInner + padX;
       if (neededOuter <= maxOuter) {
-        // Pill grows to hug every label (including Standard).
         setFitScale(1);
         setPillWidth(neededOuter);
         return;
       }
 
-      // Only scale when the map truly cannot fit the full row.
-      const scale = (maxOuter - padX) / neededInner;
+      // Prefer short compact labels over aggressive shrink so text stays readable.
+      const scale = Math.max(0.92, (maxOuter - padX) / neededInner);
       setFitScale(scale);
       setPillWidth(maxOuter);
     };
@@ -128,13 +132,13 @@ export function MapLegend({
     return () => observer.disconnect();
   }, [items, placement?.maxWidth, compact, placement?.left]);
 
-  const fallbackLeftPx = compact ? 56 : 104;
+  const fallbackLeftPx = compact ? 52 : 104;
 
   return (
     <div
       ref={legendRef}
       className={cn(
-        "pointer-events-auto absolute z-10 overflow-hidden",
+        "pointer-events-auto absolute z-10",
         "flex shrink-0 items-center rounded-md border border-sage/25 bg-white/94 shadow-card backdrop-blur-sm",
         compact ? "h-7 gap-1 px-1.5" : "h-6 gap-2 px-2",
         className,
@@ -146,7 +150,7 @@ export function MapLegend({
           width: pillWidth ?? undefined,
           maxWidth:
             placement?.maxWidth ??
-            (compact ? "calc(100% - 3.5rem)" : "calc(100% - 7rem)"),
+            (compact ? "calc(100% - 3.25rem)" : "calc(100% - 7rem)"),
         } as CSSProperties
       }
       role="region"
@@ -156,7 +160,7 @@ export function MapLegend({
         ref={listRef}
         className={cn(
           "flex w-max flex-nowrap items-center origin-left",
-          compact ? "gap-x-1.5" : "gap-x-3",
+          compact ? "gap-x-1" : "gap-x-3",
         )}
         style={{
           transform: fitScale < 0.999 ? `scale(${fitScale})` : undefined,
@@ -164,6 +168,11 @@ export function MapLegend({
       >
         {items.map((item) => {
           const hidden = hiddenLayerIds?.has(item.id) ?? false;
+          const visible = displayLabel(item, compact);
+          const fullName = item.label;
+          const hint = item.description
+            ? `${fullName}: ${item.description}`
+            : fullName;
           const content = (
             <>
               <span
@@ -178,12 +187,12 @@ export function MapLegend({
                 className={cn(
                   "rescutes-map-legend-label whitespace-nowrap font-semibold text-graphite transition-colors duration-200",
                   compact
-                    ? "text-[9px] leading-snug"
+                    ? "text-[9px] leading-snug tracking-wide"
                     : "text-[10px] leading-[1.15]",
                   !hidden && "group-hover:text-evergreen",
                 )}
               >
-                {item.label}
+                {visible}
               </span>
             </>
           );
@@ -197,7 +206,8 @@ export function MapLegend({
                     compact ? "px-0.5 py-0.5" : "px-1 py-0.5",
                     "hover:bg-bone/90",
                   )}
-                  title={item.description}
+                  title={hint}
+                  aria-label={hint}
                 >
                   {content}
                 </div>
@@ -215,7 +225,16 @@ export function MapLegend({
                   "hover:bg-bone/90",
                   hidden && "rescutes-map-legend-item--hidden",
                 )}
-                title={hidden ? `Show ${item.label}` : `Hide ${item.label}`}
+                title={
+                  hidden
+                    ? `Show ${fullName}. ${item.description}`
+                    : `Hide ${fullName}. ${item.description}`
+                }
+                aria-label={
+                  hidden
+                    ? `Show ${fullName} layer`
+                    : `Hide ${fullName} layer`
+                }
                 aria-pressed={!hidden}
                 onClick={() => onToggleLayer?.(item.id)}
               >

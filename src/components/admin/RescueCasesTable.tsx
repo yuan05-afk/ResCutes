@@ -99,6 +99,7 @@ export function RescueCasesTable({ cases, rescuers }: RescueCasesTableProps) {
                       containerClassName="h-14 w-14 shrink-0 rounded-lg"
                       sizes="56px"
                       objectPosition="center top"
+                      expandable={false}
                     />
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">

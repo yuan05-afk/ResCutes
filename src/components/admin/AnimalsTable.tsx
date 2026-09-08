@@ -179,6 +179,7 @@ export function AnimalsTable({
                         containerClassName="h-14 w-14 shrink-0 rounded-lg"
                         sizes="56px"
                         objectPosition="center top"
+                        expandable={false}
                       />
                       <div className="min-w-0 flex-1 space-y-1.5">
                         <p className="font-semibold text-graphite">

@@ -17,6 +17,8 @@ import { TransferToAdoptionPanel } from "@/components/medical/transfer-to-adopti
 import { AnimalImage } from "@/components/ui/animal-image";
 import { StatusBadge } from "@/components/status/status-badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { ToastViewport } from "@/components/ui/toast";
 import { getCasePhotoUrl } from "@/lib/demo-images";
 import { formatDate, formatStatus, cn, hasMeaningfulValue } from "@/lib/utils";
@@ -291,15 +293,33 @@ export function MedicalWorkspace({
           </ol>
         </div>
 
-        <ModalTabs
-          tabs={TAB_ORDER.map((id) => ({
-            id,
-            label: `${formatStatus(id)} (${counts[id]})`,
-          }))}
-          active={tab}
-          onChange={(id) => selectTab(id as QueueTab)}
-          className="overflow-x-auto"
-        />
+        {/* Narrow: dropdown so stages are never clipped. Wider: wrapping tabs. */}
+        <div className="space-y-1.5 sm:hidden">
+          <Label htmlFor="medical-queue-stage">Queue stage</Label>
+          <Select
+            id="medical-queue-stage"
+            value={tab}
+            onChange={(e) => selectTab(e.target.value as QueueTab)}
+            aria-label="Filter medical queue by stage"
+          >
+            {TAB_ORDER.map((id) => (
+              <option key={id} value={id}>
+                {formatStatus(id)} ({counts[id]})
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="hidden sm:block">
+          <ModalTabs
+            wrap
+            tabs={TAB_ORDER.map((id) => ({
+              id,
+              label: `${formatStatus(id)} (${counts[id]})`,
+            }))}
+            active={tab}
+            onChange={(id) => selectTab(id as QueueTab)}
+          />
+        </div>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
           {/* Queue list */}
