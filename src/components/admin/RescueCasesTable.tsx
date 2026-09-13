@@ -132,7 +132,8 @@ export function RescueCasesTable({ cases, rescuers }: RescueCasesTableProps) {
             )}
           </div>
 
-          <div className="hidden md:block">
+          {/* Must be a flex column so TableBodyPane can shrink and keep PaginationBar visible. */}
+          <div className="hidden min-h-0 flex-1 flex-col md:flex">
           <TableHeaderPane
             headerRef={headerRef}
             minWidth={TABLE_MIN_WIDTH}
